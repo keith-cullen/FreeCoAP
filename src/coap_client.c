@@ -12,7 +12,7 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -171,7 +171,7 @@ static int coap_client_start_timer(coap_client_t *client)
 
 static int coap_client_start_ack_timer(coap_client_t *client)
 {
-    client->retransmit = 0;
+    client->num_retrans = 0;
     coap_client_init_ack_timeout(client);
     return coap_client_start_timer(client);
 }
@@ -180,7 +180,7 @@ static int coap_client_update_ack_timer(coap_client_t *client)
 {
     int ret = 0;
 
-    if (client->retransmit >= COAP_CLIENT_MAX_RETRANSMIT)
+    if (client->num_retrans >= COAP_CLIENT_MAX_RETRANSMIT)
     {
         return -ETIMEDOUT;
     }
@@ -190,7 +190,7 @@ static int coap_client_update_ack_timer(coap_client_t *client)
     {
         return ret;
     }
-    client->retransmit++;
+    client->num_retrans++;
     return 0;
 }
 
@@ -358,7 +358,7 @@ static int coap_client_handle_ack_timeout(coap_client_t *client, coap_msg_t *msg
     }
     else if (ret == -ETIMEDOUT)
     {
-        printf("Stopped retransmitting to address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+        printf("Stopped num_retransting to address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
     }
     return ret;
 }

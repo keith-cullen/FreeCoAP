@@ -12,7 +12,7 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -50,11 +50,20 @@ static int rand_init = 0;
 static void coap_server_trans_destroy(coap_server_trans_t *trans)
 {
     coap_msg_destroy(&trans->resp);
+    coap_msg_destroy(&trans->req);
     close(trans->timer_fd);
     memset(trans, 0, sizeof(coap_server_trans_t));
 }
 
-static int coap_server_trans_match(coap_server_trans_t *trans, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
+static int coap_server_trans_match_req(coap_server_trans_t *trans, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
+{
+    return ((trans->active)
+         && (trans->client_sin_len == client_sin_len)
+         && (memcmp(&trans->client_sin, client_sin, trans->client_sin_len) == 0)
+         && (trans->req.msg_id == msg->msg_id));
+}
+
+static int coap_server_trans_match_resp(coap_server_trans_t *trans, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
 {
     return ((trans->active)
          && (trans->client_sin_len == client_sin_len)
@@ -107,7 +116,7 @@ static int coap_server_trans_start_timer(coap_server_trans_t *trans)
 
 static int coap_server_trans_start_ack_timer(coap_server_trans_t *trans)
 {
-    trans->retransmit = 0;
+    trans->num_retrans = 0;
     coap_server_trans_init_ack_timeout(trans);
     return coap_server_trans_start_timer(trans);
 }
@@ -116,7 +125,7 @@ static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
 {
     int ret = 0;
 
-    if (trans->retransmit >= COAP_SERVER_MAX_RETRANSMIT)
+    if (trans->num_retrans >= COAP_SERVER_MAX_RETRANSMIT)
     {
         return -ETIMEDOUT;
     }
@@ -126,7 +135,7 @@ static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
     {
         return ret;
     }
-    trans->retransmit++;
+    trans->num_retrans++;
     return 0;
 }
 
@@ -136,7 +145,7 @@ static void coap_server_trans_clear_timeout(coap_server_trans_t *trans)
     read(trans->timer_fd, &r, sizeof(r));
 }
 
-static int coap_server_trans_create(coap_server_trans_t *trans, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
+static int coap_server_trans_create(coap_server_trans_t *trans, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *req, coap_msg_t *resp)
 {
     int ret = 0;
 
@@ -156,7 +165,8 @@ static int coap_server_trans_create(coap_server_trans_t *trans, struct sockaddr_
     }
     memcpy(&trans->client_sin, client_sin, client_sin_len);
     trans->client_sin_len = client_sin_len;
-    trans->resp = *msg;
+    trans->req = *req;
+    trans->resp = *resp;
     trans->active = 1;
     return 0;
 }
@@ -274,7 +284,7 @@ static coap_server_trans_t *coap_server_find_empty_trans(coap_server_t *server)
     return NULL;
 }
 
-static coap_server_trans_t *coap_server_find_trans(coap_server_t *server, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
+static coap_server_trans_t *coap_server_find_trans_req(coap_server_t *server, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
 {
     coap_server_trans_t *trans = NULL;
     unsigned i = 0;
@@ -282,7 +292,23 @@ static coap_server_trans_t *coap_server_find_trans(coap_server_t *server, struct
     for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
     {
         trans = &server->trans[i];
-        if (coap_server_trans_match(trans, client_sin, client_sin_len, msg))
+        if (coap_server_trans_match_req(trans, client_sin, client_sin_len, msg))
+        {
+            return trans;
+        }
+    }
+    return NULL;
+}
+
+static coap_server_trans_t *coap_server_find_trans_resp(coap_server_t *server, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
+{
+    coap_server_trans_t *trans = NULL;
+    unsigned i = 0;
+
+    for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
+    {
+        trans = &server->trans[i];
+        if (coap_server_trans_match_resp(trans, client_sin, client_sin_len, msg))
         {
             return trans;
         }
@@ -378,6 +404,7 @@ static ssize_t coap_server_recv(coap_server_t *server, struct sockaddr_in *clien
     return num;
 }
 
+/* reject confirmable request */
 static int coap_server_reject_con(coap_server_t *server, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
 {
     const char *p = NULL;
@@ -391,7 +418,7 @@ static int coap_server_reject_con(coap_server_t *server, struct sockaddr_in *cli
     {
         return -errno;
     }
-    printf("Rejecting confirmable message from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
+    printf("Rejecting confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
     coap_msg_create(&rej);
     ret = coap_msg_set_hdr(&rej, COAP_MSG_RST, 0, 0, 0, coap_msg_get_msg_id(msg));
     if (ret < 0)
@@ -408,6 +435,7 @@ static int coap_server_reject_con(coap_server_t *server, struct sockaddr_in *cli
     return 0;
 }
 
+/* reject non-confirmable request */
 static int coap_server_reject_non(coap_server_t *server, struct sockaddr_in *client_sin, socklen_t client_sin_len, coap_msg_t *msg)
 {
     const char *p = NULL;
@@ -418,7 +446,7 @@ static int coap_server_reject_non(coap_server_t *server, struct sockaddr_in *cli
     {
         return -errno;
     }
-    printf("Rejecting non-confirmable message from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
+    printf("Rejecting non-confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
     return 0;
 }
 
@@ -444,7 +472,7 @@ static int coap_server_send_ack(coap_server_t *server, struct sockaddr_in *clien
     {
         return -errno;
     }
-    printf("Acknowledging confirmable message from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
+    printf("Acknowledging confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
     coap_msg_create(&ack);
     ret = coap_msg_set_hdr(&ack, COAP_MSG_ACK, 0, 0, 0, msg->msg_id);
     if (ret < 0)
@@ -487,7 +515,7 @@ static int coap_server_handle_ack_timeout(coap_server_t *server, coap_server_tra
     }
     else if (ret == -ETIMEDOUT)
     {
-        printf("Stopped retransmitting to address %s and port %u\n", client_addr, ntohs(trans->client_sin.sin_port));
+        printf("Stopped num_retransting to address %s and port %u\n", client_addr, ntohs(trans->client_sin.sin_port));
         coap_server_trans_destroy(trans);
     }
     return 0;
@@ -547,8 +575,8 @@ static int coap_server_exchange(coap_server_t *server)
 {
     coap_server_trans_t *trans = NULL;
     struct sockaddr_in client_sin = {0};
-    coap_msg_t resp = {0};
-    coap_msg_t req = {0};
+    coap_msg_t recv_msg = {0};
+    coap_msg_t send_msg = {0};
     const char *p = NULL;
     socklen_t client_sin_len = 0;
     char client_addr[COAP_SERVER_ADDR_BUF_LEN] = {0};
@@ -556,123 +584,133 @@ static int coap_server_exchange(coap_server_t *server)
     int ret = 0;
 
     /* receive message */
-    coap_msg_create(&req);
-    num = coap_server_recv(server, &client_sin, &client_sin_len, &req);
+    coap_msg_create(&recv_msg);
+    num = coap_server_recv(server, &client_sin, &client_sin_len, &recv_msg);
     if (num < 0)
     {
-        coap_msg_destroy(&req);
+        coap_msg_destroy(&recv_msg);
         return num;
     }
     p = inet_ntop(AF_INET, &client_sin.sin_addr.s_addr, client_addr, sizeof(client_addr));
     if (p == NULL)
     {
-        coap_msg_destroy(&req);
+        coap_msg_destroy(&recv_msg);
         return -errno;
     }
 
-    /* check for previous exchange */
-    trans = coap_server_find_trans(server, &client_sin, client_sin_len, &req);
+    /* check for duplicate requests */
+    trans = coap_server_find_trans_req(server, &client_sin, client_sin_len, &recv_msg);
     if (trans != NULL)
     {
-        if (coap_msg_get_type(&req) == COAP_MSG_CON)
+        if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
         {
-            printf("Received duplicate confirmable message from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
+            printf("Received duplicate confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
             /* message deduplication */
             /* acknowledge the (confirmable) request again */
             /* do not send the response again */
-            ret = coap_server_send_ack(server, &client_sin, client_sin_len, &req);
-            coap_msg_destroy(&req);
+            ret = coap_server_send_ack(server, &client_sin, client_sin_len, &recv_msg);
+            coap_msg_destroy(&recv_msg);
             return ret;
         }
-        else if (coap_msg_get_type(&req) == COAP_MSG_NON)
+        else if (coap_msg_get_type(&recv_msg) == COAP_MSG_NON)
         {
-            printf("Received duplicate non-confirmable message from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
+            printf("Received duplicate non-confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
             /* message deduplication */
             /* do not acknowledge the (non-confirmable) request again */
             /* do not send the response again */
-            coap_msg_destroy(&req);
-            return 0;
-        }
-        else if (coap_msg_get_type(&req) == COAP_MSG_ACK)
-        {
-            printf("Received acknowledgement from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
-            /* the server must stop retransmitting its response */
-            /* on any matching acknowledgement or reset message */
-            coap_server_trans_destroy(trans);
-            coap_msg_destroy(&req);
-            return 0;
-        }
-        else if (coap_msg_get_type(&req) == COAP_MSG_RST)
-        {
-            printf("Received reset from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
-            /* the server must stop retransmitting its response */
-            /* on any matching acknowledgement or reset message */
-            coap_server_trans_destroy(trans);
-            coap_msg_destroy(&req);
+            coap_msg_destroy(&recv_msg);
             return 0;
         }
     }
 
-    /* check for valid request */
-    if ((coap_msg_get_type(&req) == COAP_MSG_ACK)
-     || (coap_msg_get_type(&req) == COAP_MSG_RST)
-     || (coap_msg_get_code_class(&req) != COAP_MSG_REQ))
+    /* check for an ack for a previous response */
+    trans = coap_server_find_trans_resp(server, &client_sin, client_sin_len, &recv_msg);
+    if (trans != NULL)
     {
-        ret = coap_server_reject(server, &client_sin, client_sin_len, &req);
-        coap_msg_destroy(&req);
+        if (coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
+        {
+            printf("Received acknowledgement from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
+            /* the server must stop num_retransting its response */
+            /* on any matching acknowledgement or reset message */
+            coap_server_trans_destroy(trans);
+            coap_msg_destroy(&recv_msg);
+            return 0;
+        }
+        else if (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
+        {
+            printf("Received reset from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
+            /* the server must stop num_retransting its response */
+            /* on any matching acknowledgement or reset message */
+            coap_server_trans_destroy(trans);
+            coap_msg_destroy(&recv_msg);
+            return 0;
+        }
+    }
+
+    /* check for a valid request */
+    if ((coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
+     || (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
+     || (coap_msg_get_code_class(&recv_msg) != COAP_MSG_REQ))
+    {
+        ret = coap_server_reject(server, &client_sin, client_sin_len, &recv_msg);
+        coap_msg_destroy(&recv_msg);
         return ret;
     }
 
-    /* send acknowledgement if necessary */
-    if (coap_msg_get_type(&req) == COAP_MSG_CON)
+    /* send an acknowledgement if necessary */
+    if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
     {
-        ret = coap_server_send_ack(server, &client_sin, client_sin_len, &req);
+        ret = coap_server_send_ack(server, &client_sin, client_sin_len, &recv_msg);
         if (ret < 0)
         {
-            coap_msg_destroy(&req);
+            coap_msg_destroy(&recv_msg);
             return ret;
         }
     }
 
     /* generate response */
     printf("Responding to address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
-    coap_msg_create(&resp);
-    ret = (*server->handle)(server, &req, &resp);
-    coap_msg_destroy(&req);
+    coap_msg_create(&send_msg);
+    ret = (*server->handle)(server, &recv_msg, &send_msg);
     if (ret < 0)
     {
-        coap_msg_destroy(&resp);
+        coap_msg_destroy(&send_msg);
+        coap_msg_destroy(&recv_msg);
         return ret;
     }
 
     /* send response */
-    num = coap_server_send(server, &client_sin, client_sin_len, &resp);
+    num = coap_server_send(server, &client_sin, client_sin_len, &send_msg);
     if (num < 0)
     {
-        coap_msg_destroy(&resp);
+        coap_msg_destroy(&send_msg);
+        coap_msg_destroy(&recv_msg);
         return num;
     }
 
     /* record the transaction if an acknowledgement is expected */
-    if (coap_msg_get_type(&resp) == COAP_MSG_CON)
+    if (coap_msg_get_type(&send_msg) == COAP_MSG_CON)
     {
         trans = coap_server_find_empty_trans(server);
         if (trans == NULL)
         {
-            coap_msg_destroy(&resp);
+            coap_msg_destroy(&send_msg);
+            coap_msg_destroy(&recv_msg);
             return -EBUSY;
         }
         printf("Expecting acknowledgement from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
-        ret = coap_server_trans_create(trans, &client_sin, client_sin_len, &resp);  /* performs shallow copy of resp */
+        ret = coap_server_trans_create(trans, &client_sin, client_sin_len, &recv_msg, &send_msg);  /* performs shallow copy of send_msg and recv_msg */
         if (ret < 0)
         {
-            coap_msg_destroy(&resp);
+            coap_msg_destroy(&send_msg);
+            coap_msg_destroy(&recv_msg);
             return ret;
         }
     }
     else
     {
-        coap_msg_destroy(&resp);
+        coap_msg_destroy(&send_msg);
+        coap_msg_destroy(&recv_msg);
     }
     return 0;
 }
