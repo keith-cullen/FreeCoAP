@@ -12,7 +12,7 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -1643,28 +1643,28 @@ int main(void)
         {test_parse,             &test24_data},
         {test_parse,             &test25_data},
         {test_parse,             &test26_data},
-        {test_format,               &test1_data},
-        {test_format,               &test2_data},
-        {test_format,               &test3_data},
-        {test_format,               &test4_data},
-        {test_format,               &test5_data},
-        {test_format,               &test6_data},
-        {test_format,               &test7_data},
-        {test_format,               &test8_data},
-        {test_format,               &test9_data},
-        {test_format,               &test10_data},
-        {test_format,               &test11_data},
-        {test_format,               &test12_data},
-        {test_format,               &test13_data},
-        {test_format,               &test14_data},
-        {test_format,               &test15_data},
-        {test_format,               &test16_data},
-        {test_format,               &test18_data},
-        {test_format,               &test19_data},
-        {test_format,               &test20_data},
-        {test_format,               &test21_data},
-        {test_format,               &test22_data},
-        {test_format,               &test23_data},
+        {test_format,            &test1_data},
+        {test_format,            &test2_data},
+        {test_format,            &test3_data},
+        {test_format,            &test4_data},
+        {test_format,            &test5_data},
+        {test_format,            &test6_data},
+        {test_format,            &test7_data},
+        {test_format,            &test8_data},
+        {test_format,            &test9_data},
+        {test_format,            &test10_data},
+        {test_format,            &test11_data},
+        {test_format,            &test12_data},
+        {test_format,            &test13_data},
+        {test_format,            &test14_data},
+        {test_format,            &test15_data},
+        {test_format,            &test16_data},
+        {test_format,            &test18_data},
+        {test_format,            &test19_data},
+        {test_format,            &test20_data},
+        {test_format,            &test21_data},
+        {test_format,            &test22_data},
+        {test_format,            &test23_data},
         {test_parse_type_msg_id, &test27_data},
         {test_parse_type_msg_id, &test28_data}
     };
