@@ -12,7 +12,7 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -39,9 +39,10 @@ typedef struct
     int active;
     int timer_fd;
     struct timespec timeout;
-    unsigned retransmit;
+    unsigned num_retrans;
     struct sockaddr_in client_sin;
     socklen_t client_sin_len;
+    coap_msg_t req;
     coap_msg_t resp;
 }
 coap_server_trans_t;

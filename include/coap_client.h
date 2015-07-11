@@ -12,7 +12,7 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -39,7 +39,7 @@ typedef struct
     int sd;
     int timer_fd;
     struct timespec timeout;
-    unsigned retransmit;
+    unsigned num_retrans;
     struct sockaddr_in server_sin;
     socklen_t server_sin_len;
     char server_addr[COAP_CLIENT_ADDR_BUF_LEN];
