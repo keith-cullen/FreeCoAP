@@ -95,8 +95,6 @@ int main()
     char *payload = "Hello, Server!";
     int ret = 0;
 
-    coap_msg_gen_rand_str((char *)msg_id_str, sizeof(msg_id_str));
-    msg_id = (((unsigned)msg_id_str[1]) << 8) | (unsigned)msg_id_str[0];
     ret = coap_client_create(&client, HOST, PORT);
     if (ret != 0)
     {
@@ -104,7 +102,25 @@ int main()
         return -1;
     }
     coap_msg_create(&req);
-    ret = coap_msg_set_hdr(&req, COAP_MSG_CON, sizeof(token), COAP_MSG_REQ, COAP_MSG_GET, msg_id);
+    ret = coap_msg_set_type(&req, COAP_MSG_CON);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return -1;
+    }
+    ret = coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return -1;
+    }
+    coap_msg_gen_rand_str((char *)msg_id_str, sizeof(msg_id_str));
+    msg_id = (((unsigned)msg_id_str[1]) << 8) | (unsigned)msg_id_str[0];
+    ret = coap_msg_set_msg_id(&req, msg_id);
     if (ret != 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));

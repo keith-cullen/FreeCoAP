@@ -360,11 +360,19 @@ static void coap_server_handle_format_error(coap_server_t *server, struct sockad
     if ((ret == 0) && (type == COAP_MSG_CON))
     {
         coap_msg_create(&msg);
-        ret = coap_msg_set_hdr(&msg, COAP_MSG_RST, 0, 0, 0, msg_id);
-        if (ret == 0)
+        ret = coap_msg_set_type(&msg, COAP_MSG_RST);
+        if (ret < 0)
         {
-            coap_server_send(server, client_sin, client_sin_len, &msg);
+            coap_msg_destroy(&msg);
+            return;
         }
+        ret = coap_msg_set_msg_id(&msg, msg_id);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return;
+        }
+        coap_server_send(server, client_sin, client_sin_len, &msg);
         coap_msg_destroy(&msg);
     }
 }
@@ -420,7 +428,13 @@ static int coap_server_reject_con(coap_server_t *server, struct sockaddr_in *cli
     }
     printf("Rejecting confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
     coap_msg_create(&rej);
-    ret = coap_msg_set_hdr(&rej, COAP_MSG_RST, 0, 0, 0, coap_msg_get_msg_id(msg));
+    ret = coap_msg_set_type(&rej, COAP_MSG_RST);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&rej);
+        return ret;
+    }
+    ret = coap_msg_set_msg_id(&rej, coap_msg_get_msg_id(msg));
     if (ret < 0)
     {
         coap_msg_destroy(&rej);
@@ -474,7 +488,13 @@ static int coap_server_send_ack(coap_server_t *server, struct sockaddr_in *clien
     }
     printf("Acknowledging confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
     coap_msg_create(&ack);
-    ret = coap_msg_set_hdr(&ack, COAP_MSG_ACK, 0, 0, 0, msg->msg_id);
+    ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&ack);
+        return ret;
+    }
+    ret = coap_msg_set_msg_id(&ack, coap_msg_get_msg_id(msg));
     if (ret < 0)
     {
         coap_msg_destroy(&ack);

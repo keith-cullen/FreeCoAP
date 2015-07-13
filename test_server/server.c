@@ -91,11 +91,23 @@ int handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
     char *payload = "Hello, Client!";
     int ret = 0;
 
-    msg_id = coap_server_get_next_msg_id(server);
     /* if the request is sent in a Non-confirmable message then */
     /* the response is sent in a new Non-confirmable message */
     type = coap_msg_get_type(req);
-    ret = coap_msg_set_hdr(resp, type, coap_msg_get_token_len(req), COAP_MSG_SUCCESS, COAP_MSG_CONTENT, msg_id);
+    ret = coap_msg_set_type(resp, type);
+    if (ret < 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        return ret;
+    }
+    ret = coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
+    if (ret < 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        return ret;
+    }
+    msg_id = coap_server_get_next_msg_id(server);
+    ret = coap_msg_set_msg_id(resp, msg_id);
     if (ret < 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));
