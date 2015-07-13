@@ -166,6 +166,7 @@ int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned len, c
 void coap_msg_create(coap_msg_t *msg)
 {
     memset(msg, 0, sizeof(coap_msg_t));
+    msg->ver = COAP_MSG_VER;
     coap_msg_op_list_create(&msg->op_list);
 }
 
@@ -479,7 +480,7 @@ int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len)
 /*  returns: {0, on success
  *           {<0, on error
  */
-int coap_msg_set_hdr(coap_msg_t *msg, unsigned type, unsigned token_len, unsigned code_class, unsigned code_detail, unsigned msg_id)
+int coap_msg_set_type(coap_msg_t *msg, unsigned type)
 {
     if ((type != COAP_MSG_CON)
      && (type != COAP_MSG_NON)
@@ -488,10 +489,15 @@ int coap_msg_set_hdr(coap_msg_t *msg, unsigned type, unsigned token_len, unsigne
     {
         return -EINVAL;
     }
-    if (token_len > COAP_MSG_MAX_TOKEN_LEN)
-    {
-        return -EINVAL;
-    }
+    msg->type = type;
+    return 0;
+}
+
+/*  returns: {0, on success
+ *           {<0, on error
+ */
+int coap_msg_set_code(coap_msg_t *msg, unsigned code_class, unsigned code_detail)
+{
     if (code_class > COAP_MSG_MAX_CODE_CLASS)
     {
         return -EINVAL;
@@ -500,15 +506,20 @@ int coap_msg_set_hdr(coap_msg_t *msg, unsigned type, unsigned token_len, unsigne
     {
         return -EINVAL;
     }
+    msg->code_class = code_class;
+    msg->code_detail = code_detail;
+    return 0;
+}
+
+/*  returns: {0, on success
+ *           {<0, on error
+ */
+int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id)
+{
     if (msg_id > COAP_MSG_MAX_MSG_ID)
     {
         return -EINVAL;
     }
-    msg->ver = COAP_MSG_VER;
-    msg->type = type;
-    msg->token_len = token_len;
-    msg->code_class = code_class;
-    msg->code_detail = code_detail;
     msg->msg_id = msg_id;
     return 0;
 }
@@ -518,11 +529,12 @@ int coap_msg_set_hdr(coap_msg_t *msg, unsigned type, unsigned token_len, unsigne
  */
 int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len)
 {
-    if (len < msg->token_len)
+    if (len > COAP_MSG_MAX_TOKEN_LEN)
     {
         return -EINVAL;
     }
-    memcpy(msg->token, buf, msg->token_len);
+    memcpy(msg->token, buf, len);
+    msg->token_len = len;
     return 0;
 }
 
