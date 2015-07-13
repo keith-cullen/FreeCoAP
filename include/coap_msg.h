@@ -180,7 +180,9 @@ void coap_msg_reset(coap_msg_t *msg);
 int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned *msg_id);
 int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len);
 
-int coap_msg_set_hdr(coap_msg_t *msg, unsigned type, unsigned token_len, unsigned code_class, unsigned code_detail, unsigned msg_id);
+int coap_msg_set_type(coap_msg_t *msg, unsigned type);
+int coap_msg_set_code(coap_msg_t *msg, unsigned code_class, unsigned code_detail);
+int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id);
 int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len);
 int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, char *val);
 int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len);
