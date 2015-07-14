@@ -2,7 +2,19 @@
 coap-zero
 =========
 
-An implementation of a CoAP message parser/formatter, a CoAP client and a CoAP server.
+An implementation of the CoAP protocol for GNU/Linux consisting of:
+
+- a CoAP message parser/formatter library
+
+- a CoAP client library
+
+- a CoAP server library
+
+- unit test code for the message parser/formatter
+
+- a sample test client application
+
+- a sample test server application
 
 Copyright (c) 2015 Keith Cullen
 
@@ -13,9 +25,6 @@ Contact: <keithcullen77@gmail.com>
 
 Test Instructions
 =================
-
-GNU/Linux
-
 
 To build and test the message parser/formatter
 ----------------------------------------------
@@ -31,14 +40,18 @@ To test the client/server
 -------------------------
 
 By default:
-  The client and server test applications run on the same system.
-  The server test application listens on UDP port 12436.
+
+The client and server test applications run on the same system.
+
+The server test application listens on UDP port 12436.
 
 $ cd coap/test_server
 
 $ make
 
 $ ./server
+
+(in a different termninal)
 
 $ cd coap/test_client
 
