@@ -1,6 +1,6 @@
-=========
-coap-zero
-=========
+========
+FreeCoAP
+========
 
 An implementation of the CoAP protocol for GNU/Linux consisting of:
 
@@ -36,8 +36,8 @@ $ make
 $ ./test_msg
 
 
-To test the client/server
--------------------------
+To build and test the client/server
+-----------------------------------
 
 By default:
 
