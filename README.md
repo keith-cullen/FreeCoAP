@@ -12,9 +12,9 @@ An implementation of the CoAP protocol for GNU/Linux consisting of:
 
 - unit test code for the message parser/formatter
 
-- a sample test client application
+- a client test application
 
-- a sample test server application
+- a server test application
 
 Copyright (c) 2015 Keith Cullen
 

@@ -84,36 +84,18 @@ static void print_coap_msg(coap_msg_t *msg)
     printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
 }
 
+/* the handler function is called to service a request
+ * and produce a response, this function should only set
+ * the code and payload fields in the response message,
+ * the other fields are set by the server library when
+ * this function returns
+ */
 int handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
 {
-    unsigned msg_id = 0;
-    unsigned type = 0;
     char *payload = "Hello, Client!";
     int ret = 0;
 
-    /* if the request is sent in a Non-confirmable message then */
-    /* the response is sent in a new Non-confirmable message */
-    type = coap_msg_get_type(req);
-    ret = coap_msg_set_type(resp, type);
-    if (ret < 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        return ret;
-    }
     ret = coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
-    if (ret < 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        return ret;
-    }
-    msg_id = coap_server_get_next_msg_id(server);
-    ret = coap_msg_set_msg_id(resp, msg_id);
-    if (ret < 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        return ret;
-    }
-    ret = coap_msg_set_token(resp, coap_msg_get_token(req), coap_msg_get_token_len(req));
     if (ret < 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));
@@ -127,7 +109,7 @@ int handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
     }
     printf("Received:\n");
     print_coap_msg(req);
-    printf("\nSent:\n");
+    printf("\nSent: (Note: the type, message ID and token fields have not been set by the server library yet)\n");
     print_coap_msg(resp);
     return 0;
 }

@@ -25,46 +25,56 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ *  @file coap_msg.h
+ *
+ *  @brief Include file for the FreeCoAP message parser/formatter library
+ */
+
 #ifndef COAP_MSG_H
 #define COAP_MSG_H
 
-#define COAP_MSG_VER                           0x01
-#define COAP_MSG_MAX_TOKEN_LEN                 8
-#define COAP_MSG_MAX_CODE_CLASS                7
-#define COAP_MSG_MAX_CODE_DETAIL               31
-#define COAP_MSG_MAX_MSG_ID                    ((1 << 16) - 1)
+#define COAP_MSG_VER                           0x01                             /**< CoAP version */
+#define COAP_MSG_MAX_TOKEN_LEN                 8                                /**< Maximum token length */
+#define COAP_MSG_MAX_CODE_CLASS                7                                /**< Maximum code class */
+#define COAP_MSG_MAX_CODE_DETAIL               31                               /**< Maximum code detail */
+#define COAP_MSG_MAX_MSG_ID                    ((1 << 16) - 1)                  /**< Maximum message ID */
 
-#define COAP_MSG_MAX_BUF_LEN                   1152
+#define COAP_MSG_MAX_BUF_LEN                   1152                             /**< Maximum buffer length for header and payload */
 
-#define coap_msg_op_num_is_critical(num)       ((num) & 1)
-#define coap_msg_op_num_is_unsafe(num)         ((num) & 2)
-#define coap_msg_op_num_no_cache_key(num)      ((num & 0x1e) == 0x1c)
+#define coap_msg_op_num_is_critical(num)       ((num) & 1)                      /**< Indicate if an option is critical */
+#define coap_msg_op_num_is_unsafe(num)         ((num) & 2)                      /**< Indicate if an option is unsafe to forward */
+#define coap_msg_op_num_no_cache_key(num)      ((num & 0x1e) == 0x1c)           /**< Indicate if an option is not part of the cache key */
 
-#define coap_msg_op_get_num(op)                ((op)->num)
-#define coap_msg_op_set_num(op, num)           ((op)->num = (num))
-#define coap_msg_op_get_len(op)                ((op)->len)
-#define coap_msg_op_set_len(op, len)           ((op)->len = (len))
-#define coap_msg_op_get_val(op)                ((op)->val)
-#define coap_msg_op_set_val(op, val)           ((op)->val = (val))
-#define coap_msg_op_get_next(op)               ((op)->next)
-#define coap_msg_op_set_next(op, next_op)      ((op)->next = (next_op))
+#define coap_msg_op_get_num(op)                ((op)->num)                      /**< Get the option number from an option */
+#define coap_msg_op_set_num(op, num)           ((op)->num = (num))              /**< Set the option number in an option */
+#define coap_msg_op_get_len(op)                ((op)->len)                      /**< Get the option length from an option */
+#define coap_msg_op_set_len(op, len)           ((op)->len = (len))              /**< Set the option length in an option */
+#define coap_msg_op_get_val(op)                ((op)->val)                      /**< Get the option value from an option */
+#define coap_msg_op_set_val(op, val)           ((op)->val = (val))              /**< Set the option value in an option */
+#define coap_msg_op_get_next(op)               ((op)->next)                     /**< Get the next pointer from an option */
+#define coap_msg_op_set_next(op, next_op)      ((op)->next = (next_op))         /**< Set the next pointer in an option */
 
-#define coap_msg_op_list_get_first(list)       ((list)->first)
-#define coap_msg_op_list_get_last(list)        ((list)->last)
-#define coap_msg_op_list_is_empty(list)        ((list)->first == NULL)
+#define coap_msg_op_list_get_first(list)       ((list)->first)                  /**< Get the first option from an option linked-list */
+#define coap_msg_op_list_get_last(list)        ((list)->last)                   /**< Get the last option in an option linked-list */
+#define coap_msg_op_list_is_empty(list)        ((list)->first == NULL)          /**< Indicate if an option linked-list is empty */
 
-#define coap_msg_get_ver(msg)                  ((msg)->ver)
-#define coap_msg_get_type(msg)                 ((msg)->type)
-#define coap_msg_get_token_len(msg)            ((msg)->token_len)
-#define coap_msg_get_code_class(msg)           ((msg)->code_class)
-#define coap_msg_get_code_detail(msg)          ((msg)->code_detail)
-#define coap_msg_get_msg_id(msg)               ((msg)->msg_id)
-#define coap_msg_get_token(msg)                ((msg)->token)
-#define coap_msg_get_first_op(msg)             ((msg)->op_list.first)
-#define coap_msg_get_payload(msg)              ((msg)->payload)
-#define coap_msg_get_payload_len(msg)          ((msg)->payload_len)
+#define coap_msg_get_ver(msg)                  ((msg)->ver)                     /**< Get the version from a message */
+#define coap_msg_get_type(msg)                 ((msg)->type)                    /**< Get the type from a message */
+#define coap_msg_get_token_len(msg)            ((msg)->token_len)               /**< Get the token length from a message */
+#define coap_msg_get_code_class(msg)           ((msg)->code_class)              /**< Get the code class from a message */
+#define coap_msg_get_code_detail(msg)          ((msg)->code_detail)             /**< Get the code detail from a message */
+#define coap_msg_get_msg_id(msg)               ((msg)->msg_id)                  /**< Get the message ID from message */
+#define coap_msg_get_token(msg)                ((msg)->token)                   /**< Get the token from a message */
+#define coap_msg_get_first_op(msg)             ((msg)->op_list.first)           /**< Get the first option from a message */
+#define coap_msg_get_payload(msg)              ((msg)->payload)                 /**< Get the payload from a message */
+#define coap_msg_get_payload_len(msg)          ((msg)->payload_len)             /**< Get the payload length from a message */
 #define coap_msg_is_empty(msg)                 (((msg)->code_class == 0) && ((msg)->code_detail == 0))
+                                                                                /**< Indicate if a message is empty */
 
+/**
+ *  @brief Message type enumeration
+ */
 typedef enum
 {
     COAP_MSG_CON = 0x0,
@@ -74,7 +84,9 @@ typedef enum
 }
 coap_msg_type_t;
 
-/* code class values */
+/**
+ *  @brief Code class enumeration
+ */
 typedef enum
 {
     COAP_MSG_REQ = 0,
@@ -84,7 +96,9 @@ typedef enum
 }
 coap_msg_class_t;
 
-/* 0.xx code detail values */
+/**
+ *  @brief Code detail enumeration
+ */
 typedef enum
 {
     COAP_MSG_GET = 1,
@@ -94,7 +108,9 @@ typedef enum
 }
 coap_msg_method_t;
 
-/* 2.xx code detail values */
+/**
+ *  @brief Success response code detail enumeration
+ */
 typedef enum
 {
     COAP_MSG_CREATED = 1,
@@ -105,7 +121,9 @@ typedef enum
 }
 coap_msg_success_t;
 
-/* 4.xx code detail values */
+/**
+ *  @brief Client error response code detail enumeration
+ */
 typedef enum
 {
     COAP_MSG_BAD_REQ = 0,
@@ -121,7 +139,9 @@ typedef enum
 }
 coap_msg_client_err_t;
 
-/* 5.xx code detail values */
+/**
+ *  @brief Server error response code detail enumeration
+ */
 typedef enum
 {
     COAP_MSG_INT_SERVER_ERR = 0,
@@ -133,6 +153,9 @@ typedef enum
 }
 coap_msg_server_err_t;
 
+/**
+ *  @brief Option structure
+ */
 typedef struct coap_msg_op
 {
     unsigned num;
@@ -142,6 +165,9 @@ typedef struct coap_msg_op
 }
 coap_msg_op_t;
 
+/**
+ *  @brief Option linked-list structure
+ */
 typedef struct
 {
     coap_msg_op_t *first;
@@ -149,6 +175,9 @@ typedef struct
 }
 coap_msg_op_list_t;
 
+/**
+ *  @brief Message structure
+ */
 typedef struct
 {
     unsigned ver;
@@ -164,28 +193,211 @@ typedef struct
 }
 coap_msg_t;
 
+/**
+ *  @brief Generate a random string of bytes
+ *
+ *  @param[out] buf Pointer to the buffer to store the random string
+ *  @param[in] len Length of the buffer
+ */
 void coap_msg_gen_rand_str(char *buf, unsigned len);
 
+/**
+ *  @brief Allocate an option structure
+ *
+ *  @param[in] num Option number
+ *  @param[in] len Option length
+ *  @param[in] val Pointer to the option value
+ *
+ *  @returns Pointer to the option structure
+ *  @retval NULL Out-of-memory
+ */
 coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, char *val);
-void coap_msg_op_delete(coap_msg_op_t *op);
-unsigned coap_msg_op_calc_len(coap_msg_op_t *op);
 
+/**
+ *  @brief Free an option structure that was allocated by coap_msg_op_new
+ *
+ *  @param[in] op Pointer to the option structure
+ */
+void coap_msg_op_delete(coap_msg_op_t *op);
+
+/**
+ *  @brief Initialise an option linked-list structure
+ *
+ *  @param[in,out] list Pointer to an option linked-list structure
+ */
 void coap_msg_op_list_create(coap_msg_op_list_t *list);
+
+/**
+ *  @brief Deinitialise an option linked-list structure
+ *
+ *  @param[in,out] list Pointer to an option linked-list structure
+ */
 void coap_msg_op_list_destroy(coap_msg_op_list_t *list);
+
+/**
+ *  @brief Allocate an option structure and add it to an option linked-list structure
+ *
+ *  The option is added to the list at a position determined by the option number.
+ *
+ *  @param[in] list Pointer to an option linked-list structure
+ *  @param[in] num Option number
+ *  @param[in] len Option length
+ *  @param[in] val Pointer to a buffer containing the option value
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -ENOMEM Out-of-memory
+ */
 int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned len, char *val);
 
+/**
+ *  @brief Initialise a message structure
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ */
 void coap_msg_create(coap_msg_t *msg);
+
+/**
+ *  @brief Deinitialise a message structure
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ */
 void coap_msg_destroy(coap_msg_t *msg);
+
+/**
+ *  @brief Deinitialise and initialise a message structure
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ */
 void coap_msg_reset(coap_msg_t *msg);
+
+/**
+ *  @brief Extract the type and message ID values from a message
+ *
+ *  If a message contains a format error, this function
+ *  will attempt to extract the type and message ID so
+ *  that a reset message can be returned to the sender.
+ *
+ *  @param[in] buf Pointer to a buffer containing the message
+ *  @param[in] len Length of the buffer
+ *  @param[out] type Pointer to field to store the type value
+ *  @param[out] msg_id Pointer to a field to store the message ID value
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -EBADMSG The message is corrupt
+ */
 int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned *msg_id);
+
+/**
+ *  @brief Parse a message
+ *
+ *  @param[out] msg Pointer to a message structure
+ *  @param[in] buf Pointer to a buffer containing the message
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -EINVAL Invalid argument
+ *  @retval -ENOMEM Out-of-memory
+ *  @retval -EBADMSG The message is corrupt
+ */
 int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len);
 
+/**
+ *  @brief Set the type in a message
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ *  @param[in] type Message type
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -EINVAL Invalid argument
+ */
 int coap_msg_set_type(coap_msg_t *msg, unsigned type);
+
+/**
+ *  @brief Set the code in a message
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ *  @param[in] code_class Code class
+ *  @param[in] code_detail Code detail
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -EINVAL Invalid argument
+ */
 int coap_msg_set_code(coap_msg_t *msg, unsigned code_class, unsigned code_detail);
+
+/**
+ *  @brief Set the message ID in a message
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ *  @param[in] msg_id Message ID
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -EINVAL Invalid argument
+ */
 int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id);
+
+/**
+ *  @brief Set the token in a message
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ *  @param[in] buf Pointer to a buffer containing the token
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -EINVAL Invalid argument
+ */
 int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len);
+
+/**
+ *  @brief Add a token to a message structure
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ *  @param[in] num Option number
+ *  @param[in] len Option length
+ *  @param[in] val Pointer to a buffer containing the option value
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -ENOMEM Out-of-memory
+ */
 int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, char *val);
+
+/**
+ *  @brief Set the payload in a message
+ *
+ *  Free the buffer in the message structure containing
+ *  the current payload if there is one, allocate a buffer
+ *  to contain the new payload and copy the buffer argument
+ *  into the new payload buffer.
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ *  @param[in] buf Pointer to a buffer containing the payload
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -ENOMEM Out-of-memory
+ */
 int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len);
+
+/**
+ *  @brief Format a message
+ *
+ *  @param[in] msg Pointer to a message structure
+ *  @param[out] buf Pointer to a buffer to contain the formatted message
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns Error code
+ *  @retval >0 Length of the formatted message
+ *  @retval -ENOSPC Insufficient buffer length
+ *  @retval -EBADMSG Message is corrupt
+ */
 int coap_msg_format(coap_msg_t *msg, char *buf, unsigned len);
 
 #endif

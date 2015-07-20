@@ -25,6 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ *  @file coap_server.c
+ *
+ *  @brief Source file for the FreeCoAP server library
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -460,7 +466,7 @@ static int coap_server_reject_non(coap_server_t *server, struct sockaddr_in *cli
     {
         return -errno;
     }
-    printf("Rejecting non-confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
+    printf("Rejecting non-confirmable message from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
     return 0;
 }
 
@@ -486,7 +492,7 @@ static int coap_server_send_ack(coap_server_t *server, struct sockaddr_in *clien
     {
         return -errno;
     }
-    printf("Acknowledging confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
+    printf("Acknowledging confirmable message from address %s and port %u\n", client_addr, ntohs(client_sin->sin_port));
     coap_msg_create(&ack);
     ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
     if (ret < 0)
@@ -591,6 +597,17 @@ static int coap_server_listen(coap_server_t *server)
     return 0;
 }
 
+/* this function makes the decision on whether to send a separate
+ * response or a piggy backed response, it will eventually look-up
+ * the uri-path from the request message in a user supplied table
+ * to make the decision, the idea being that some resources will
+ * require time to retrieve and others will not
+ */ 
+static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
+{
+    return COAP_SERVER_SEPARATE;
+}
+
 static int coap_server_exchange(coap_server_t *server)
 {
     coap_server_trans_t *trans = NULL;
@@ -599,7 +616,9 @@ static int coap_server_exchange(coap_server_t *server)
     coap_msg_t send_msg = {0};
     const char *p = NULL;
     socklen_t client_sin_len = 0;
+    unsigned msg_id = 0;
     char client_addr[COAP_SERVER_ADDR_BUF_LEN] = {0};
+    int resp_type = 0;
     int num = 0;
     int ret = 0;
 
@@ -677,8 +696,11 @@ static int coap_server_exchange(coap_server_t *server)
         return ret;
     }
 
+    resp_type = coap_server_get_resp_type(server, &recv_msg);
+
     /* send an acknowledgement if necessary */
-    if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
+    if ((coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
+     && (resp_type == COAP_SERVER_SEPARATE))
     {
         ret = coap_server_send_ack(server, &client_sin, client_sin_len, &recv_msg);
         if (ret < 0)
@@ -692,6 +714,56 @@ static int coap_server_exchange(coap_server_t *server)
     printf("Responding to address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
     coap_msg_create(&send_msg);
     ret = (*server->handle)(server, &recv_msg, &send_msg);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&send_msg);
+        coap_msg_destroy(&recv_msg);
+        return ret;
+    }
+    if ((coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
+     && (resp_type == COAP_SERVER_PIGGYBACKED))
+    {
+        /* copy the message ID from the request to the response */
+        msg_id = coap_msg_get_msg_id(&recv_msg);
+    }
+    else
+    {
+        /* generate a new message ID */
+        msg_id = coap_server_get_next_msg_id(server);
+    }
+    ret = coap_msg_set_msg_id(&send_msg, msg_id);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&send_msg);
+        coap_msg_destroy(&recv_msg);
+        return ret;
+    }
+    /* copy the token from the request to the response */
+    ret = coap_msg_set_token(&send_msg, coap_msg_get_token(&recv_msg), coap_msg_get_token_len(&recv_msg));
+    if (ret < 0)
+    {
+        coap_msg_destroy(&send_msg);
+        coap_msg_destroy(&recv_msg);
+        return ret;
+    }
+    /* set the response type */
+    /* we have already verified that the received message */
+    /* is either a confirmable or a non-confirmable request */
+    if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
+    {
+        if (resp_type == COAP_SERVER_PIGGYBACKED)
+        {
+            ret = coap_msg_set_type(&send_msg, COAP_MSG_ACK);
+        }
+        else
+        {
+            ret = coap_msg_set_type(&send_msg, COAP_MSG_CON);
+        }
+    }
+    else
+    {
+        ret = coap_msg_set_type(&send_msg, COAP_MSG_NON);
+    }
     if (ret < 0)
     {
         coap_msg_destroy(&send_msg);
@@ -727,11 +799,8 @@ static int coap_server_exchange(coap_server_t *server)
             return ret;
         }
     }
-    else
-    {
-        coap_msg_destroy(&send_msg);
-        coap_msg_destroy(&recv_msg);
-    }
+    coap_msg_destroy(&send_msg);
+    coap_msg_destroy(&recv_msg);
     return 0;
 }
 
