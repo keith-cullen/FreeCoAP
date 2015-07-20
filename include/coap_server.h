@@ -25,6 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ *  @file coap_server.h
+ *
+ *  @brief Include file for the FreeCoAP server library
+ */
+
 #ifndef COAP_SERVER_H
 #define COAP_SERVER_H
 
@@ -33,6 +39,13 @@
 #include "coap_msg.h"
 
 #define COAP_SERVER_MAX_TRANS  8
+
+typedef enum
+{
+    COAP_SERVER_PIGGYBACKED = 0,
+    COAP_SERVER_SEPARATE = 1
+}
+coap_server_resp_t;
 
 typedef struct
 {

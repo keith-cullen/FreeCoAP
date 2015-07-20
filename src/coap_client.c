@@ -25,6 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ *  @file coap_client.c
+ *
+ *  @brief Source file for the FreeCoAP client library
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -317,7 +323,6 @@ static int coap_client_reject_con(coap_client_t *client, coap_msg_t *msg)
     return 0;
 }
 
-/* reject non-confirmable request */
 static int coap_client_reject_non(coap_client_t *client, coap_msg_t *msg)
 {
     printf("Rejecting non-confirmable message from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
@@ -468,6 +473,12 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     int num = 0;
     int ret = 0;
 
+    if ((coap_msg_get_type(req) == COAP_MSG_ACK)
+     || (coap_msg_get_type(req) == COAP_MSG_RST)
+     || (coap_msg_get_code_class(req) != COAP_MSG_REQ))
+    {
+        return -EINVAL;
+    }
     num = coap_client_send(client, req);
     if (num < 0)
     {
@@ -477,6 +488,7 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     {
         /*  wait for piggy-backed response in ack message
          *  or ack message and separate response message
+         *  or response message preceeding lost or delayed ack message
          */
         printf("Expecting acknowledgement from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
         coap_client_start_ack_timer(client);
@@ -508,16 +520,36 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
                 {
                     if (coap_msg_is_empty(resp))
                     {
-                        printf("Received acknowledgement from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
                         /* received ack message, wait for separate response message */
+                        printf("Received acknowledgement from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                        coap_msg_reset(resp);
                         break;
                     }
                     else if (coap_client_match_token(req, resp))
                     {
-                        printf("Received acknowledgement and response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
                         /* received response piggy-backed in ack message */
+                        printf("Received acknowledgement and response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
                         return 0;
                     }
+                }
+            }
+            else if (coap_client_match_token(req, resp))
+            {
+                /* as the underlying datagram transport may not be sequence-preserving,
+                 * the Confirmable message carrying the response may actually arrive
+                 * before or after the Acknowledgement message for the request; for
+                 * the purposes of terminating the retransmission sequence, this also
+                 * serves as an acknowledgement.
+                 */
+                if (coap_msg_get_type(resp) == COAP_MSG_CON)
+                {
+                    printf("Received confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                    return coap_client_send_ack(client, resp);
+                }
+                if (coap_msg_get_type(resp) == COAP_MSG_NON)
+                {
+                    printf("Received non-confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                    return 0;
                 }
             }
             ret = coap_client_reject(client, resp);
@@ -528,7 +560,8 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
             coap_msg_reset(resp);
         }
     }
-    /* wait for separate response message */
+    /* wait for a separate response to a confirmable request */
+    /* or a response to a non-confirmable request */
     printf("Expecting response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
     coap_client_start_resp_timer(client);
     while (1)
@@ -548,25 +581,33 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
         {
             return num;
         }
-        if ((coap_msg_get_msg_id(resp) == coap_msg_get_msg_id(req))
-         && (coap_msg_get_type(resp) == COAP_MSG_ACK))
+        if (coap_msg_get_msg_id(resp) == coap_msg_get_msg_id(req))
         {
-            printf("Received duplicate acknowledgement from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
-            /* message deduplication */
-            /* ignore a duplicate ACK */
-            /* continue waiting for the repsonse */
-            coap_msg_reset(resp);
-            continue;
+            if (coap_msg_get_type(resp) == COAP_MSG_RST)
+            {
+                printf("Received reset from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                return -ECONNRESET;
+            }
+            if (coap_msg_get_type(resp) == COAP_MSG_ACK)
+            {
+                /* message deduplication */
+                /* ignore a duplicate ACK */
+                /* continue waiting for the repsonse */
+                printf("Received duplicate acknowledgement from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_msg_reset(resp);
+                continue;
+            }
         }
         if (coap_client_match_token(req, resp))
         {
-            printf("Received response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
             if (coap_msg_get_type(resp) == COAP_MSG_CON)
             {
+                printf("Received confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
                 return coap_client_send_ack(client, resp);
             }
             else if (coap_msg_get_type(resp) == COAP_MSG_NON)
             {
+                printf("Received non-confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
                 return 0;
             }
         }
