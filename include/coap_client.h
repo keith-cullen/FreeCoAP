@@ -25,6 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ *  @file coap_client.h
+ *
+ *  @brief Include file for the FreeCoAP client library
+ */
+
 #ifndef COAP_CLIENT_H
 #define COAP_CLIENT_H
 
