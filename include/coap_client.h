@@ -38,8 +38,11 @@
 #include <netinet/in.h>
 #include "coap_msg.h"
 
-#define COAP_CLIENT_ADDR_BUF_LEN  128
+#define COAP_CLIENT_ADDR_BUF_LEN  128                                           /**< Buffer length for host addresses */
 
+/**
+ *  @brief Client structure
+ */
 typedef struct
 {
     int sd;
@@ -52,8 +55,37 @@ typedef struct
 }
 coap_client_t;
 
+/**
+ *  @brief Initialise a client structure
+ *
+ *  @param[out] client Pointer to a client structure
+ *  @param[in] host Pointer to a string containing the host address of the server
+ *  @param[in] port Port number of the server
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -errno On error
+ */
 int coap_client_create(coap_client_t *client, const char *host, unsigned port);
+
+/**
+ *  @brief Deinitialise a client structure
+ *
+ *  @param[in] client Pointer to a client structure
+ */
 void coap_client_destroy(coap_client_t *client);
+
+/**
+ *  @brief Send a request to the server and receive the response
+ *
+ *  @param[in] client Pointer to a client structure
+ *  @param[in] req Pointer to a message structure containing the request
+ *  @param[out] resp Pointer to a message structure to store the response
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -errno On Error
+ */
 int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp);
 
 #endif
