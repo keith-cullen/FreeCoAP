@@ -253,21 +253,21 @@ int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned len, c
 /**
  *  @brief Initialise a message structure
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[out] msg Pointer to a message structure
  */
 void coap_msg_create(coap_msg_t *msg);
 
 /**
  *  @brief Deinitialise a message structure
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[in] msg Pointer to a message structure
  */
 void coap_msg_destroy(coap_msg_t *msg);
 
 /**
  *  @brief Deinitialise and initialise a message structure
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[out] msg Pointer to a message structure
  */
 void coap_msg_reset(coap_msg_t *msg);
 
@@ -307,7 +307,7 @@ int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len);
 /**
  *  @brief Set the type in a message
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[out] msg Pointer to a message structure
  *  @param[in] type Message type
  *
  *  @returns Error code
@@ -319,7 +319,7 @@ int coap_msg_set_type(coap_msg_t *msg, unsigned type);
 /**
  *  @brief Set the code in a message
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[out] msg Pointer to a message structure
  *  @param[in] code_class Code class
  *  @param[in] code_detail Code detail
  *
@@ -332,7 +332,7 @@ int coap_msg_set_code(coap_msg_t *msg, unsigned code_class, unsigned code_detail
 /**
  *  @brief Set the message ID in a message
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[out] msg Pointer to a message structure
  *  @param[in] msg_id Message ID
  *
  *  @returns Error code
@@ -344,7 +344,7 @@ int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id);
 /**
  *  @brief Set the token in a message
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[out] msg Pointer to a message structure
  *  @param[in] buf Pointer to a buffer containing the token
  *  @param[in] len Length of the buffer
  *
@@ -357,7 +357,7 @@ int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len);
 /**
  *  @brief Add a token to a message structure
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[out] msg Pointer to a message structure
  *  @param[in] num Option number
  *  @param[in] len Option length
  *  @param[in] val Pointer to a buffer containing the option value
@@ -376,7 +376,7 @@ int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, char *val);
  *  to contain the new payload and copy the buffer argument
  *  into the new payload buffer.
  *
- *  @param[in,out] msg Pointer to a message structure
+ *  @param[out] msg Pointer to a message structure
  *  @param[in] buf Pointer to a buffer containing the payload
  *  @param[in] len Length of the buffer
  *
