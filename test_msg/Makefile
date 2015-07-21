@@ -1,13 +1,12 @@
 IDH=../include
 IDS=../src
-ID1=../harness
 
 CC = gcc
-CFLAGS = -Wall -g -I$(IDH) -I$(ID1)
+CFLAGS = -Wall -g -I$(IDH)
 LD = gcc
 LDFLAGS =
 INCS = $(IDH)/coap_msg.h \
-       $(ID1)/harness.h
+       harness.h
 OBJS = test_msg.o \
        coap_msg.o \
        harness.o
@@ -24,8 +23,8 @@ test_msg.o: test_msg.c $(INCS)
 coap_msg.o: $(IDS)/coap_msg.c $(INCS)
 	$(CC) $(CFLAGS) -c $(IDS)/coap_msg.c
 
-harness.o: $(ID1)/harness.c $(INCS)
-	$(CC) $(CFLAGS) -c $(ID1)/harness.c
+harness.o: harness.c $(INCS)
+	$(CC) $(CFLAGS) -c harness.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)

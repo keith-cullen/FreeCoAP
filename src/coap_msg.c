@@ -107,7 +107,7 @@ void coap_msg_op_list_destroy(coap_msg_op_list_t *list)
 /**
  *  @brief Allocate an option structure and add it to the end of an option linked-list structure
  *
- *  @param[in] list Pointer to an option linked-list structure
+ *  @param[out] list Pointer to an option linked-list structure
  *  @param[in] num Option number
  *  @param[in] len Option length
  *  @param[in] val Pointer to a buffer containing the option value

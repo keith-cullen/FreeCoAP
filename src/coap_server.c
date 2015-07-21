@@ -696,6 +696,15 @@ static int coap_server_exchange(coap_server_t *server)
         return ret;
     }
 
+    if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
+    {
+        printf("Received confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
+    }
+    else if (coap_msg_get_type(&recv_msg) == COAP_MSG_NON)
+    {
+        printf("Received non-confirmable request from address %s and port %u\n", client_addr, ntohs(client_sin.sin_port));
+    }
+
     resp_type = coap_server_get_resp_type(server, &recv_msg);
 
     /* send an acknowledgement if necessary */
@@ -752,13 +761,9 @@ static int coap_server_exchange(coap_server_t *server)
     if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
     {
         if (resp_type == COAP_SERVER_PIGGYBACKED)
-        {
             ret = coap_msg_set_type(&send_msg, COAP_MSG_ACK);
-        }
         else
-        {
             ret = coap_msg_set_type(&send_msg, COAP_MSG_CON);
-        }
     }
     else
     {
