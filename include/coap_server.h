@@ -38,8 +38,12 @@
 #include <netinet/in.h>
 #include "coap_msg.h"
 
-#define COAP_SERVER_MAX_TRANS  8
+#define COAP_SERVER_MAX_TRANS     8                                             /**< Maximum number of active transactions per server */
+#define COAP_SERVER_ADDR_BUF_LEN  128                                           /**< Buffer length for host addresses */
 
+/**
+ *  @brief Response type enumeration
+ */
 typedef enum
 {
     COAP_SERVER_PIGGYBACKED = 0,
@@ -47,6 +51,9 @@ typedef enum
 }
 coap_server_resp_t;
 
+/**
+ *  @brief Transaction structure
+ */
 typedef struct
 {
     int active;
@@ -55,23 +62,68 @@ typedef struct
     unsigned num_retrans;
     struct sockaddr_in client_sin;
     socklen_t client_sin_len;
+    char client_addr[COAP_SERVER_ADDR_BUF_LEN];
     coap_msg_t req;
     coap_msg_t resp;
 }
 coap_server_trans_t;
 
+/**
+ *  @brief Server structure
+ */
 typedef struct coap_server
 {
     int sd;
-    coap_server_trans_t trans[COAP_SERVER_MAX_TRANS];
     unsigned msg_id;
+    struct sockaddr_in client_sin;
+    socklen_t client_sin_len;
+    char client_addr[COAP_SERVER_ADDR_BUF_LEN];
+    coap_server_trans_t trans[COAP_SERVER_MAX_TRANS];
     int (* handle)(struct coap_server *, coap_msg_t *, coap_msg_t *);
 }
 coap_server_t;
 
+/**
+ *  @brief Initialise a server structure
+ *
+ *  @param[out] server Pointer to a server structure
+ *  @param[in] host Pointer to a string containing the host address of the server
+ *  @param[in] port Port number of the server
+ *  @param[in] handle Call-back function to handle client requests
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -errno On error
+ */
 int coap_server_create(coap_server_t *server, const char *host, unsigned port, int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *));
+
+/**
+ *  @brief Deinitialise a server structure
+ *
+ *  @param[in] server Pointer to a server structure
+ */
 void coap_server_destroy(coap_server_t *server);
+
+/**
+ *  @brief Get a new message ID value
+ *
+ *  @param[in] server Pointer to a server structure
+ *
+ *  @returns message ID value
+ */
 unsigned coap_server_get_next_msg_id(coap_server_t *server);
+
+/**
+ *  @brief Run the server
+ *
+ *  Listen for incoming requests. For each request received,
+ *  call the handle call-back function in the server structure
+ *  and send the response to the client.
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -errno Error code
+ */
 int coap_server_run(coap_server_t *server);
 
 #endif
