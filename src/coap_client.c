@@ -183,6 +183,10 @@ static void coap_client_double_timeout(coap_client_t *client)
  *  @brief Start the timer in a client structure
  *
  *  @param[in,out] client Pointer to a client structure
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -errno Error code
  */
 static int coap_client_start_timer(coap_client_t *client)
 {
@@ -202,6 +206,10 @@ static int coap_client_start_timer(coap_client_t *client)
  *  @brief Initialise and start the acknowledgement timer in a client structure
  *
  *  @param[out] client Pointer to a client structure
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval -errno Error code
  */
 static int coap_client_start_ack_timer(coap_client_t *client)
 {
@@ -211,7 +219,7 @@ static int coap_client_start_ack_timer(coap_client_t *client)
 }
 
 /**
- *  @brief Update the acknowledgement tiner in a client structure
+ *  @brief Update the acknowledgement timer in a client structure
  *
  *  Increase and restart the acknowledgement timer in a client structure
  *  and indicate if the maximum number of retransmits has been reached.
@@ -220,7 +228,7 @@ static int coap_client_start_ack_timer(coap_client_t *client)
  *
  *  @returns Error code
  *  @retval 0 Success
- *  @retval -ETIMEDOUT The maximum number of retransmits has been reached
+ *  @retval -errno Error code
  */
 static int coap_client_update_ack_timer(coap_client_t *client)
 {
@@ -300,7 +308,7 @@ static int coap_client_send(coap_client_t *client, coap_msg_t *msg)
  *  to form a reset message.
  *
  *  @param[in] client Pointer to a client structure
- *  @param[out] buf Buffer to store the reset message
+ *  @param[in] buf Buffer containing the message
  *  @param[in] len length of the buffer
  */
 static void coap_client_handle_format_error(coap_client_t *client, char *buf, unsigned len)
@@ -608,7 +616,7 @@ static int coap_client_listen_resp(coap_client_t *client)
 }
 
 /**
- *  @brief Compare the token values in a request message and a response message for equallity
+ *  @brief Compare the token values in a request message and a response message
  *
  *  @param[in] req Pointer to the request message
  *  @param[in] resp Pointer to the response message
@@ -627,9 +635,7 @@ static int coap_client_match_token(coap_msg_t *req, coap_msg_t *resp)
  *  @brief Handle the response to a non-confirmable request
  *
  *  The request has already been sent to the server.
- *  This function must handle a reset or acknowledgement
- *  from the server, send a reset or acknowledgement to
- *  the server if necessary and receive the response.
+ *  This function receives the response.
  *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] req Pointer to the request message
@@ -698,9 +704,9 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
  *  @brief Handle the response to a confirmable request
  *
  *  The request has already been sent to the server.
- *  This function must handle a reset or acknowledgement
- *  from the server, send a reset or acknowledgement to
- *  the server if necessary and receive the response.
+ *  This function receives the acknowledgement from
+ *  the server then the response and sends an
+ *  acknowledgement back to the server.
  *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] req Pointer to the request message
@@ -832,11 +838,15 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
 }
 
 /**
- *  @brief Send a request to the serve rand receive the response
+ *  @brief Send a request to the server and receive the response
  *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] req Pointer to the request message
  *  @param[out] resp Pointer to the response message
+ *
+ *  This function sets the message ID and token fields of
+ *  the request message overriding any values set by the
+ *  calling function.
  *
  *  @returns Error code
  *  @retval 0 Success
@@ -844,7 +854,11 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
  **/
 int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
+    unsigned char msg_id_buf[2] = {0};
+    unsigned msg_id = 0;
+    char token[4] = {0};
     int num = 0;
+    int ret = 0;
 
     if ((coap_msg_get_type(req) == COAP_MSG_ACK)
      || (coap_msg_get_type(req) == COAP_MSG_RST)
@@ -852,6 +866,24 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     {
         return -EINVAL;
     }
+
+    /* generate the message ID */
+    coap_msg_gen_rand_str((char *)msg_id_buf, sizeof(msg_id_buf));
+    msg_id = (((unsigned)msg_id_buf[1]) << 8) | (unsigned)msg_id_buf[0];
+    ret = coap_msg_set_msg_id(req, msg_id);
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    /* generate the token */
+    coap_msg_gen_rand_str(token, sizeof(token));
+    ret = coap_msg_set_token(req, token, sizeof(token));
+    if (ret != 0)
+    {
+        return ret;
+    }
+
     num = coap_client_send(client, req);
     if (num < 0)
     {
