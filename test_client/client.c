@@ -84,13 +84,18 @@ static void print_coap_msg(coap_msg_t *msg)
     printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
 }
 
-int main()
+int test_con(void)
 {
     coap_client_t client = {0};
     coap_msg_t resp = {0};
     coap_msg_t req = {0};
     char *payload = "Hello, Server!";
+    int pass = 1;
     int ret = 0;
+
+    printf("==================================================\n");
+    printf("Confirmable request test\n");
+    printf("==================================================\n");
 
     ret = coap_client_create(&client, HOST, PORT);
     if (ret != 0)
@@ -133,12 +138,133 @@ int main()
         coap_client_destroy(&client);
         return -1;
     }
+
     printf("Sent:\n");
     print_coap_msg(&req);
     printf("\nReceived:\n");
     print_coap_msg(&resp);
+
+    if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
+    {
+        pass = 0;
+    }
+    if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
+    {
+        pass = 0;
+    }
+    else
+    {
+        if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
+        {
+            pass = 0;
+        }
+    }
+
     coap_msg_destroy(&resp);
     coap_msg_destroy(&req);
     coap_client_destroy(&client);
+
+    return pass;
+}
+
+int test_non(void)
+{
+    coap_client_t client = {0};
+    coap_msg_t resp = {0};
+    coap_msg_t req = {0};
+    char *payload = "Hello, Server!";
+    int pass = 1;
+    int ret = 0;
+
+    printf("==================================================\n");
+    printf("Non-confirmable request test\n");
+    printf("==================================================\n");
+
+    ret = coap_client_create(&client, HOST, PORT);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        return -1;
+    }
+    coap_msg_create(&req);
+    ret = coap_msg_set_type(&req, COAP_MSG_NON);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return -1;
+    }
+    ret = coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return -1;
+    }
+    ret = coap_msg_set_payload(&req, payload, strlen(payload));
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return -1;
+    }
+    coap_msg_create(&resp);
+    ret = coap_client_exchange(&client, &req, &resp);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&resp);
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return -1;
+    }
+
+    printf("Sent:\n");
+    print_coap_msg(&req);
+    printf("\nReceived:\n");
+    print_coap_msg(&resp);
+
+    if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
+    {
+        pass = 0;
+    }
+    if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
+    {
+        pass = 0;
+    }
+    else
+    {
+        if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
+        {
+            pass = 0;
+        }
+    }
+
+    coap_msg_destroy(&resp);
+    coap_msg_destroy(&req);
+    coap_client_destroy(&client);
+
+    return pass;
+}
+
+int main(void)
+{
+    int con_result = 0;
+    int non_result = 0;
+
+    con_result = test_con();
+    non_result = test_non();
+
+    printf("==================================================\n");
+    printf("Confirmable request test result: %s\n", (con_result == 1) ? "pass" : "fail");
+    printf("==================================================\n");
+
+    printf("==================================================\n");
+    printf("Non-confirmable request test result: %s\n", (non_result == 1) ? "pass" : "fail");
+    printf("==================================================\n");
+
     return 0;
 }

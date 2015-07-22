@@ -860,20 +860,20 @@ static int coap_server_exchange(coap_server_t *server)
     {
         if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
         {
-            printf("Received duplicate confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
             /* message deduplication */
             /* acknowledge the (confirmable) request again */
             /* do not send the response again */
+            printf("Received duplicate confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
             ret = coap_server_send_ack(server, &recv_msg);
             coap_msg_destroy(&recv_msg);
             return ret;
         }
         else if (coap_msg_get_type(&recv_msg) == COAP_MSG_NON)
         {
-            printf("Received duplicate non-confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
             /* message deduplication */
             /* do not acknowledge the (non-confirmable) request again */
             /* do not send the response again */
+            printf("Received duplicate non-confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
             coap_msg_destroy(&recv_msg);
             return 0;
         }
@@ -885,18 +885,18 @@ static int coap_server_exchange(coap_server_t *server)
     {
         if (coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
         {
-            printf("Received acknowledgement from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
             /* the server must stop num_retransting its response */
             /* on any matching acknowledgement or reset message */
+            printf("Received acknowledgement from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
             coap_server_trans_destroy(trans);
             coap_msg_destroy(&recv_msg);
             return 0;
         }
         else if (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
         {
-            printf("Received reset from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
             /* the server must stop num_retransting its response */
             /* on any matching acknowledgement or reset message */
+            printf("Received reset from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
             coap_server_trans_destroy(trans);
             coap_msg_destroy(&recv_msg);
             return 0;
