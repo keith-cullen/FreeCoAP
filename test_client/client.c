@@ -29,6 +29,7 @@
 #include <string.h>
 #include <errno.h>
 #include "coap_client.h"
+#include "coap_log.h"
 
 #define HOST  "127.0.0.1"
 #define PORT  12436
@@ -159,11 +160,9 @@ int test_con(void)
             pass = 0;
         }
     }
-
     coap_msg_destroy(&resp);
     coap_msg_destroy(&req);
     coap_client_destroy(&client);
-
     return pass;
 }
 
@@ -224,7 +223,7 @@ int test_non(void)
 
     printf("Sent:\n");
     print_coap_msg(&req);
-    printf("\nReceived:\n");
+    printf("Received:\n");
     print_coap_msg(&resp);
 
     if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
@@ -242,11 +241,9 @@ int test_non(void)
             pass = 0;
         }
     }
-
     coap_msg_destroy(&resp);
     coap_msg_destroy(&req);
     coap_client_destroy(&client);
-
     return pass;
 }
 
@@ -254,6 +251,8 @@ int main(void)
 {
     int con_result = 0;
     int non_result = 0;
+
+    coap_log_set_level(COAP_LOG_INFO);
 
     con_result = test_con();
     non_result = test_non();
