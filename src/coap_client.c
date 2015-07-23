@@ -42,6 +42,7 @@
 #include <sys/select.h>
 #include <sys/timerfd.h>
 #include "coap_client.h"
+#include "coap_log.h"
 
 #define COAP_CLIENT_ACK_TIMEOUT_SEC   2                                         /**< Minimum delay to wait before retransmitting a confirmable message */
 #define COAP_CLIENT_MAX_RETRANSMIT    4                                         /**< Maximum number of times a confirmable message can be retransmitted */
@@ -113,7 +114,7 @@ int coap_client_create(coap_client_t *client, const char *host, unsigned port)
         coap_client_destroy(client);
         return -errno;
     }
-    printf("Connected to address %s and port %d\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_notice("Connected to address %s and port %d", client->server_addr, ntohs(client->server_sin.sin_port));
     return 0;
 }
 
@@ -145,8 +146,7 @@ static void coap_client_init_ack_timeout(coap_client_t *client)
     }
     client->timeout.tv_sec = COAP_CLIENT_ACK_TIMEOUT_SEC;
     client->timeout.tv_nsec = (rand() % 1000) * 1000000;
-    printf("Acknowledgement timeout initialised to: %lu sec, %lu nsec\n",
-           client->timeout.tv_sec, client->timeout.tv_nsec);
+    coap_log_debug("Acknowledgement timeout initialised to: %lu sec, %lu nsec", client->timeout.tv_sec, client->timeout.tv_nsec);
 }
 
 /**
@@ -160,8 +160,7 @@ static void coap_client_init_resp_timeout(coap_client_t *client)
 {
     client->timeout.tv_sec = COAP_CLIENT_RESP_TIMEOUT_SEC;
     client->timeout.tv_nsec = 0;
-    printf("Response timeout initialised to: %lu sec, %lu nsec\n",
-           client->timeout.tv_sec, client->timeout.tv_nsec);
+    coap_log_debug("Response timeout initialised to: %lu sec, %lu nsec", client->timeout.tv_sec, client->timeout.tv_nsec);
 }
 
 /**
@@ -175,8 +174,7 @@ static void coap_client_double_timeout(coap_client_t *client)
                       + (client->timeout.tv_nsec / 1000000));
     client->timeout.tv_sec = msec / 1000;
     client->timeout.tv_nsec = (msec % 1000) * 1000000;
-    printf("Timeout doubled to: %lu sec, %lu nsec\n",
-           client->timeout.tv_sec, client->timeout.tv_nsec);
+    coap_log_debug("Timeout doubled to: %lu sec, %lu nsec", client->timeout.tv_sec, client->timeout.tv_nsec);
 }
 
 /**
@@ -295,7 +293,7 @@ static int coap_client_send(coap_client_t *client, coap_msg_t *msg)
     {
         return -errno;
     }
-    printf("Sent to address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_debug("Sent to address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     return num;
 }
 
@@ -369,7 +367,7 @@ static int coap_client_recv(coap_client_t *client, coap_msg_t *msg)
     {
         return ret;
     }
-    printf("Received from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_debug("Received from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     return num;
 }
 
@@ -391,7 +389,7 @@ static int coap_client_reject_con(coap_client_t *client, coap_msg_t *msg)
     int num = 0;
     int ret = 0;
 
-    printf("Rejecting confirmable message from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_info("Rejecting confirmable message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     coap_msg_create(&rej);
     ret = coap_msg_set_type(&rej, COAP_MSG_RST);
     if (ret < 0)
@@ -425,7 +423,7 @@ static int coap_client_reject_con(coap_client_t *client, coap_msg_t *msg)
  */
 static int coap_client_reject_non(coap_client_t *client, coap_msg_t *msg)
 {
-    printf("Rejecting non-confirmable message from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_info("Rejecting non-confirmable message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     return 0;
 }
 
@@ -464,7 +462,7 @@ static int coap_client_send_ack(coap_client_t *client, coap_msg_t *msg)
     int num = 0;
     int ret = 0;
 
-    printf("Acknowledging confirmable message from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_info("Acknowledging confirmable message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     coap_msg_create(&ack);
     ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
     if (ret < 0)
@@ -506,11 +504,11 @@ static int coap_client_handle_ack_timeout(coap_client_t *client, coap_msg_t *msg
     int num = 0;
     int ret = 0;
 
-    printf("Transaction expired for address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_debug("Transaction expired for address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     ret = coap_client_update_ack_timer(client);
     if (ret == 0)
     {
-        printf("Retransmitting to address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+        coap_log_debug("Retransmitting to address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
         num = coap_client_send(client, msg);
         if (num < 0)
         {
@@ -519,7 +517,8 @@ static int coap_client_handle_ack_timeout(coap_client_t *client, coap_msg_t *msg
     }
     else if (ret == -ETIMEDOUT)
     {
-        printf("Stopped num_retransting to address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+        coap_log_debug("Stopped retransmiting to address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
+        coap_log_info("No acknowledgement received from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     }
     return ret;
 }
@@ -635,7 +634,7 @@ static int coap_client_match_token(coap_msg_t *req, coap_msg_t *resp)
  *  @brief Handle the response to a non-confirmable request
  *
  *  The request has already been sent to the server.
- *  This function receives the response.
+ *  Receive the response.
  *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] req Pointer to the request message
@@ -650,7 +649,7 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
     int num = 0;
     int ret = 0;
 
-    printf("Expecting response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_info("Expecting response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     coap_client_start_resp_timer(client);
     while (1)
     {
@@ -673,7 +672,7 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
         {
             if (coap_msg_get_type(resp) == COAP_MSG_RST)
             {
-                printf("Received reset from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_log_info("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                 return -ECONNRESET;
             }
         }
@@ -681,12 +680,12 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
         {
             if (coap_msg_get_type(resp) == COAP_MSG_NON)
             {
-                printf("Received non-confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_log_info("Received non-confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                 return 0;
             }
             else if (coap_msg_get_type(resp) == COAP_MSG_CON)
             {
-                printf("Received confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_log_info("Received confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                 return coap_client_send_ack(client, resp);
             }
         }
@@ -704,9 +703,8 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
  *  @brief Handle the response to a confirmable request
  *
  *  The request has already been sent to the server.
- *  This function receives the acknowledgement from
- *  the server then the response and sends an
- *  acknowledgement back to the server.
+ *  Receive the acknowledgement and respone and send
+ *  an acknowledgement back to the server.
  *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] req Pointer to the request message
@@ -715,7 +713,7 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
  *  @returns Error code
  *  @retval 0 Success
  *  @retval -errno Error code
- **/
+ */
 static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
     int num = 0;
@@ -724,7 +722,7 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
     /*  wait for piggy-backed response in ack message
      *  or ack message and separate response message
      */
-    printf("Expecting acknowledgement from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_info("Expecting acknowledgement from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     coap_client_start_ack_timer(client);
     while (1)
     {
@@ -750,20 +748,20 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
                 if (coap_msg_is_empty(resp))
                 {
                     /* received ack message, wait for separate response message */
-                    printf("Received acknowledgement from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                    coap_log_info("Received acknowledgement from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                     coap_msg_reset(resp);
                     break;
                 }
                 else if (coap_client_match_token(req, resp))
                 {
                     /* received response piggy-backed in ack message */
-                    printf("Received acknowledgement and response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                    coap_log_info("Received acknowledgement and response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                     return 0;
                 }
             }
             else if (coap_msg_get_type(resp) == COAP_MSG_RST)
             {
-                printf("Received reset from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_log_info("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                 return -ECONNRESET;
             }
         }
@@ -777,12 +775,12 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
              */
             if (coap_msg_get_type(resp) == COAP_MSG_CON)
             {
-                printf("Received confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_log_info("Received confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                 return coap_client_send_ack(client, resp);
             }
             else if (coap_msg_get_type(resp) == COAP_MSG_NON)
             {
-                printf("Received non-confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_log_info("Received non-confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                 return 0;
             }
         }
@@ -795,7 +793,7 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
     }
 
     /* wait for a separate response to a confirmable request */
-    printf("Expecting response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+    coap_log_info("Expecting response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
     coap_client_start_resp_timer(client);
     while (1)
     {
@@ -818,12 +816,12 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
         {
             if (coap_msg_get_type(resp) == COAP_MSG_CON)
             {
-                printf("Received confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_log_info("Received confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                 return coap_client_send_ack(client, resp);
             }
             else if (coap_msg_get_type(resp) == COAP_MSG_NON)
             {
-                printf("Received non-confirmable response from address %s and port %u\n", client->server_addr, ntohs(client->server_sin.sin_port));
+                coap_log_info("Received non-confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
                 return 0;
             }
         }
@@ -883,6 +881,8 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     {
         return ret;
     }
+
+    coap_log_info("Sending request to address %s and port %u", client->server_addr, ntohs(client->server_sin.sin_port));
 
     num = coap_client_send(client, req);
     if (num < 0)

@@ -29,6 +29,7 @@
 #include <string.h>
 #include <errno.h>
 #include "coap_server.h"
+#include "coap_log.h"
 
 #define HOST  "127.0.0.1"
 #define PORT  12436
@@ -109,7 +110,7 @@ int handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
     }
     printf("Received:\n");
     print_coap_msg(req);
-    printf("\nSent: (Note: the type, message ID and token fields have not been set by the server library yet)\n");
+    printf("Sent: (Note: the type, message ID and token fields have not been set by the server library yet)\n");
     print_coap_msg(resp);
     return 0;
 }
@@ -118,6 +119,8 @@ int main()
 {
     coap_server_t server = {0};
     int ret = 0;
+
+    coap_log_set_level(COAP_LOG_INFO);
 
     ret = coap_server_create(&server, HOST, PORT, handle);
     if (ret < 0)
