@@ -42,6 +42,7 @@
 #include <sys/select.h>
 #include <sys/timerfd.h>
 #include "coap_server.h"
+#include "coap_log.h"
 
 #define COAP_SERVER_ACK_TIMEOUT_SEC  2                                          /**< Minimum delay to wait before retransmitting a confirmable message */
 #define COAP_SERVER_MAX_RETRANSMIT   4                                          /**< Maximum number of times a confirmable message can be retransmitted */
@@ -59,7 +60,7 @@ static int rand_init = 0;                                                       
  */
 static void coap_server_trans_destroy(coap_server_trans_t *trans)
 {
-    printf("Closed transaction for address %s and port %u\n", trans->client_addr, ntohs(trans->client_sin.sin_port));
+    coap_log_debug("Closed transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin_port));
     coap_msg_destroy(&trans->resp);
     coap_msg_destroy(&trans->req);
     close(trans->timer_fd);
@@ -125,8 +126,7 @@ static void coap_server_trans_init_ack_timeout(coap_server_trans_t *trans)
     }
     trans->timeout.tv_sec = COAP_SERVER_ACK_TIMEOUT_SEC;
     trans->timeout.tv_nsec = (rand() % 1000) * 1000000;
-    printf("Acknowledgement timeout initialised to: %lu sec, %lu nsec\n",
-           trans->timeout.tv_sec, trans->timeout.tv_nsec);
+    coap_log_debug("Acknowledgement timeout initialised to: %lu sec, %lu nsec", trans->timeout.tv_sec, trans->timeout.tv_nsec);
 }
 
 /**
@@ -140,8 +140,7 @@ static void coap_server_trans_double_timeout(coap_server_trans_t *trans)
                       + (trans->timeout.tv_nsec / 1000000));
     trans->timeout.tv_sec = msec / 1000;
     trans->timeout.tv_nsec = (msec % 1000) * 1000000;
-    printf("Timeout doubled to: %lu sec, %lu nsec\n",
-           trans->timeout.tv_sec, trans->timeout.tv_nsec);
+    coap_log_debug("Timeout doubled to: %lu sec, %lu nsec", trans->timeout.tv_sec, trans->timeout.tv_nsec);
 }
 
 /**
@@ -249,7 +248,7 @@ static int coap_server_trans_resend(coap_server_trans_t *trans, coap_server_t *s
     {
         return -errno;
     }
-    printf("Resent to address %s and port %u\n", trans->client_addr, ntohs(trans->client_sin.sin_port));
+    coap_log_info("Resent to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin_port));
     return num;
 }
 
@@ -292,7 +291,7 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
     trans->req = *req;
     trans->resp = *resp;
     trans->active = 1;
-    printf("Recorded transaction for address %s and port %u\n", trans->client_addr, ntohs(trans->client_sin.sin_port));
+    coap_log_debug("Recorded transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin_port));
     return 0;
 }
 
@@ -370,7 +369,7 @@ int coap_server_create(coap_server_t *server, const char *host, unsigned port, i
         coap_server_destroy(server);
         return -errno;
     }
-    printf("Listening on address %s and port %d\n", server_addr, ntohs(server_sin.sin_port));
+    coap_log_notice("Listening on address %s and port %d", server_addr, ntohs(server_sin.sin_port));
     return 0;
 }
 
@@ -501,7 +500,7 @@ static int coap_server_send(coap_server_t *server, coap_msg_t *msg)
     {
         return -errno;
     }
-    printf("Sent to address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+    coap_log_debug("Sent to address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
     return num;
 }
 
@@ -583,7 +582,7 @@ static ssize_t coap_server_recv(coap_server_t *server, coap_msg_t *msg)
     {
         return -errno;
     }
-    printf("Received from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+    coap_log_debug("Received from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
     return num;
 }
 
@@ -605,7 +604,7 @@ static int coap_server_reject_con(coap_server_t *server, coap_msg_t *msg)
     int num = 0;
     int ret = 0;
 
-    printf("Rejecting confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+    coap_log_info("Rejecting confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
     coap_msg_create(&rej);
     ret = coap_msg_set_type(&rej, COAP_MSG_RST);
     if (ret < 0)
@@ -639,7 +638,7 @@ static int coap_server_reject_con(coap_server_t *server, coap_msg_t *msg)
  */
 static int coap_server_reject_non(coap_server_t *server, coap_msg_t *msg)
 {
-    printf("Rejecting non-confirmable message from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+    coap_log_info("Rejecting non-confirmable message from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
     return 0;
 }
 
@@ -678,7 +677,7 @@ static int coap_server_send_ack(coap_server_t *server, coap_msg_t *msg)
     int num = 0;
     int ret = 0;
 
-    printf("Acknowledging confirmable message from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+    coap_log_info("Acknowledging confirmable message from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
     coap_msg_create(&ack);
     ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
     if (ret < 0)
@@ -721,11 +720,11 @@ static int coap_server_handle_ack_timeout(coap_server_t *server, coap_server_tra
     int ret = 0;
 
     coap_server_trans_clear_timeout(trans);
-    printf("Transaction expired for address %s and port %u\n", trans->client_addr, ntohs(trans->client_sin.sin_port));
+    coap_log_debug("Transaction expired for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin_port));
     ret = coap_server_trans_update_ack_timer(trans);
     if (ret == 0)
     {
-        printf("Retransmitting to address %s and port %u\n", trans->client_addr, ntohs(trans->client_sin.sin_port));
+        coap_log_debug("Retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin_port));
         num = coap_server_trans_resend(trans, server);
         if (num < 0)
         {
@@ -734,7 +733,8 @@ static int coap_server_handle_ack_timeout(coap_server_t *server, coap_server_tra
     }
     else if (ret == -ETIMEDOUT)
     {
-        printf("Stopped retransmitting to address %s and port %u\n", trans->client_addr, ntohs(trans->client_sin.sin_port));
+        coap_log_debug("Stopped retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin_port));
+        coap_log_info("No acknowledgement received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin_port));
         coap_server_trans_destroy(trans);
     }
     return 0;
@@ -863,7 +863,7 @@ static int coap_server_exchange(coap_server_t *server)
             /* message deduplication */
             /* acknowledge the (confirmable) request again */
             /* do not send the response again */
-            printf("Received duplicate confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+            coap_log_info("Received duplicate confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
             ret = coap_server_send_ack(server, &recv_msg);
             coap_msg_destroy(&recv_msg);
             return ret;
@@ -873,7 +873,7 @@ static int coap_server_exchange(coap_server_t *server)
             /* message deduplication */
             /* do not acknowledge the (non-confirmable) request again */
             /* do not send the response again */
-            printf("Received duplicate non-confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+            coap_log_info("Received duplicate non-confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
             coap_msg_destroy(&recv_msg);
             return 0;
         }
@@ -887,7 +887,7 @@ static int coap_server_exchange(coap_server_t *server)
         {
             /* the server must stop num_retransting its response */
             /* on any matching acknowledgement or reset message */
-            printf("Received acknowledgement from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+            coap_log_info("Received acknowledgement from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
             coap_server_trans_destroy(trans);
             coap_msg_destroy(&recv_msg);
             return 0;
@@ -896,7 +896,7 @@ static int coap_server_exchange(coap_server_t *server)
         {
             /* the server must stop num_retransting its response */
             /* on any matching acknowledgement or reset message */
-            printf("Received reset from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+            coap_log_info("Received reset from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
             coap_server_trans_destroy(trans);
             coap_msg_destroy(&recv_msg);
             return 0;
@@ -915,11 +915,11 @@ static int coap_server_exchange(coap_server_t *server)
 
     if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
     {
-        printf("Received confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+        coap_log_info("Received confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
     }
     else if (coap_msg_get_type(&recv_msg) == COAP_MSG_NON)
     {
-        printf("Received non-confirmable request from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+        coap_log_info("Received non-confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
     }
 
     resp_type = coap_server_get_resp_type(server, &recv_msg);
@@ -937,7 +937,7 @@ static int coap_server_exchange(coap_server_t *server)
     }
 
     /* generate response */
-    printf("Responding to address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+    coap_log_info("Responding to address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
     coap_msg_create(&send_msg);
     ret = (*server->handle)(server, &recv_msg, &send_msg);
     if (ret < 0)
@@ -1012,7 +1012,7 @@ static int coap_server_exchange(coap_server_t *server)
             coap_msg_destroy(&recv_msg);
             return -EBUSY;
         }
-        printf("Expecting acknowledgement from address %s and port %u\n", server->client_addr, ntohs(server->client_sin.sin_port));
+        coap_log_info("Expecting acknowledgement from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin_port));
         ret = coap_server_trans_create(trans, server, &recv_msg, &send_msg);  /* performs shallow copy of send_msg and recv_msg */
         if (ret < 0)
         {
@@ -1035,13 +1035,13 @@ int coap_server_run(coap_server_t *server)
         ret = coap_server_listen(server);
         if (ret < 0)
         {
-            fprintf(stderr, "Error: Server listen exit %d\n", ret);
+            coap_log_error("server listen: %s", strerror(-ret));
             return ret;
         }
         ret = coap_server_exchange(server);
         if (ret < 0)
         {
-            fprintf(stderr, "Error: Server exchange exit %d\n", ret);
+            coap_log_warn("server exchange: %s", strerror(-ret));
         }
     }
     return 0;

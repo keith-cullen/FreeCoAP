@@ -6,10 +6,12 @@ CFLAGS = -Wall -g -I $(IDH)
 LD = gcc
 LDFLAGS =
 INCS = $(IDH)/coap_client.h \
-       $(IDH)/coap_msg.h
+       $(IDH)/coap_msg.h \
+       $(IDH)/coap_log.h
 OBJS = client.o \
        coap_client.o \
-       coap_msg.o
+       coap_msg.o \
+       coap_log.o
 PROG = client
 RM = /bin/rm -f
 
@@ -24,6 +26,9 @@ coap_client.o: $(IDS)/coap_client.c $(INCS)
 
 coap_msg.o: $(IDS)/coap_msg.c $(INCS)
 	$(CC) $(CFLAGS) -c $(IDS)/coap_msg.c
+
+coap_log.o: $(IDS)/coap_log.c $(INCS)
+	$(CC) $(CFLAGS) -c $(IDS)/coap_log.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)
