@@ -112,7 +112,7 @@ void coap_msg_op_list_destroy(coap_msg_op_list_t *list)
  *  @param[in] len Option length
  *  @param[in] val Pointer to a buffer containing the option value
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -ENOMEM Out-of-memory
  */
@@ -219,7 +219,7 @@ void coap_msg_reset(coap_msg_t *msg)
  *  and MUST NOT be Empty.
  *
  *  @param[in] msg Pointer to a message structure
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -EBADMSG The message is corrupt
  */
@@ -265,7 +265,7 @@ int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
  *  @retval -EINVAL Invalid argument
  *  @retval -EBADMSG The message is corrupt
@@ -312,7 +312,7 @@ static int coap_msg_parse_hdr(coap_msg_t *msg, char *buf, unsigned len)
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
  *  @retval -EBADMSG The message is corrupt
  */
@@ -333,7 +333,7 @@ static int coap_msg_parse_token(coap_msg_t *msg, char *buf, unsigned len)
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
  *  @retval -EBADMSG The message is corrupt
  */
@@ -427,7 +427,7 @@ static int coap_msg_parse_op(coap_msg_t *msg, char *buf, unsigned len)
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
  *  @retval -EBADMSG The message is corrupt
  */
@@ -460,7 +460,7 @@ static int coap_msg_parse_ops(coap_msg_t *msg, char *buf, unsigned len)
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
  *  @retval -ENOMEM Out-of-memory
  *  @retval -EBADMSG The message is corrupt
@@ -611,7 +611,7 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len)
  *  @param[out] buf Pointer to a buffer to contain the formatted message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
  *  @retval -ENOSPC Insufficient buffer length
  */
@@ -640,7 +640,7 @@ static int coap_msg_format_hdr(coap_msg_t *msg, char *buf, unsigned len)
  *  @param[out] buf Pointer to a buffer to contain the formatted message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
  *  @retval -ENOSPC Insufficient buffer length
  */
@@ -662,7 +662,7 @@ static int coap_msg_format_token(coap_msg_t *msg, char *buf, unsigned len)
  *  @param[out] buf Pointer to a buffer to contain the formatted message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
  *  @retval -ENOSPC Insufficient buffer length
  */
@@ -777,7 +777,7 @@ static int coap_msg_format_op(coap_msg_op_t *op, unsigned prev_num, char *buf, u
  *  @param[out] buf Pointer to a buffer to contain the formatted message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
  *  @retval -ENOSPC Insufficient buffer length
  */
@@ -811,7 +811,7 @@ static int coap_msg_format_ops(coap_msg_t *msg, char *buf, unsigned len)
  *  @param[out] buf Pointer to a buffer to contain the formatted message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
  *  @retval -ENOSPC Insufficient buffer length
  */

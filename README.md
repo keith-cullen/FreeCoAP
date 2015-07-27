@@ -41,9 +41,9 @@ To build and test the client/server
 
 By default:
 
-The client and server test applications run on the same system.
+- The client and server test applications run on the same system.
 
-The server test application listens on UDP port 12436.
+- The server test application listens on UDP port 12436.
 
 $ cd coap/test_server
 
