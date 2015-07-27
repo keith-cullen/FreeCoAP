@@ -31,7 +31,7 @@
 #include "coap_client.h"
 #include "coap_log.h"
 
-#define HOST  "127.0.0.1"
+#define HOST  "::1"
 #define PORT  12436
 
 static void print_coap_msg(coap_msg_t *msg)

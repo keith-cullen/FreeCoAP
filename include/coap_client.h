@@ -49,7 +49,7 @@ typedef struct
     int timer_fd;
     struct timespec timeout;
     unsigned num_retrans;
-    struct sockaddr_in server_sin;
+    struct sockaddr_in6 server_sin;
     socklen_t server_sin_len;
     char server_addr[COAP_CLIENT_ADDR_BUF_LEN];
 }
@@ -62,7 +62,7 @@ coap_client_t;
  *  @param[in] host Pointer to a string containing the host address of the server
  *  @param[in] port Port number of the server
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -errno On error
  */
@@ -82,7 +82,7 @@ void coap_client_destroy(coap_client_t *client);
  *  @param[in] req Pointer to a message structure containing the request
  *  @param[out] resp Pointer to a message structure to store the response
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -errno On Error
  */

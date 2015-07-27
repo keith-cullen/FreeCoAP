@@ -60,7 +60,7 @@ typedef struct
     int timer_fd;
     struct timespec timeout;
     unsigned num_retrans;
-    struct sockaddr_in client_sin;
+    struct sockaddr_in6 client_sin;
     socklen_t client_sin_len;
     char client_addr[COAP_SERVER_ADDR_BUF_LEN];
     coap_msg_t req;
@@ -75,7 +75,7 @@ typedef struct coap_server
 {
     int sd;
     unsigned msg_id;
-    struct sockaddr_in client_sin;
+    struct sockaddr_in6 client_sin;
     socklen_t client_sin_len;
     char client_addr[COAP_SERVER_ADDR_BUF_LEN];
     coap_server_trans_t trans[COAP_SERVER_MAX_TRANS];
@@ -91,9 +91,9 @@ coap_server_t;
  *  @param[in] port Port number of the server
  *  @param[in] handle Call-back function to handle client requests
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno On error
+ *  @retval -errno Error
  */
 int coap_server_create(coap_server_t *server, const char *host, unsigned port, int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *));
 
@@ -120,9 +120,9 @@ unsigned coap_server_get_next_msg_id(coap_server_t *server);
  *  call the handle call-back function in the server structure
  *  and send the response to the client.
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error code
+ *  @retval -errno Error
  */
 int coap_server_run(coap_server_t *server);
 
