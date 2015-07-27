@@ -244,7 +244,7 @@ void coap_msg_op_list_destroy(coap_msg_op_list_t *list);
  *  @param[in] len Option length
  *  @param[in] val Pointer to a buffer containing the option value
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -ENOMEM Out-of-memory
  */
@@ -283,7 +283,7 @@ void coap_msg_reset(coap_msg_t *msg);
  *  @param[out] type Pointer to field to store the type value
  *  @param[out] msg_id Pointer to a field to store the message ID value
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -EBADMSG The message is corrupt
  */
@@ -296,7 +296,7 @@ int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -EINVAL Invalid argument
  *  @retval -ENOMEM Out-of-memory
@@ -310,7 +310,7 @@ int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len);
  *  @param[out] msg Pointer to a message structure
  *  @param[in] type Message type
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -EINVAL Invalid argument
  */
@@ -323,7 +323,7 @@ int coap_msg_set_type(coap_msg_t *msg, unsigned type);
  *  @param[in] code_class Code class
  *  @param[in] code_detail Code detail
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -EINVAL Invalid argument
  */
@@ -335,7 +335,7 @@ int coap_msg_set_code(coap_msg_t *msg, unsigned code_class, unsigned code_detail
  *  @param[out] msg Pointer to a message structure
  *  @param[in] msg_id Message ID
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -EINVAL Invalid argument
  */
@@ -348,7 +348,7 @@ int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id);
  *  @param[in] buf Pointer to a buffer containing the token
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -EINVAL Invalid argument
  */
@@ -362,7 +362,7 @@ int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len);
  *  @param[in] len Option length
  *  @param[in] val Pointer to a buffer containing the option value
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -ENOMEM Out-of-memory
  */
@@ -380,7 +380,7 @@ int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, char *val);
  *  @param[in] buf Pointer to a buffer containing the payload
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval 0 Success
  *  @retval -ENOMEM Out-of-memory
  */
@@ -393,7 +393,7 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len);
  *  @param[out] buf Pointer to a buffer to contain the formatted message
  *  @param[in] len Length of the buffer
  *
- *  @returns Error code
+ *  @returns Operation status
  *  @retval >0 Length of the formatted message
  *  @retval -ENOSPC Insufficient buffer length
  *  @retval -EBADMSG Message is corrupt
