@@ -109,6 +109,7 @@ struct test_data
 {
     const char *parse_desc;
     const char *format_desc;
+    const char *copy_desc;
     int parse_ret;
     int set_type_ret;
     int set_code_ret;
@@ -117,6 +118,7 @@ struct test_data
     int *add_op_ret;
     int set_payload_ret;
     int format_ret;
+    int copy_ret;
     char *buf;
     unsigned buf_len;
     unsigned ver;
@@ -173,6 +175,7 @@ struct test_data test1_data =
 {
     .parse_desc = "test  1: parse CoAP message with token, with options, with payload",
     .format_desc = "test 27: format CoAP message with token, with options, with payload",
+    .copy_desc = "test 51: copy CoAP message with token, with options, with payload",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -181,6 +184,7 @@ struct test_data test1_data =
     .add_op_ret = test1_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST1_BUF_LEN,
+    .copy_ret = 0,
     .buf = test1_buf,
     .buf_len = TEST1_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -234,6 +238,7 @@ struct test_data test2_data =
 {
     .parse_desc = "test  2: parse CoAP message with no token, with options, with payload",
     .format_desc = "test 28: format CoAP message with no token, with options, with payload",
+    .copy_desc = "test 52: copy CoAP message with no token, with options, with payload",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -242,6 +247,7 @@ struct test_data test2_data =
     .add_op_ret = test2_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST2_BUF_LEN,
+    .copy_ret = 0,
     .buf = test2_buf,
     .buf_len = TEST2_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -275,6 +281,7 @@ struct test_data test3_data =
 {
     .parse_desc = "test  3: parse CoAP message with token, with no options, with payload",
     .format_desc = "test 29: format CoAP message with token, with no options, with payload",
+    .copy_desc = "test 53: copy CoAP message with token, with no options, with payload",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -283,6 +290,7 @@ struct test_data test3_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = TEST3_BUF_LEN,
+    .copy_ret = 0,
     .buf = test3_buf,
     .buf_len = TEST3_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -335,6 +343,7 @@ struct test_data test4_data =
 {
     .parse_desc = "test  4: parse CoAP message with token, with options, with no payload",
     .format_desc = "test 30: format CoAP message with token, with options, with no payload",
+    .copy_desc = "test 54: copy CoAP message with token, with options, with no payload",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -343,6 +352,7 @@ struct test_data test4_data =
     .add_op_ret = test4_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST4_BUF_LEN,
+    .copy_ret = 0,
     .buf = test4_buf,
     .buf_len = TEST4_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -373,6 +383,7 @@ struct test_data test5_data =
 {
     .parse_desc = "test  5: parse CoAP message with no token, with no options, with payload",
     .format_desc = "test 31: format CoAP message with no token, with no options, with payload",
+    .copy_desc = "test 55: copy CoAP message with no token, with no options, with payload",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -381,6 +392,7 @@ struct test_data test5_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = TEST5_BUF_LEN,
+    .copy_ret = 0,
     .buf = test5_buf,
     .buf_len = TEST5_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -430,6 +442,7 @@ struct test_data test6_data =
 {
     .parse_desc = "test  6: parse CoAP message with no token, with options, with no payload",
     .format_desc = "test 32: format CoAP message with no token, with options, with no payload",
+    .copy_desc = "test 56: copy CoAP message with no token, with options, with no payload",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -438,6 +451,7 @@ struct test_data test6_data =
     .add_op_ret = test6_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST6_BUF_LEN,
+    .copy_ret = 0,
     .buf = test6_buf,
     .buf_len = TEST6_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -467,6 +481,7 @@ struct test_data test7_data =
 {
     .parse_desc = "test  7: parse CoAP message with token, with no options, with no payload",
     .format_desc = "test 33: format CoAP message with token, with no options, with no payload",
+    .copy_desc = "test 57: copy CoAP message with token, with no options, with no payload",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -475,6 +490,7 @@ struct test_data test7_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = TEST7_BUF_LEN,
+    .copy_ret = 0,
     .buf = test7_buf,
     .buf_len = TEST7_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -501,6 +517,7 @@ struct test_data test8_data =
 {
     .parse_desc = "test  8: parse CoAP message with no token, with no options, with no payload",
     .format_desc = "test 34: format CoAP message with no token, with no options, with no payload",
+    .copy_desc = "test 58: copy CoAP message with no token, with no options, with no payload",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -509,6 +526,7 @@ struct test_data test8_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = TEST8_BUF_LEN,
+    .copy_ret = 0,
     .buf = test8_buf,
     .buf_len = TEST8_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -565,6 +583,7 @@ struct test_data test9_data =
 {
     .parse_desc = "test  9: parse CoAP message with option delta extended by 1-byte",
     .format_desc = "test 35: format CoAP message with option delta extended by 1-byte",
+    .copy_desc = "test 59: copy CoAP message with option delta extended by 1-byte",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -573,6 +592,7 @@ struct test_data test9_data =
     .add_op_ret = test9_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST9_BUF_LEN,
+    .copy_ret = 0,
     .buf = test9_buf,
     .buf_len = TEST9_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -629,6 +649,7 @@ struct test_data test10_data =
 {
     .parse_desc = "test 10: parse CoAP message with option delta extended by 2-bytes",
     .format_desc = "test 36: format CoAP message with option delta extended by 2-bytes",
+    .copy_desc = "test 60: copy CoAP message with option delta extended by 2-bytes",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -637,6 +658,7 @@ struct test_data test10_data =
     .add_op_ret = test10_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST10_BUF_LEN,
+    .copy_ret = 0,
     .buf = test10_buf,
     .buf_len = TEST10_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -693,6 +715,7 @@ struct test_data test11_data =
 {
     .parse_desc = "test 11: parse CoAP message with option length extended by 1-byte",
     .format_desc = "test 37: format CoAP message with option length extended by 1-byte",
+    .copy_desc = "test 61: copy CoAP message with option length extended by 1-byte",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -701,6 +724,7 @@ struct test_data test11_data =
     .add_op_ret = test11_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST11_BUF_LEN,
+    .copy_ret = 0,
     .buf = test11_buf,
     .buf_len = TEST11_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -757,6 +781,7 @@ struct test_data test12_data =
 {
     .parse_desc = "test 12: parse CoAP message with option length extended by 2-bytes",
     .format_desc = "test 38: format CoAP message with option length extended by 2-bytes",
+    .copy_desc = "test 62: copy CoAP message with option length extended by 2-bytes",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -765,6 +790,7 @@ struct test_data test12_data =
     .add_op_ret = test12_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST12_BUF_LEN,
+    .copy_ret = 0,
     .buf = test12_buf,
     .buf_len = TEST12_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -821,6 +847,7 @@ struct test_data test13_data =
 {
     .parse_desc = "test 13: parse CoAP message with option delta extended by 1-byte and option length extended by 1-byte",
     .format_desc = "test 39: format CoAP message with option delta extended by 1-byte and option length extended by 1-byte",
+    .copy_desc = "test 63: parse CoAP message with option delta extended by 1-byte and option length extended by 1-byte",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -829,6 +856,7 @@ struct test_data test13_data =
     .add_op_ret = test13_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST13_BUF_LEN,
+    .copy_ret = 0,
     .buf = test13_buf,
     .buf_len = TEST13_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -885,6 +913,7 @@ struct test_data test14_data =
 {
     .parse_desc = "test 14: parse CoAP message with option delta extended by 2-bytes and option length extended by 1-byte",
     .format_desc = "test 40: format CoAP message with option delta extended by 2-bytes and option length extended by 1-byte",
+    .copy_desc = "test 64: copy CoAP message with option delta extended by 2-bytes and option length extended by 1-byte",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -893,6 +922,7 @@ struct test_data test14_data =
     .add_op_ret = test14_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST14_BUF_LEN,
+    .copy_ret = 0,
     .buf = test14_buf,
     .buf_len = TEST14_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -949,6 +979,7 @@ struct test_data test15_data =
 {
     .parse_desc = "test 15: parse CoAP message with option delta extended by 1-byte and option length extended by 2-bytes",
     .format_desc = "test 41: format CoAP message with option delta extended by 1-byte and option length extended by 2-bytes",
+    .copy_desc = "test 65: copy CoAP message with option delta extended by 1-byte and option length extended by 2-bytes",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -957,6 +988,7 @@ struct test_data test15_data =
     .add_op_ret = test15_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST15_BUF_LEN,
+    .copy_ret = 0,
     .buf = test15_buf,
     .buf_len = TEST15_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1013,6 +1045,7 @@ struct test_data test16_data =
 {
     .parse_desc = "test 16: parse CoAP message with option delta extended by 2-bytes and option length extended by 2-bytes",
     .format_desc = "test 42: format CoAP message with option delta extended by 2-bytes and option length extended by 2-bytes",
+    .copy_desc = "test 66: copy CoAP message with option delta extended by 2-bytes and option length extended by 2-bytes",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1021,6 +1054,7 @@ struct test_data test16_data =
     .add_op_ret = test16_add_op_ret,
     .set_payload_ret = 0,
     .format_ret = TEST16_BUF_LEN,
+    .copy_ret = 0,
     .buf = test16_buf,
     .buf_len = TEST16_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1047,6 +1081,7 @@ struct test_data test17_data =
 {
     .parse_desc = "test 17: parse CoAP message with invalid version",
     .format_desc = NULL,
+    .copy_desc = NULL,
     .parse_ret = -EINVAL,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1055,6 +1090,7 @@ struct test_data test17_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = 0,
+    .copy_ret = 0,
     .buf = test17_buf,
     .buf_len = TEST17_BUF_LEN,
     .ver = 0,
@@ -1081,6 +1117,7 @@ struct test_data test18_data =
 {
     .parse_desc = "test 18: parse empty non-confirmable CoAP message",
     .format_desc = "test 43: format empty non-confirmable CoAP message",
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1089,6 +1126,7 @@ struct test_data test18_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = -EBADMSG,
+    .copy_ret = 0,
     .buf = test18_buf,
     .buf_len = TEST18_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1115,6 +1153,7 @@ struct test_data test19_data =
 {
     .parse_desc = "test 19: parse non-empty reset CoAP message",
     .format_desc = "test 44: format non-empty reset CoAP message",
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1123,6 +1162,7 @@ struct test_data test19_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = -EBADMSG,
+    .copy_ret = 0,
     .buf = test19_buf,
     .buf_len = TEST19_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1152,6 +1192,7 @@ struct test_data test20_data =
 {
     .parse_desc = "test 20: parse CoAP message with invalid token length (9)",
     .format_desc = "test 45: format CoAP message with invalid token length (9)",
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1160,6 +1201,7 @@ struct test_data test20_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = 0,
+    .copy_ret = 0,
     .buf = test20_buf,
     .buf_len = TEST20_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1189,6 +1231,7 @@ struct test_data test21_data =
 {
     .parse_desc = "test 21: parse CoAP message with invalid token length (15)",
     .format_desc = "test 46: format CoAP message with invalid token length (15)",
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1197,6 +1240,7 @@ struct test_data test21_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = 0,
+    .copy_ret = 0,
     .buf = test21_buf,
     .buf_len = TEST21_BUF_LEN,
     .ver = 0,
@@ -1226,6 +1270,7 @@ struct test_data test22_data =
 {
     .parse_desc = "test 22: parse empty CoAP message with non-zero token length",
     .format_desc = "test 47: format empty CoAP message with non-zero token length",
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1234,6 +1279,7 @@ struct test_data test22_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = -EBADMSG,
+    .copy_ret = 0,
     .buf = test22_buf,
     .buf_len = TEST22_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1264,6 +1310,7 @@ struct test_data test23_data =
 {
     .parse_desc = "test 23: parse empty CoAP message with payload",
     .format_desc = "test 48: format empty CoAP message with payload",
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1272,6 +1319,7 @@ struct test_data test23_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = -EBADMSG,
+    .copy_ret = 0,
     .buf = test23_buf,
     .buf_len = TEST23_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1300,6 +1348,7 @@ struct test_data test24_data =
 {
     .parse_desc = "test 24: parse CoAP message with invalid option delta",
     .format_desc = NULL,
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1308,6 +1357,7 @@ struct test_data test24_data =
     .add_op_ret = 0,
     .set_payload_ret = 0,
     .format_ret = 0,
+    .copy_ret = 0,
     .buf = test24_buf,
     .buf_len = TEST24_BUF_LEN,
     .ver = 0,
@@ -1336,6 +1386,7 @@ struct test_data test25_data =
 {
     .parse_desc = "test 25: parse CoAP message with invalid option length",
     .format_desc = NULL,
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1344,6 +1395,7 @@ struct test_data test25_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = 0,
+    .copy_ret = 0,
     .buf = test25_buf,
     .buf_len = TEST25_BUF_LEN,
     .ver = 0,
@@ -1371,6 +1423,7 @@ struct test_data test26_data =
 {
     .parse_desc = "test 26: parse CoAP message with payload marker but no payload",
     .format_desc = NULL,
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1379,6 +1432,7 @@ struct test_data test26_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = 0,
+    .copy_ret = 0,
     .buf = test26_buf,
     .buf_len = TEST26_BUF_LEN,
     .ver = 0,
@@ -1405,6 +1459,7 @@ struct test_data test27_data =
 {
     .parse_desc = "test 49: parse valid type and message ID",
     .format_desc = NULL,
+    .copy_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1413,6 +1468,7 @@ struct test_data test27_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = 0,
+    .copy_ret = 0,
     .buf = test27_buf,
     .buf_len = TEST27_BUF_LEN,
     .ver = 0,
@@ -1439,6 +1495,7 @@ struct test_data test28_data =
 {
     .parse_desc = "test 50: parse invalid type and message ID",
     .format_desc = NULL,
+    .copy_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1447,6 +1504,7 @@ struct test_data test28_data =
     .add_op_ret = NULL,
     .set_payload_ret = 0,
     .format_ret = 0,
+    .copy_ret = 0,
     .buf = test28_buf,
     .buf_len = TEST28_BUF_LEN,
     .ver = 0,
@@ -1513,7 +1571,7 @@ harness_result test_parse(harness_data data)
     {
         result = FAIL;
     }
-    op = coap_msg_op_list_get_first(&msg.op_list);
+    op = coap_msg_get_first_op(&msg);
     for (i = 0; i < test_data->num_ops; i++)
     {
         if (op == NULL)
@@ -1691,6 +1749,116 @@ harness_result test_parse_type_msg_id(harness_data data)
     return result;
 }
 
+harness_result test_copy(harness_data data)
+{
+    struct test_data *test_data = (struct test_data *)data;
+    harness_result result = PASS;
+    coap_msg_op_t *op = NULL;
+    coap_msg_t src = {0};
+    coap_msg_t dst = {0};
+    unsigned i = 0;
+    int ret = 0;
+
+    printf("%s\n", test_data->copy_desc);
+
+    coap_msg_create(&src);
+    ret = coap_msg_parse(&src, test_data->buf, test_data->buf_len);
+    if (ret != 0)
+    {
+        coap_msg_destroy(&src);
+        return FAIL;
+    }
+    coap_msg_create(&dst);
+    ret = coap_msg_copy(&dst, &src);
+    if (ret != test_data->copy_ret)
+    {
+        result = FAIL;
+    }
+    if (test_data->copy_ret != 0)
+    {
+        coap_msg_destroy(&dst);
+        coap_msg_destroy(&src);
+        return result;
+    }
+    print_coap_msg(&dst);
+    if (dst.ver != test_data->ver)
+    {
+        result = FAIL;
+    }
+    if (dst.type != test_data->type)
+    {
+        result = FAIL;
+    }
+    if (dst.token_len != test_data->token_len)
+    {
+        result = FAIL;
+    }
+    if (dst.code_class != test_data->code_class)
+    {
+        result = FAIL;
+    }
+    if (dst.code_detail != test_data->code_detail)
+    {
+        result = FAIL;
+    }
+    if (dst.msg_id != test_data->msg_id)
+    {
+        result = FAIL;
+    }
+    if (memcmp(dst.token, test_data->token, test_data->token_len) != 0)
+    {
+        result = FAIL;
+    }
+    op = coap_msg_get_first_op(&dst);
+    for (i = 0; i < test_data->num_ops; i++)
+    {
+        if (op == NULL)
+        {
+            result = FAIL;
+            break;
+        }
+        if (coap_msg_op_get_num(op) != test_data->ops[i].num)
+        {
+            result = FAIL;
+        }
+        if (coap_msg_op_get_len(op) != test_data->ops[i].len)
+        {
+            result = FAIL;
+        }
+        if (memcmp(coap_msg_op_get_val(op), test_data->ops[i].val, test_data->ops[0].len) != 0)
+        {
+            result = FAIL;
+        }
+        op = coap_msg_op_get_next(op);
+    }
+    if (op != NULL)
+    {
+        result = FAIL;
+    }
+    if (test_data->payload != NULL)
+    {
+        if ((dst.payload == NULL)
+         || (memcmp(dst.payload, test_data->payload, test_data->payload_len) != 0))
+        {
+            result = FAIL;
+        }
+    }
+    else
+    {
+        if (dst.payload != NULL)
+        {
+            result = FAIL;
+        }
+    }
+    if (dst.payload_len != test_data->payload_len)
+    {
+        result = FAIL;
+    }
+    coap_msg_destroy(&dst);
+    coap_msg_destroy(&src);
+    return result;
+}
+
 int main(void)
 {
     harness_test tests[] =
@@ -1744,7 +1912,23 @@ int main(void)
         {test_format,            &test22_data},
         {test_format,            &test23_data},
         {test_parse_type_msg_id, &test27_data},
-        {test_parse_type_msg_id, &test28_data}
+        {test_parse_type_msg_id, &test28_data},
+        {test_copy,              &test1_data},
+        {test_copy,              &test2_data},
+        {test_copy,              &test3_data},
+        {test_copy,              &test4_data},
+        {test_copy,              &test5_data},
+        {test_copy,              &test6_data},
+        {test_copy,              &test7_data},
+        {test_copy,              &test8_data},
+        {test_copy,              &test9_data},
+        {test_copy,              &test10_data},
+        {test_copy,              &test11_data},
+        {test_copy,              &test12_data},
+        {test_copy,              &test13_data},
+        {test_copy,              &test14_data},
+        {test_copy,              &test15_data},
+        {test_copy,              &test16_data}
     };
 
     harness_run(tests, DIM(tests));
