@@ -39,6 +39,10 @@
 #include <arpa/inet.h>
 #include "coap_msg.h"
 
+#define coap_msg_op_list_get_first(list)       ((list)->first)                  /**< Get the first option from an option linked-list */
+#define coap_msg_op_list_get_last(list)        ((list)->last)                   /**< Get the last option in an option linked-list */
+#define coap_msg_op_list_is_empty(list)        ((list)->first == NULL)          /**< Indicate if an option linked-list is empty */
+
 static int coap_msg_rand_init = 0;                                              /**< Indicates if the random number generator has been initialised */
 
 void coap_msg_gen_rand_str(char *buf, unsigned len)
@@ -56,7 +60,17 @@ void coap_msg_gen_rand_str(char *buf, unsigned len)
     }
 }
 
-coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, char *val)
+/**
+ *  @brief Allocate an option structure
+ *
+ *  @param[in] num Option number
+ *  @param[in] len Option length
+ *  @param[in] val Pointer to the option value
+ *
+ *  @returns Pointer to the option structure
+ *  @retval NULL Out-of-memory
+ */
+static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, char *val)
 {
     coap_msg_op_t *op = NULL;
 
@@ -78,18 +92,33 @@ coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, char *val)
     return op;
 }
 
-void coap_msg_op_delete(coap_msg_op_t *op)
+/**
+ *  @brief Free an option structure that was allocated by coap_msg_op_new
+ *
+ *  @param[in] op Pointer to the option structure
+ */
+static void coap_msg_op_delete(coap_msg_op_t *op)
 {
     free(op->val);
     free(op);
 }
 
-void coap_msg_op_list_create(coap_msg_op_list_t *list)
+/**
+ *  @brief Initialise an option linked-list structure
+ *
+ *  @param[in,out] list Pointer to an option linked-list structure
+ */
+static void coap_msg_op_list_create(coap_msg_op_list_t *list)
 {
     memset(list, 0, sizeof(coap_msg_op_list_t));
 }
 
-void coap_msg_op_list_destroy(coap_msg_op_list_t *list)
+/**
+ *  @brief Deinitialise an option linked-list structure
+ *
+ *  @param[in,out] list Pointer to an option linked-list structure
+ */
+static void coap_msg_op_list_destroy(coap_msg_op_list_t *list)
 {
     coap_msg_op_t *prev = NULL;
     coap_msg_op_t *op = NULL;
@@ -138,7 +167,21 @@ static int coap_msg_op_list_add_last(coap_msg_op_list_t *list, unsigned num, uns
     return 0;
 }
 
-int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned len, char *val)
+/**
+ *  @brief Allocate an option structure and add it to an option linked-list structure
+ *
+ *  The option is added to the list at a position determined by the option number.
+ *
+ *  @param[in] list Pointer to an option linked-list structure
+ *  @param[in] num Option number
+ *  @param[in] len Option length
+ *  @param[in] val Pointer to a buffer containing the option value
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -ENOMEM Out-of-memory
+ */
+static int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned len, char *val)
 {
     coap_msg_op_t *prev = NULL;
     coap_msg_op_t *op = NULL;
@@ -593,14 +636,18 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len)
     if (msg->payload != NULL)
     {
         free(msg->payload);
+        msg->payload = NULL;
     }
-    msg->payload = (char *)malloc(len);
-    if (msg->payload == NULL)
+    if (len > 0)
     {
-        return -ENOMEM;
+        msg->payload = (char *)malloc(len);
+        if (msg->payload == NULL)
+        {
+            return -ENOMEM;
+        }
+        memcpy(msg->payload, buf, len);
+        msg->payload_len = len;
     }
-    memcpy(msg->payload, buf, len);
-    msg->payload_len = len;
     return 0;
 }
 
@@ -869,4 +916,48 @@ int coap_msg_format(coap_msg_t *msg, char *buf, unsigned len)
     }
     p += num;
     return p - buf;
+}
+
+int coap_msg_copy(coap_msg_t *dst, coap_msg_t *src)
+{
+    coap_msg_op_t *op = NULL;
+    int ret = 0;
+
+    dst->ver = src->ver;
+    ret = coap_msg_set_type(dst, coap_msg_get_type(src));
+    if (ret < 0)
+    {
+        return ret;
+    }
+    ret = coap_msg_set_code(dst, coap_msg_get_code_class(src), coap_msg_get_code_detail(src));
+    if (ret < 0)
+    {
+        return ret;
+    }
+    ret = coap_msg_set_msg_id(dst, coap_msg_get_msg_id(src));
+    if (ret < 0)
+    {
+        return ret;
+    }
+    ret = coap_msg_set_token(dst, coap_msg_get_token(src), coap_msg_get_token_len(src));
+    if (ret < 0)
+    {
+        return ret;
+    }
+    op = coap_msg_get_first_op(src);
+    while (op != NULL)
+    {
+        ret = coap_msg_add_op(dst, coap_msg_op_get_num(op), coap_msg_op_get_len(op), coap_msg_op_get_val(op));
+        if (ret < 0)
+        {
+            return ret;
+        }
+        op = coap_msg_op_get_next(op);
+    }
+    ret = coap_msg_set_payload(dst, coap_msg_get_payload(src), coap_msg_get_payload_len(src));
+    if (ret < 0)
+    {
+        return ret;
+    }
+    return 0;
 }
