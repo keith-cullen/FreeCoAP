@@ -58,7 +58,7 @@ static void print_coap_msg(coap_msg_t *msg)
         printf(" 0x%02x", (unsigned char)token[i]);
     }
     printf("\n");
-    op = coap_msg_op_list_get_first(&msg->op_list);
+    op = coap_msg_get_first_op(msg);
     while (op != NULL)
     {
         num = coap_msg_op_get_num(op);

@@ -55,10 +55,6 @@
 #define coap_msg_op_get_next(op)               ((op)->next)                     /**< Get the next pointer from an option */
 #define coap_msg_op_set_next(op, next_op)      ((op)->next = (next_op))         /**< Set the next pointer in an option */
 
-#define coap_msg_op_list_get_first(list)       ((list)->first)                  /**< Get the first option from an option linked-list */
-#define coap_msg_op_list_get_last(list)        ((list)->last)                   /**< Get the last option in an option linked-list */
-#define coap_msg_op_list_is_empty(list)        ((list)->first == NULL)          /**< Indicate if an option linked-list is empty */
-
 #define coap_msg_get_ver(msg)                  ((msg)->ver)                     /**< Get the version from a message */
 #define coap_msg_get_type(msg)                 ((msg)->type)                    /**< Get the type from a message */
 #define coap_msg_get_token_len(msg)            ((msg)->token_len)               /**< Get the token length from a message */
@@ -200,55 +196,6 @@ coap_msg_t;
  *  @param[in] len Length of the buffer
  */
 void coap_msg_gen_rand_str(char *buf, unsigned len);
-
-/**
- *  @brief Allocate an option structure
- *
- *  @param[in] num Option number
- *  @param[in] len Option length
- *  @param[in] val Pointer to the option value
- *
- *  @returns Pointer to the option structure
- *  @retval NULL Out-of-memory
- */
-coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, char *val);
-
-/**
- *  @brief Free an option structure that was allocated by coap_msg_op_new
- *
- *  @param[in] op Pointer to the option structure
- */
-void coap_msg_op_delete(coap_msg_op_t *op);
-
-/**
- *  @brief Initialise an option linked-list structure
- *
- *  @param[in,out] list Pointer to an option linked-list structure
- */
-void coap_msg_op_list_create(coap_msg_op_list_t *list);
-
-/**
- *  @brief Deinitialise an option linked-list structure
- *
- *  @param[in,out] list Pointer to an option linked-list structure
- */
-void coap_msg_op_list_destroy(coap_msg_op_list_t *list);
-
-/**
- *  @brief Allocate an option structure and add it to an option linked-list structure
- *
- *  The option is added to the list at a position determined by the option number.
- *
- *  @param[in] list Pointer to an option linked-list structure
- *  @param[in] num Option number
- *  @param[in] len Option length
- *  @param[in] val Pointer to a buffer containing the option value
- *
- *  @returns Operation status
- *  @retval 0 Success
- *  @retval -ENOMEM Out-of-memory
- */
-int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned len, char *val);
 
 /**
  *  @brief Initialise a message structure
@@ -399,5 +346,18 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len);
  *  @retval -EBADMSG Message is corrupt
  */
 int coap_msg_format(coap_msg_t *msg, char *buf, unsigned len);
+
+/**
+ *  @brief Copy a message
+ *
+ *  @param[out] dst Pointer to the destination message structure
+ *  @param[in] src Pointer to the source message structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -EINVAL Invalid argument
+ *  @retval -ENOMEM Out-of-memory
+ */
+int coap_msg_copy(coap_msg_t *dst, coap_msg_t *src);
 
 #endif
