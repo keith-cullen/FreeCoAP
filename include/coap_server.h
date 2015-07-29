@@ -51,12 +51,15 @@ typedef enum
 }
 coap_server_resp_t;
 
+struct coap_server;
+
 /**
  *  @brief Transaction structure
  */
-typedef struct
+typedef struct coap_server_trans
 {
     int active;
+    time_t last_use;
     int timer_fd;
     struct timespec timeout;
     unsigned num_retrans;
@@ -65,6 +68,7 @@ typedef struct
     char client_addr[COAP_SERVER_ADDR_BUF_LEN];
     coap_msg_t req;
     coap_msg_t resp;
+    struct coap_server *server;
 }
 coap_server_trans_t;
 

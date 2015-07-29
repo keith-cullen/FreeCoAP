@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <time.h>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -60,7 +61,7 @@ static int rand_init = 0;                                                       
  */
 static void coap_server_trans_destroy(coap_server_trans_t *trans)
 {
-    coap_log_debug("Closed transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_debug("Destroyed transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     coap_msg_destroy(&trans->resp);
     coap_msg_destroy(&trans->req);
     close(trans->timer_fd);
@@ -68,41 +69,97 @@ static void coap_server_trans_destroy(coap_server_trans_t *trans)
 }
 
 /**
+ *  @brief Mark the last time the transaction structure was used
+ *
+ *  @param trans Pointer to a transaction structure
+ */
+static void coap_server_trans_touch(coap_server_trans_t *trans)
+{
+    trans->last_use = time(NULL);
+}
+
+/**
  *  @brief Compare a received message with the request part of a transaction structure
  *
  *  @param[in] trans Pointer to a trasaction structure
- *  @param[in] server Pointer to a server structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Comparison value
  *  @retval 0 The message does not match the transaction
  *  @retval 1 The message matches the transaction
  */
-static int coap_server_trans_match_req(coap_server_trans_t *trans, coap_server_t *server, coap_msg_t *msg)
+static int coap_server_trans_match_req(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    return ((trans->active)
-         && (trans->client_sin_len == server->client_sin_len)
-         && (memcmp(&trans->client_sin, &server->client_sin, trans->client_sin_len) == 0)
-         && (trans->req.msg_id == msg->msg_id));
+    return ((trans->active) && (trans->req.msg_id == msg->msg_id));
 }
 
 /**
  *  @brief Compare a recevied message with the response part of a transaction structure
  *
  *  @param[in] trans Pointer to a trasaction structure
- *  @param[in] server Pointer to a server structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Comparison value
  *  @retval 0 The message does not match the transaction
  *  @retval 1 The message matches the transaction
  */
-static int coap_server_trans_match_resp(coap_server_trans_t *trans, coap_server_t *server, coap_msg_t *msg)
+static int coap_server_trans_match_resp(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    return ((trans->active)
-         && (trans->client_sin_len == server->client_sin_len)
-         && (memcmp(&trans->client_sin, &server->client_sin, trans->client_sin_len) == 0)
-         && (trans->resp.msg_id == msg->msg_id));
+    return ((trans->active) && (trans->resp.msg_id == msg->msg_id));
+}
+
+/**
+ *  @brief Clear the request message in a transaction structure
+ *
+ *  @param[out] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ */
+static void coap_server_trans_clear_req(coap_server_trans_t *trans)
+{
+    coap_msg_destroy(&trans->req);
+}
+
+/**
+ *  @brief Clear the response message in a transaction structure
+ *
+ *  @param[out] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ */
+static void coap_server_trans_clear_resp(coap_server_trans_t *trans)
+{
+    coap_msg_destroy(&trans->resp);
+}
+
+/**
+ *  @brief Set the request message in a transaction structure
+ *
+ *  @param[out] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static int coap_server_trans_set_req(coap_server_trans_t *trans, coap_msg_t *msg)
+{
+    coap_msg_destroy(&trans->req);
+    return coap_msg_copy(&trans->req, msg);
+}
+
+/**
+ *  @brief Set the response message in a transaction structure
+ *
+ *  @param[out] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static int coap_server_trans_set_resp(coap_server_trans_t *trans, coap_msg_t *msg)
+{
+    coap_msg_destroy(&trans->resp);
+    return coap_msg_copy(&trans->resp, msg);
 }
 
 /**
@@ -144,6 +201,17 @@ static void coap_server_trans_double_timeout(coap_server_trans_t *trans)
 }
 
 /**
+ *  @brief Clear the timer in a transaction structure
+ *
+ *  @param[out] trans Pointer to a transaction structure
+ */
+static void coap_server_trans_clear_timer(coap_server_trans_t *trans)
+{
+    uint64_t r = 0;
+    read(trans->timer_fd, &r, sizeof(r));
+}
+
+/**
  *  @brief Start the timer in a transaction structure
  *
  *  @param[in,out] trans Pointer to a transaction structure
@@ -167,6 +235,29 @@ static int coap_server_trans_start_timer(coap_server_trans_t *trans)
 }
 
 /**
+ *  @brief Stop the timer in a transaction structure
+ *
+ *  @param[in,out] trans Pointer to a transaction structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static int coap_server_trans_stop_timer(coap_server_trans_t *trans)
+{
+    struct itimerspec its = {{0}};
+    int ret = 0;
+
+    ret = timerfd_settime(trans->timer_fd, 0, &its, NULL);
+    if (ret == -1)
+    {
+        return -errno;
+    }
+    coap_server_trans_clear_timer(trans);
+    return 0;
+}
+
+/**
  *  @brief Initialise and start the acknowledgement timer in a transaction structure
  *
  *  @param[out] trans Pointer to a trans structure
@@ -180,6 +271,17 @@ static int coap_server_trans_start_ack_timer(coap_server_trans_t *trans)
     trans->num_retrans = 0;
     coap_server_trans_init_ack_timeout(trans);
     return coap_server_trans_start_timer(trans);
+}
+
+/**
+ *  @brief Stop the acknowledgement timer in a transaction structure
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ */
+static int coap_server_trans_stop_ack_timer(coap_server_trans_t *trans)
+{
+    trans->num_retrans = 0;
+    return coap_server_trans_stop_timer(trans);
 }
 
 /**
@@ -198,6 +300,7 @@ static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
 {
     int ret = 0;
 
+    coap_server_trans_clear_timer(trans);
     if (trans->num_retrans >= COAP_SERVER_MAX_RETRANSMIT)
     {
         return -ETIMEDOUT;
@@ -213,32 +316,23 @@ static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
 }
 
 /**
- *  @brief Clear the timer in a transaction structure
- *
- *  @param[out] trans Pointer to a transaction structure
- */
-static void coap_server_trans_clear_timeout(coap_server_trans_t *trans)
-{
-    uint64_t r = 0;
-    read(trans->timer_fd, &r, sizeof(r));
-}
-
-/**
- *  @brief Resend a message to the client
+ *  @brief Send a message to the client
  *
  *  @param[in] trans Pointer to a transaction structure
- *  @param[in] server Pointer to a server structure
+ *  @param[in] msg Pointer to a message structure
  *
  *  @returns Number of bytes sent or error code
  *  @retval >= 0 Number of bytes sent
  *  @retval -errno Error
  */
-static int coap_server_trans_resend(coap_server_trans_t *trans, coap_server_t *server)
+static int coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *msg)
 {
+    coap_server_t *server = NULL;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
     int num = 0;
 
-    num = coap_msg_format(&trans->resp, buf, sizeof(buf));
+    server = trans->server;
+    num = coap_msg_format(msg, buf, sizeof(buf));
     if (num < 0)
     {
         return num;
@@ -248,8 +342,248 @@ static int coap_server_trans_resend(coap_server_trans_t *trans, coap_server_t *s
     {
         return -errno;
     }
-    coap_log_info("Resent to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_server_trans_touch(trans);
+    coap_log_debug("Sent to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     return num;
+}
+
+/**
+ *  @brief Handle a format error in a received message
+ *
+ *  Special handling for the case where a received
+ *  message could not be parsed due to a format error.
+ *  Extract enough information from the received message
+ *  to form a reset message.
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ *  @param[in] buf Buffer containing the message
+ *  @param[in] len length of the buffer
+ */
+static void coap_server_trans_handle_format_error(coap_server_trans_t *trans, char *buf, unsigned len)
+{
+    coap_msg_t msg = {0};
+    unsigned msg_id = 0;
+    unsigned type = 0;
+    int ret = 0;
+
+    /* extract enough information to form a reset message */
+    ret = coap_msg_parse_type_msg_id(buf, len, &type, &msg_id);
+    if ((ret == 0) && (type == COAP_MSG_CON))
+    {
+        coap_msg_create(&msg);
+        ret = coap_msg_set_type(&msg, COAP_MSG_RST);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return;
+        }
+        ret = coap_msg_set_msg_id(&msg, msg_id);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return;
+        }
+        coap_server_trans_send(trans, &msg);
+        coap_msg_destroy(&msg);
+    }
+}
+
+/**
+ *  @brief Receive a message from the client
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ *
+ *  @returns Number of bytes received or error code
+ *  @retval >= 0 Number of bytes received
+ *  @retval -errno Error
+ */
+static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *msg)
+{
+    struct sockaddr_in6 client_sin = {0};
+    coap_server_t *server = NULL;
+    socklen_t client_sin_len = 0;
+    char buf[COAP_MSG_MAX_BUF_LEN] = {0};
+    int num = 0;
+    int ret = 0;
+
+    server = trans->server;
+    client_sin_len = sizeof(client_sin);
+    num = recvfrom(server->sd, buf, sizeof(buf), 0, (struct sockaddr *)&client_sin, &client_sin_len);
+    if (num == -1)
+    {
+        return -errno;
+    }
+    if ((client_sin_len != trans->client_sin_len)
+     || (memcmp(&client_sin, &trans->client_sin, client_sin_len) != 0))
+    {
+        return -EINVAL;
+    }
+    ret = coap_msg_parse(msg, buf, num);
+    if (ret == -EBADMSG)
+    {
+        coap_server_trans_handle_format_error(trans, buf, num);
+    }
+    if (ret < 0)
+    {
+        return ret;
+    }
+    coap_server_trans_touch(trans);
+    coap_log_debug("Received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    return num;
+}
+
+/**
+ *  @brief Reject a received confirmable message
+ *
+ *  Send a reset message to the client.
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static int coap_server_trans_reject_con(coap_server_trans_t *trans, coap_msg_t *msg)
+{
+    coap_msg_t rej = {0};
+    int num = 0;
+    int ret = 0;
+
+    coap_log_info("Rejecting confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_msg_create(&rej);
+    ret = coap_msg_set_type(&rej, COAP_MSG_RST);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&rej);
+        return ret;
+    }
+    ret = coap_msg_set_msg_id(&rej, coap_msg_get_msg_id(msg));
+    if (ret < 0)
+    {
+        coap_msg_destroy(&rej);
+        return ret;
+    }
+    num = coap_server_trans_send(trans, &rej);
+    coap_msg_destroy(&rej);
+    if (num < 0)
+    {
+        return num;
+    }
+    return 0;
+}
+
+/**
+ *  @brief Reject a received non-confirmable message
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ */
+static int coap_server_trans_reject_non(coap_server_trans_t *trans, coap_msg_t *msg)
+{
+    coap_log_info("Rejecting non-confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    return 0;
+}
+
+/**
+ *  @brief Reject a received message
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static int coap_server_trans_reject(coap_server_trans_t *trans, coap_msg_t *msg)
+{
+    if (coap_msg_get_type(msg) == COAP_MSG_CON)
+    {
+        return coap_server_trans_reject_con(trans, msg);
+    }
+    return coap_server_trans_reject_non(trans, msg);
+}
+
+/**
+ *  @brief Send an acknowledgement message to the client
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static int coap_server_trans_send_ack(coap_server_trans_t *trans, coap_msg_t *msg)
+{
+    coap_msg_t ack = {0};
+    int num = 0;
+    int ret = 0;
+
+    coap_log_info("Acknowledging confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_msg_create(&ack);
+    ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&ack);
+        return ret;
+    }
+    ret = coap_msg_set_msg_id(&ack, coap_msg_get_msg_id(msg));
+    if (ret < 0)
+    {
+        coap_msg_destroy(&ack);
+        return ret;
+    }
+    num = coap_server_trans_send(trans, &ack);
+    coap_msg_destroy(&ack);
+    if (num < 0)
+    {
+        return num;
+    }
+    return 0;
+}
+
+/**
+ *  @brief Handle an acknowledgement timeout
+ *
+ *  Update the acknowledgement timer in the transaction structure
+ *  and if the maximum number of retransmits has not been reached
+ *  then retransmit the last response to the client.
+ *
+ *  @param[in,out] server Pointer to a client structure
+ *  @param[in,out] trans Pointer to a transaction structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
+{
+    int num = 0;
+    int ret = 0;
+
+    coap_log_debug("Transaction expired for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    ret = coap_server_trans_update_ack_timer(trans);
+    if (ret == 0)
+    {
+        coap_log_debug("Retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        num = coap_server_trans_send(trans, &trans->resp);
+        if (num < 0)
+        {
+            return num;
+        }
+    }
+    else if (ret == -ETIMEDOUT)
+    {
+        coap_log_debug("Stopped retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        coap_log_info("No acknowledgement received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        coap_server_trans_destroy(trans);
+    }
+    return 0;
 }
 
 /**
@@ -257,41 +591,37 @@ static int coap_server_trans_resend(coap_server_trans_t *trans, coap_server_t *s
  *
  *  @param[out] trans Pointer to a transaction structure
  *  @param[in] server Pointer to a server structure
- *  @param[in] req Pointer to a request message
- *  @param[in] resp Pointer to a response message
+ *  @param[in] client_sin Pointer to a struct sockaddr_in6
+ *  @param[in] client_sin_len Length of the struct sockaddr_in6
  *
  *  @returns Operation status
  *  @retval 0 Success
  *  @retval -errno Error
  */
-static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
+static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t client_sin_len)
 {
-    size_t len = 0;
-    int ret = 0;
+    const char *p = NULL;
 
     memset(trans, 0, sizeof(coap_server_trans_t));
+    trans->server = server;
     trans->timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
     if (trans->timer_fd == -1)
     {
         memset(trans, 0, sizeof(coap_server_trans_t));
         return -errno;
     }
-    ret = coap_server_trans_start_ack_timer(trans);
-    if (ret < 0)
+    memcpy(&trans->client_sin, client_sin, client_sin_len);
+    trans->client_sin_len = client_sin_len;
+    p = inet_ntop(AF_INET6, &client_sin->sin6_addr, trans->client_addr, sizeof(trans->client_addr));
+    if (p == NULL)
     {
         close(trans->timer_fd);
         memset(trans, 0, sizeof(coap_server_trans_t));
-        return ret;
+        return -errno;
     }
-    memcpy(&trans->client_sin, &server->client_sin, server->client_sin_len);
-    trans->client_sin_len = server->client_sin_len;
-    len = sizeof(trans->client_addr);
-    strncpy(trans->client_addr, server->client_addr, len);
-    trans->client_addr[len - 1] = '\0';
-    trans->req = *req;
-    trans->resp = *resp;
+    coap_server_trans_touch(trans);
     trans->active = 1;
-    coap_log_debug("Recorded transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_debug("Created transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     return 0;
 }
 
@@ -379,18 +709,6 @@ void coap_server_destroy(coap_server_t *server)
     memset(server, 0, sizeof(coap_server_t));
 }
 
-/**
- *  @brief Clear details of the current client from the server structure
- *
- *  @param[in] Pointer to a server structure
- */
-static void coap_server_clear_client(coap_server_t *server)
-{
-    memset(&server->client_sin, 0, sizeof(server->client_sin));
-    server->client_sin_len = 0;
-    memset(server->client_addr, 0, sizeof(server->client_addr));
-}
-
 unsigned coap_server_get_next_msg_id(coap_server_t *server)
 {
     unsigned char msg_id[2] = {0};
@@ -405,7 +723,36 @@ unsigned coap_server_get_next_msg_id(coap_server_t *server)
 }
 
 /**
- *  @brief Search for an empty transaction structure in the server structure
+ *  @brief Search for a transaction structure in a server structure that matches an endpoint
+ *
+ *  @param[in] server Pointer to a server structure
+ *  @param[in] client_sin Pointer to a struct sockaddr_in6
+ *  @param[in] client_sin_len Length of the struct sockaddr_in6
+ *
+ *  @returns Pointer to a transaction structure
+ *  @retval NULL No matching transaction structure found
+ */
+static coap_server_trans_t *coap_server_find_trans(coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t client_sin_len)
+{
+    coap_server_trans_t *trans = NULL;
+    unsigned i = 0;
+
+    for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
+    {
+        trans = &server->trans[i];
+        if ((trans->active)
+         && (trans->client_sin_len == client_sin_len)
+         && (memcmp(&trans->client_sin, client_sin, client_sin_len) == 0))
+        {
+            coap_log_debug("Found existing transaction at index %u", i);
+            return trans;
+        }
+    }
+    return NULL;
+}
+
+/**
+ *  @brief Search for an empty transaction structure in a server structure
  *
  *  @param[in] server Pointer to a server structure
  *
@@ -420,8 +767,9 @@ static coap_server_trans_t *coap_server_find_empty_trans(coap_server_t *server)
     for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
     {
         trans = &server->trans[i];
-        if (trans->active == 0)
+        if (!trans->active)
         {
+            coap_log_debug("Found empty transaction at index %u", i);
             return trans;
         }
     }
@@ -429,320 +777,38 @@ static coap_server_trans_t *coap_server_find_empty_trans(coap_server_t *server)
 }
 
 /**
- *  @brief Search a server structure for a transaction structue
- *         with a request part that matches a received message
+ *  @brief Search for oldest transaction structure in a server structure
+ *
+ *  Search for the transaction structure in a server structure that was
+ *  used least recently.
  *
  *  @param[in] server Pointer to a server structure
- *  @param[in] msg Pointer to a message structure
  *
  *  @returns Pointer to a transaction structure
- *  @retval NULL No matching transaction structure found
  */
-static coap_server_trans_t *coap_server_find_trans_req(coap_server_t *server, coap_msg_t *msg)
+static coap_server_trans_t *coap_server_find_oldest_trans(coap_server_t *server)
 {
+    coap_server_trans_t *oldest = NULL;
     coap_server_trans_t *trans = NULL;
     unsigned i = 0;
+    unsigned j = 0;
+    time_t min_last_use = 0;
 
     for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
     {
         trans = &server->trans[i];
-        if (coap_server_trans_match_req(trans, server, msg))
+        if (trans->active)
         {
-            return trans;
+            if ((min_last_use == 0) || (trans->last_use < min_last_use))
+            {
+                oldest = trans;
+                min_last_use = trans->last_use;
+                j = i;
+            }
         }
     }
-    return NULL;
-}
-
-/**
- *  @brief Search a server structure for a transaction structue
- *         with a response part that matches a received message
- *
- *  @param[in] server Pointer to a server structure
- *  @param[in] msg Pointer to a message structure
- *
- *  @returns Pointer to a transaction structure
- *  @retval NULL No matching transaction structure found
- */
-static coap_server_trans_t *coap_server_find_trans_resp(coap_server_t *server, coap_msg_t *msg)
-{
-    coap_server_trans_t *trans = NULL;
-    unsigned i = 0;
-
-    for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
-    {
-        trans = &server->trans[i];
-        if (coap_server_trans_match_resp(trans, server, msg))
-        {
-            return trans;
-        }
-    }
-    return NULL;
-}
-
-/**
- *  @brief Send a message to the client
- *
- *  @param[in] server Pointer to a server structure
- *  @param[in] msg Pointer to a message structure
- *
- *  @returns Number of bytes sent or error code
- *  @retval >= 0 Number of bytes sent
- *  @retval -errno Error
- */
-static int coap_server_send(coap_server_t *server, coap_msg_t *msg)
-{
-    char buf[COAP_MSG_MAX_BUF_LEN] = {0};
-    int num = 0;
-
-    num = coap_msg_format(msg, buf, sizeof(buf));
-    if (num < 0)
-    {
-        return num;
-    }
-    num = sendto(server->sd, buf, num, 0, (struct sockaddr *)&server->client_sin, server->client_sin_len);
-    if (num == -1)
-    {
-        return -errno;
-    }
-    coap_log_debug("Sent to address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-    return num;
-}
-
-/**
- *  @brief Handle a format error in a received message
- *
- *  Special handling for the case where a received
- *  message could not be parsed due to a format error.
- *  Extract enough information from the received message
- *  to form a reset message.
- *
- *  @param[in] server Pointer to a server structure
- *  @param[in] buf Buffer containing the message
- *  @param[in] len length of the buffer
- */
-static void coap_server_handle_format_error(coap_server_t *server, char *buf, unsigned len)
-{
-    coap_msg_t msg = {0};
-    unsigned msg_id = 0;
-    unsigned type = 0;
-    int ret = 0;
-
-    /* extract enough information to form a reset message */
-    ret = coap_msg_parse_type_msg_id(buf, len, &type, &msg_id);
-    if ((ret == 0) && (type == COAP_MSG_CON))
-    {
-        coap_msg_create(&msg);
-        ret = coap_msg_set_type(&msg, COAP_MSG_RST);
-        if (ret < 0)
-        {
-            coap_msg_destroy(&msg);
-            return;
-        }
-        ret = coap_msg_set_msg_id(&msg, msg_id);
-        if (ret < 0)
-        {
-            coap_msg_destroy(&msg);
-            return;
-        }
-        coap_server_send(server, &msg);
-        coap_msg_destroy(&msg);
-    }
-}
-
-/**
- *  @brief Receive a message from the client
- *
- *  @param[in] server Pointer to a server structure
- *  @param[in] msg Pointer to a message structure
- *
- *  @returns Number of bytes received or error code
- *  @retval >= 0 Number of bytes received
- *  @retval -errno Error
- */
-static ssize_t coap_server_recv(coap_server_t *server, coap_msg_t *msg)
-{
-    const char *p = NULL;
-    char buf[COAP_MSG_MAX_BUF_LEN] = {0};
-    int num = 0;
-    int ret = 0;
-
-    server->client_sin_len = sizeof(server->client_sin);
-    num = recvfrom(server->sd, buf, sizeof(buf), 0, (struct sockaddr *)&server->client_sin, &server->client_sin_len);
-    if (num == -1)
-    {
-        return -errno;
-    }
-    ret = coap_msg_parse(msg, buf, num);
-    if (ret == -EBADMSG)
-    {
-        coap_server_handle_format_error(server, buf, num);
-    }
-    if (ret < 0)
-    {
-        return ret;
-    }
-    p = inet_ntop(AF_INET6, &server->client_sin.sin6_addr, server->client_addr, sizeof(server->client_addr));
-    if (p == NULL)
-    {
-        return -errno;
-    }
-    coap_log_debug("Received from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-    return num;
-}
-
-/**
- *  @brief Reject a received confirmable message
- *
- *  Send a reset message to the client.
- *
- *  @param[in] server Pointer to a server structure
- *  @param[in] msg Pointer to a message structure
- *
- *  @returns Operation status
- *  @retval 0 Success
- *  @retval -errno Error
- */
-static int coap_server_reject_con(coap_server_t *server, coap_msg_t *msg)
-{
-    coap_msg_t rej = {0};
-    int num = 0;
-    int ret = 0;
-
-    coap_log_info("Rejecting confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-    coap_msg_create(&rej);
-    ret = coap_msg_set_type(&rej, COAP_MSG_RST);
-    if (ret < 0)
-    {
-        coap_msg_destroy(&rej);
-        return ret;
-    }
-    ret = coap_msg_set_msg_id(&rej, coap_msg_get_msg_id(msg));
-    if (ret < 0)
-    {
-        coap_msg_destroy(&rej);
-        return ret;
-    }
-    num = coap_server_send(server, &rej);
-    coap_msg_destroy(&rej);
-    if (num < 0)
-    {
-        return num;
-    }
-    return 0;
-}
-
-/**
- *  @brief Reject a received non-confirmable message
- *
- *  @param[in] server Pointer to a server structure
- *  @param[in] msg Pointer to a message structure
- *
- *  @returns Operation status
- *  @retval 0 Success
- */
-static int coap_server_reject_non(coap_server_t *server, coap_msg_t *msg)
-{
-    coap_log_info("Rejecting non-confirmable message from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-    return 0;
-}
-
-/**
- *  @brief Reject a received message
- *
- *  @param[in] server Pointer to a server structure
- *  @param[in] msg Pointer to a message structure
- *
- *  @returns Operation status
- *  @retval 0 Success
- *  @retval -errno Error
- */
-static int coap_server_reject(coap_server_t *server, coap_msg_t *msg)
-{
-    if (coap_msg_get_type(msg) == COAP_MSG_CON)
-    {
-        return coap_server_reject_con(server, msg);
-    }
-    return coap_server_reject_non(server, msg);
-}
-
-/**
- *  @brief Send an acknowledgement message to the client
- *
- *  @param[in] server Pointer to a server structure
- *  @param[in] msg Pointer to a message structure
- *
- *  @returns Operation status
- *  @retval 0 Success
- *  @retval -errno Error
- */
-static int coap_server_send_ack(coap_server_t *server, coap_msg_t *msg)
-{
-    coap_msg_t ack = {0};
-    int num = 0;
-    int ret = 0;
-
-    coap_log_info("Acknowledging confirmable message from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-    coap_msg_create(&ack);
-    ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
-    if (ret < 0)
-    {
-        coap_msg_destroy(&ack);
-        return ret;
-    }
-    ret = coap_msg_set_msg_id(&ack, coap_msg_get_msg_id(msg));
-    if (ret < 0)
-    {
-        coap_msg_destroy(&ack);
-        return ret;
-    }
-    num = coap_server_send(server, &ack);
-    coap_msg_destroy(&ack);
-    if (num < 0)
-    {
-        return num;
-    }
-    return 0;
-}
-
-/**
- *  @brief Handle an acknowledgement timeout
- *
- *  Update the acknowledgement timer in the transaction structure
- *  and if the maximum number of retransmits has not been reached
- *  then retransmit the last response to the client.
- *
- *  @param[in,out] server Pointer to a client structure
- *  @param[in,out] trans Pointer to a transaction structure
- *
- *  @returns Operation status
- *  @retval 0 Success
- *  @retval -errno Error
- */
-static int coap_server_handle_ack_timeout(coap_server_t *server, coap_server_trans_t *trans)
-{
-    int num = 0;
-    int ret = 0;
-
-    coap_server_trans_clear_timeout(trans);
-    coap_log_debug("Transaction expired for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-    ret = coap_server_trans_update_ack_timer(trans);
-    if (ret == 0)
-    {
-        coap_log_debug("Retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-        num = coap_server_trans_resend(trans, server);
-        if (num < 0)
-        {
-            return num;
-        }
-    }
-    else if (ret == -ETIMEDOUT)
-    {
-        coap_log_debug("Stopped retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-        coap_log_info("No acknowledgement received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-        coap_server_trans_destroy(trans);
-    }
-    return 0;
+    coap_log_debug("Found oldest transaction at index %u", j);
+    return oldest != NULL ? oldest : &server->trans[0];
 }
 
 /**
@@ -794,13 +860,41 @@ static int coap_server_listen(coap_server_t *server)
             trans = &server->trans[i];
             if ((trans->active) && (FD_ISSET(trans->timer_fd, &read_fds)))
             {
-                ret = coap_server_handle_ack_timeout(server, trans);
+                ret = coap_server_trans_handle_ack_timeout(trans);
                 if (ret < 0)
                 {
                     return ret;
                 }
             }
         }
+    }
+    return 0;
+}
+
+/**
+ *  @brief Accept an incoming connection
+ *
+ *  @param[in] server Pointer to a server structure
+ *  @param[in] client_sin Pointer to a struct sockaddr_in6
+ *  @param[in] client_sin_len Length of the struct sockaddr_in6
+ *
+ *  Get the address and port number of the client.
+ *  Do not read the received data.
+ *
+ *  @returns Number of bytes received or error code
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static ssize_t coap_server_accept(coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t *client_sin_len)
+{
+    char buf[COAP_MSG_MAX_BUF_LEN] = {0};
+    int num = 0;
+
+    *client_sin_len = sizeof(struct sockaddr_in6);
+    num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)client_sin, client_sin_len);
+    if (num == -1)
+    {
+        return -errno;
     }
     return 0;
 }
@@ -839,37 +933,59 @@ static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
  **/
 static int coap_server_exchange(coap_server_t *server)
 {
+    struct sockaddr_in6 client_sin = {0};
     coap_server_trans_t *trans = NULL;
     coap_msg_t recv_msg = {0};
     coap_msg_t send_msg = {0};
+    socklen_t client_sin_len = 0;
     unsigned msg_id = 0;
     int resp_type = 0;
     int num = 0;
     int ret = 0;
 
-    /* clear details of the previous client */
-    coap_server_clear_client(server);
+    /* accept incoming connection */
+    ret = coap_server_accept(server, &client_sin, &client_sin_len);
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    /* find or create transaction */
+    trans = coap_server_find_trans(server, &client_sin, client_sin_len);
+    if (trans == NULL)
+    {
+        trans = coap_server_find_empty_trans(server);
+        if (trans == NULL)
+        {
+            trans = coap_server_find_oldest_trans(server);
+            coap_server_trans_destroy(trans);
+        }
+        ret = coap_server_trans_create(trans, server, &client_sin, client_sin_len);
+        if (ret < 0)
+        {
+            return ret;
+        }
+    }
 
     /* receive message */
     coap_msg_create(&recv_msg);
-    num = coap_server_recv(server, &recv_msg);
+    num = coap_server_trans_recv(trans, &recv_msg);
     if (num < 0)
     {
         coap_msg_destroy(&recv_msg);
         return num;
     }
 
-    /* check for duplicate requests */
-    trans = coap_server_find_trans_req(server, &recv_msg);
-    if (trans != NULL)
+    /* check for duplicate request */
+    if (coap_server_trans_match_req(trans, &recv_msg))
     {
         if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
         {
             /* message deduplication */
             /* acknowledge the (confirmable) request again */
             /* do not send the response again */
-            coap_log_info("Received duplicate confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-            ret = coap_server_send_ack(server, &recv_msg);
+            coap_log_info("Received duplicate confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            ret = coap_server_trans_send_ack(trans, &recv_msg);
             coap_msg_destroy(&recv_msg);
             return ret;
         }
@@ -878,28 +994,27 @@ static int coap_server_exchange(coap_server_t *server)
             /* message deduplication */
             /* do not acknowledge the (non-confirmable) request again */
             /* do not send the response again */
-            coap_log_info("Received duplicate non-confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
+            coap_log_info("Received duplicate non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
             coap_msg_destroy(&recv_msg);
             return 0;
         }
     }
 
     /* check for an ack for a previous response */
-    trans = coap_server_find_trans_resp(server, &recv_msg);
-    if (trans != NULL)
+    if (coap_server_trans_match_resp(trans, &recv_msg))
     {
         if (coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
         {
-            /* the server must stop num_retransting its response */
+            /* the server must stop num_retransmitting its response */
             /* on any matching acknowledgement or reset message */
-            coap_log_info("Received acknowledgement from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-            coap_server_trans_destroy(trans);
+            coap_log_info("Received acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            ret = coap_server_trans_stop_ack_timer(trans);
             coap_msg_destroy(&recv_msg);
-            return 0;
+            return ret;
         }
         else if (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
         {
-            /* the server must stop num_retransting its response */
+            /* the server must stop retransmitting its response */
             /* on any matching acknowledgement or reset message */
             coap_log_info("Received reset from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
             coap_server_trans_destroy(trans);
@@ -913,27 +1028,32 @@ static int coap_server_exchange(coap_server_t *server)
      || (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
      || (coap_msg_get_code_class(&recv_msg) != COAP_MSG_REQ))
     {
-        ret = coap_server_reject(server, &recv_msg);
+        ret = coap_server_trans_reject(trans, &recv_msg);
         coap_msg_destroy(&recv_msg);
         return ret;
     }
 
+    /* clear details of the previous request/response */
+    coap_server_trans_clear_req(trans);
+    coap_server_trans_clear_resp(trans);
+
     if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
     {
-        coap_log_info("Received confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
+        coap_log_info("Received confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     }
     else if (coap_msg_get_type(&recv_msg) == COAP_MSG_NON)
     {
-        coap_log_info("Received non-confirmable request from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
+        coap_log_info("Received non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     }
 
+    /* determine response type */
     resp_type = coap_server_get_resp_type(server, &recv_msg);
 
     /* send an acknowledgement if necessary */
     if ((coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
      && (resp_type == COAP_SERVER_SEPARATE))
     {
-        ret = coap_server_send_ack(server, &recv_msg);
+        ret = coap_server_trans_send_ack(trans, &recv_msg);
         if (ret < 0)
         {
             coap_msg_destroy(&recv_msg);
@@ -942,7 +1062,7 @@ static int coap_server_exchange(coap_server_t *server)
     }
 
     /* generate response */
-    coap_log_info("Responding to address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
+    coap_log_info("Responding to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     coap_msg_create(&send_msg);
     ret = (*server->handle)(server, &recv_msg, &send_msg);
     if (ret < 0)
@@ -999,33 +1119,47 @@ static int coap_server_exchange(coap_server_t *server)
     }
 
     /* send response */
-    num = coap_server_send(server, &send_msg);
+    num = coap_server_trans_send(trans, &send_msg);
     if (num < 0)
     {
         coap_msg_destroy(&send_msg);
-        coap_msg_destroy(&recv_msg);
         return num;
     }
 
-    /* record the transaction if an acknowledgement is expected */
+    /* record the request in the transaction structure */
+    ret = coap_server_trans_set_req(trans, &recv_msg);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&send_msg);
+        coap_msg_destroy(&recv_msg);
+        coap_server_trans_destroy(trans);
+        return ret;
+    }
+
+    /* record the response in the transaction structure */
+    ret = coap_server_trans_set_resp(trans, &send_msg);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&recv_msg);
+        coap_msg_destroy(&send_msg);
+        coap_server_trans_destroy(trans);
+        return ret;
+    }
+
+    /* start the acknowledgement timer if an acknowledgement is expected */
     if (coap_msg_get_type(&send_msg) == COAP_MSG_CON)
     {
-        trans = coap_server_find_empty_trans(server);
-        if (trans == NULL)
-        {
-            coap_msg_destroy(&send_msg);
-            coap_msg_destroy(&recv_msg);
-            return -EBUSY;
-        }
-        coap_log_info("Expecting acknowledgement from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-        ret = coap_server_trans_create(trans, server, &recv_msg, &send_msg);  /* performs shallow copy of send_msg and recv_msg */
+        coap_log_info("Expecting acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        ret = coap_server_trans_start_ack_timer(trans);
         if (ret < 0)
         {
-            coap_msg_destroy(&send_msg);
             coap_msg_destroy(&recv_msg);
+            coap_msg_destroy(&send_msg);
+            coap_server_trans_destroy(trans);
             return ret;
         }
     }
+
     coap_msg_destroy(&send_msg);
     coap_msg_destroy(&recv_msg);
     return 0;
