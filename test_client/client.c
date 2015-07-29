@@ -34,6 +34,39 @@
 #define HOST  "::1"
 #define PORT  12436
 
+static const char *result_str[] =
+{
+    "ERROR",
+    "FAIL",
+    "PASS",
+    "UNKNOWN"
+};
+
+typedef enum
+{
+    ERROR = 0,
+    FAIL,
+    PASS,
+    UNKNOWN
+}
+result_t;
+
+static const char *result_to_str(result_t result)
+{
+    switch (result)
+    {
+    case ERROR:
+        return result_str[ERROR];
+    case FAIL:
+        return result_str[FAIL];
+    case PASS:
+        return result_str[PASS];
+    case UNKNOWN:
+        return result_str[UNKNOWN];
+    }
+    return result_str[UNKNOWN];
+}
+
 static void print_coap_msg(coap_msg_t *msg)
 {
     coap_msg_op_t *op = NULL;
@@ -85,24 +118,20 @@ static void print_coap_msg(coap_msg_t *msg)
     printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
 }
 
-int test_con(void)
+static result_t __test_con(void)
 {
     coap_client_t client = {0};
     coap_msg_t resp = {0};
     coap_msg_t req = {0};
+    result_t result = PASS;
     char *payload = "Hello, Server!";
-    int pass = 1;
     int ret = 0;
-
-    printf("==================================================\n");
-    printf("Confirmable request test\n");
-    printf("==================================================\n");
 
     ret = coap_client_create(&client, HOST, PORT);
     if (ret != 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));
-        return -1;
+        return ERROR;
     }
     coap_msg_create(&req);
     ret = coap_msg_set_type(&req, COAP_MSG_CON);
@@ -111,7 +140,7 @@ int test_con(void)
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
-        return -1;
+        return ERROR;
     }
     ret = coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
     if (ret != 0)
@@ -119,7 +148,7 @@ int test_con(void)
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
-        return -1;
+        return ERROR;
     }
     ret = coap_msg_set_payload(&req, payload, strlen(payload));
     if (ret != 0)
@@ -127,7 +156,7 @@ int test_con(void)
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
-        return -1;
+        return ERROR;
     }
     coap_msg_create(&resp);
     ret = coap_client_exchange(&client, &req, &resp);
@@ -137,7 +166,7 @@ int test_con(void)
         coap_msg_destroy(&resp);
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
-        return -1;
+        return ERROR;
     }
 
     printf("Sent:\n");
@@ -147,43 +176,56 @@ int test_con(void)
 
     if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
     {
-        pass = 0;
+        result = FAIL;
     }
     if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
     {
-        pass = 0;
+        result = FAIL;
     }
     else
     {
         if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
         {
-            pass = 0;
+            result = FAIL;
         }
     }
     coap_msg_destroy(&resp);
     coap_msg_destroy(&req);
     coap_client_destroy(&client);
-    return pass;
+    return result;
 }
 
-int test_non(void)
+static int test_con(void)
+{
+    result_t result = PASS;
+
+    printf("==================================================\n");
+    printf("Confirmable request test\n");
+    printf("==================================================\n");
+
+    result = __test_con();
+
+    printf("==================================================\n");
+    printf("Confirmable request test result: %s\n", result_to_str(result));
+    printf("==================================================\n");
+
+    return result;
+}
+
+int __test_non(void)
 {
     coap_client_t client = {0};
     coap_msg_t resp = {0};
     coap_msg_t req = {0};
+    result_t result = PASS;
     char *payload = "Hello, Server!";
-    int pass = 1;
     int ret = 0;
-
-    printf("==================================================\n");
-    printf("Non-confirmable request test\n");
-    printf("==================================================\n");
 
     ret = coap_client_create(&client, HOST, PORT);
     if (ret != 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));
-        return -1;
+        return ERROR;
     }
     coap_msg_create(&req);
     ret = coap_msg_set_type(&req, COAP_MSG_NON);
@@ -192,7 +234,7 @@ int test_non(void)
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
-        return -1;
+        return ERROR;
     }
     ret = coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
     if (ret != 0)
@@ -200,7 +242,7 @@ int test_non(void)
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
-        return -1;
+        return ERROR;
     }
     ret = coap_msg_set_payload(&req, payload, strlen(payload));
     if (ret != 0)
@@ -208,7 +250,7 @@ int test_non(void)
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
-        return -1;
+        return ERROR;
     }
     coap_msg_create(&resp);
     ret = coap_client_exchange(&client, &req, &resp);
@@ -218,7 +260,7 @@ int test_non(void)
         coap_msg_destroy(&resp);
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
-        return -1;
+        return ERROR;
     }
 
     printf("Sent:\n");
@@ -228,42 +270,48 @@ int test_non(void)
 
     if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
     {
-        pass = 0;
+        result = FAIL;
     }
     if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
     {
-        pass = 0;
+        result = FAIL;
     }
     else
     {
         if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
         {
-            pass = 0;
+            result = FAIL;
         }
     }
     coap_msg_destroy(&resp);
     coap_msg_destroy(&req);
     coap_client_destroy(&client);
-    return pass;
+    return result;
 }
 
-int main(void)
+static result_t test_non(void)
 {
-    int con_result = 0;
-    int non_result = 0;
+    result_t result = PASS;
 
+    printf("==================================================\n");
+    printf("Non-confirmable request test\n");
+    printf("==================================================\n");
+
+    result = __test_non();
+
+    printf("==================================================\n");
+    printf("Non-confirmable request test result: %s\n", result_to_str(result));
+    printf("==================================================\n");
+
+    return result;
+}
+
+int main(int argc, char **argv)
+{
     coap_log_set_level(COAP_LOG_INFO);
 
-    con_result = test_con();
-    non_result = test_non();
-
-    printf("==================================================\n");
-    printf("Confirmable request test result: %s\n", (con_result == 1) ? "pass" : "fail");
-    printf("==================================================\n");
-
-    printf("==================================================\n");
-    printf("Non-confirmable request test result: %s\n", (non_result == 1) ? "pass" : "fail");
-    printf("==================================================\n");
+    test_con();
+    test_non();
 
     return 0;
 }
