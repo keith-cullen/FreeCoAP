@@ -25,9 +25,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <getopt.h>
 #include "coap_client.h"
 #include "coap_log.h"
 
@@ -171,7 +173,7 @@ static result_t __test_con(void)
 
     printf("Sent:\n");
     print_coap_msg(&req);
-    printf("\nReceived:\n");
+    printf("Received:\n");
     print_coap_msg(&resp);
 
     if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
@@ -306,12 +308,64 @@ static result_t test_non(void)
     return result;
 }
 
+static void usage(void)
+{
+    fprintf(stderr, "usage: client <options> test-num\n");
+    fprintf(stderr, "options:");
+    fprintf(stderr, "    -l log-level - set the log level (0 to 4)\n");
+}
+
 int main(int argc, char **argv)
 {
-    coap_log_set_level(COAP_LOG_INFO);
+    const char *opts = ":hl:";
+    int log_level = 0;
+    int test_num = 0;
+    int c = 0;
 
-    test_con();
-    test_non();
+    opterr = 0;
+    while ((c = getopt(argc, argv, opts)) != -1)
+    {
+        switch (c)
+        {
+        case 'h':
+            usage();
+            return 0;
+        case 'l':
+            log_level = atoi(optarg);
+            break;
+        case ':':
+            fprintf(stderr, "option '%c' requires an argument\n", optopt);
+            return -1;
+        case '?':
+            fprintf(stderr, "unknown option '%c'\n", optopt);
+            return -1;
+        default:
+             usage();
+        }
+    }
+
+    if (optind >= argc)
+    {
+        usage();
+        return -1;
+    }
+
+    test_num = atoi(argv[optind]);
+
+    coap_log_set_level(log_level);
+
+    switch (test_num)
+    {
+    case 1:
+        test_con();
+        break;
+    case 2:
+        test_non();
+        break;
+    default:
+        fprintf(stderr, "invalid test number: %d\n", test_num);
+        return -1;
+    }
 
     return 0;
 }
