@@ -142,7 +142,7 @@ static void coap_server_trans_clear_resp(coap_server_trans_t *trans)
  */
 static int coap_server_trans_set_req(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    coap_msg_destroy(&trans->req);
+    coap_msg_reset(&trans->req);
     return coap_msg_copy(&trans->req, msg);
 }
 
@@ -158,7 +158,7 @@ static int coap_server_trans_set_req(coap_server_trans_t *trans, coap_msg_t *msg
  */
 static int coap_server_trans_set_resp(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    coap_msg_destroy(&trans->resp);
+    coap_msg_reset(&trans->resp);
     return coap_msg_copy(&trans->resp, msg);
 }
 
@@ -198,17 +198,6 @@ static void coap_server_trans_double_timeout(coap_server_trans_t *trans)
     trans->timeout.tv_sec = msec / 1000;
     trans->timeout.tv_nsec = (msec % 1000) * 1000000;
     coap_log_debug("Timeout doubled to: %lu sec, %lu nsec", trans->timeout.tv_sec, trans->timeout.tv_nsec);
-}
-
-/**
- *  @brief Clear the timer in a transaction structure
- *
- *  @param[out] trans Pointer to a transaction structure
- */
-static void coap_server_trans_clear_timer(coap_server_trans_t *trans)
-{
-    uint64_t r = 0;
-    read(trans->timer_fd, &r, sizeof(r));
 }
 
 /**
@@ -253,7 +242,6 @@ static int coap_server_trans_stop_timer(coap_server_trans_t *trans)
     {
         return -errno;
     }
-    coap_server_trans_clear_timer(trans);
     return 0;
 }
 
@@ -300,7 +288,6 @@ static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
 {
     int ret = 0;
 
-    coap_server_trans_clear_timer(trans);
     if (trans->num_retrans >= COAP_SERVER_MAX_RETRANSMIT)
     {
         return -ETIMEDOUT;
@@ -582,8 +569,9 @@ static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
         coap_log_debug("Stopped retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
         coap_log_info("No acknowledgement received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
         coap_server_trans_destroy(trans);
+        ret = 0;
     }
-    return 0;
+    return ret;
 }
 
 /**
@@ -1180,7 +1168,8 @@ int coap_server_run(coap_server_t *server)
         ret = coap_server_exchange(server);
         if (ret < 0)
         {
-            coap_log_warn("server exchange: %s", strerror(-ret));
+            coap_log_error("server exchange: %s", strerror(-ret));
+            return ret;
         }
     }
     return 0;

@@ -201,6 +201,28 @@ static int coap_client_start_timer(coap_client_t *client)
 }
 
 /**
+ *  @brief Stop the timer in a client structure
+ *
+ *  @param[in,out] client Pointer to a client structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+static int coap_client_stop_timer(coap_client_t *client)
+{
+    struct itimerspec its = {{0}};
+    int ret = 0;
+
+    ret = timerfd_settime(client->timer_fd, 0, &its, NULL);
+    if (ret == -1)
+    {
+        return -errno;
+    }
+    return 0;
+}
+
+/**
  *  @brief Initialise and start the acknowledgement timer in a client structure
  *
  *  @param[out] client Pointer to a client structure
@@ -214,6 +236,17 @@ static int coap_client_start_ack_timer(coap_client_t *client)
     client->num_retrans = 0;
     coap_client_init_ack_timeout(client);
     return coap_client_start_timer(client);
+}
+
+/**
+ *  @brief Stop the acknowledgement timer in a client structure
+ *
+ *  @param[in] client Pointer to a client structure
+ */
+static int coap_client_stop_ack_timer(coap_client_t *client)
+{
+    client->num_retrans = 0;
+    return coap_client_stop_timer(client);
 }
 
 /**
@@ -258,14 +291,13 @@ static int coap_client_start_resp_timer(coap_client_t *client)
 }
 
 /**
- *  @brief Clear the timer in a client structure
+ *  @brief Stop the response timer in a client structure
  *
- *  @param[out] client Pointer to a client structure
+ *  @param[in] client Pointer to a client structure
  */
-static void coap_client_clear_timeout(coap_client_t *client)
+static int coap_client_stop_resp_timer(coap_client_t *client)
 {
-    uint64_t r = 0;
-    read(client->timer_fd, &r, sizeof(r));
+    return coap_client_stop_timer(client);
 }
 
 /**
@@ -556,11 +588,10 @@ static int coap_client_listen_ack(coap_client_t *client, coap_msg_t *msg)
         }
         if (FD_ISSET(client->sd, &read_fds))
         {
-            break;
+            return 0;
         }
         if (FD_ISSET(client->timer_fd, &read_fds))
         {
-            coap_client_clear_timeout(client);
             ret = coap_client_handle_ack_timeout(client, msg);
             if (ret < 0)
             {
@@ -607,7 +638,6 @@ static int coap_client_listen_resp(coap_client_t *client)
         }
         if (FD_ISSET(client->timer_fd, &read_fds))
         {
-            coap_client_clear_timeout(client);
             return -ETIMEDOUT;
         }
     }
@@ -678,6 +708,11 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
         }
         if (coap_client_match_token(req, resp))
         {
+            ret = coap_client_stop_resp_timer(client);
+            if (ret < 0)
+            {
+                return ret;
+            }
             if (coap_msg_get_type(resp) == COAP_MSG_NON)
             {
                 coap_log_info("Received non-confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
@@ -745,6 +780,11 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
         {
             if (coap_msg_get_type(resp) == COAP_MSG_ACK)
             {
+                ret = coap_client_stop_ack_timer(client);
+                if (ret < 0)
+                {
+                    return ret;
+                }
                 if (coap_msg_is_empty(resp))
                 {
                     /* received ack message, wait for separate response message */
@@ -814,6 +854,11 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
         }
         if (coap_client_match_token(req, resp))
         {
+            ret = coap_client_stop_resp_timer(client);
+            if (ret < 0)
+            {
+                return ret;
+            }
             if (coap_msg_get_type(resp) == COAP_MSG_CON)
             {
                 coap_log_info("Received confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
