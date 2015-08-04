@@ -51,6 +51,138 @@
 static int rand_init = 0;                                                       /**< Indicates if the random number generator has been initialised */
 
 /****************************************************************************************************
+ *                                         coap_server_path                                         *
+ ****************************************************************************************************/
+
+/**
+ *  @brief Allocate a URI path structure
+ *
+ *  @param[in] str String representation of a URI path
+ *
+ *  @returns A new URI path structure
+ *  @retval NULL Out-of-memory
+ */
+static coap_server_path_t *coap_server_path_new(const char *str)
+{
+    coap_server_path_t *path = NULL;
+
+    path = (coap_server_path_t *)malloc(sizeof(coap_server_path_t));
+    if (path == NULL)
+    {
+        return NULL;
+    }
+    path->str = strdup(str);
+    if (path->str == NULL)
+    {
+        free(path);
+        return NULL;
+    }
+    path->next = NULL;
+    return path;
+}
+
+/**
+ *  @brief Free a URI path structure
+ *
+ *  @param[in] path Pointer to a URI path structure
+ */
+static void coap_server_path_delete(coap_server_path_t *path)
+{
+    free(path->str);
+    free(path);
+}
+
+/**
+ *  @brief Initialise a URI path list structure
+ *
+ *  @param[in] list Pointer to a URI path list structure
+ */
+static void coap_server_path_list_create(coap_server_path_list_t *list)
+{
+    memset(list, 0, sizeof(coap_server_path_list_t));
+}
+
+/**
+ *  @brief Deinitialise a URI path list structure
+ *
+ *  @param[in] list Pointer to a URI path list structure
+ */
+static void coap_server_path_list_destroy(coap_server_path_list_t *list)
+{
+    coap_server_path_t *prev = NULL;
+    coap_server_path_t *path = NULL;
+
+    path = list->first;
+    while (path != NULL)
+    {
+        prev = path;
+        path = path->next;
+        coap_server_path_delete(prev);
+    }
+    memset(list, 0, sizeof(coap_server_path_list_t));
+}
+
+/**
+ *  @brief Add a URI path to a URI path list structure
+ *
+ *  @param[in] list Pointer to a URI path list structure
+ *  @param[in] str String representation of a URI path
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -ENOMEM Out-of-memory
+ */
+static int coap_server_path_list_add(coap_server_path_list_t *list, const char *str)
+{
+    coap_server_path_t *path = NULL;
+
+    path = coap_server_path_new(str);
+    if (path == NULL)
+    {
+        return -ENOMEM;
+    }
+    if (list->first == NULL)
+    {
+        list->first = path;
+        list->last = path;
+    }
+    else
+    {
+        list->last->next = path;
+        list->last = path;
+    }
+    return 0;
+}
+
+/**
+ *  @brief Search a URI path list structure for a URI path
+ *
+ *  @param[in] list Pointer to a URI path list structure
+ *  @param[in] str String representation of a URI path
+ *
+ *  @returns Comparison value
+ *  @retval 0 The URI path list structure does not contain the URI path
+ *  @retval 1 The URI path list structure does contain the URI path
+ */
+static int coap_server_path_list_match(coap_server_path_list_t *list, const char *str)
+{
+    coap_server_path_t *path = NULL;
+
+    path = list->first;
+    while (path != NULL)
+    {
+        coap_log_debug("Comparing URI path: '%s' with list URI path: '%s'", str, path->str);
+        if (strcmp(path->str, str) == 0)
+        {
+            coap_log_debug("Matched URI path: '%s' with list URI path: '%s'", str, path->str);
+            return 1;
+        }
+        path = path->next;
+    }
+    return 0;
+}
+
+/****************************************************************************************************
  *                                        coap_server_trans                                         *
  ****************************************************************************************************/
 
@@ -90,7 +222,8 @@ static void coap_server_trans_touch(coap_server_trans_t *trans)
  */
 static int coap_server_trans_match_req(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    return ((trans->active) && (trans->req.msg_id == msg->msg_id));
+    return ((coap_msg_get_ver(&trans->req) != 0)
+         && (trans->req.msg_id == msg->msg_id));
 }
 
 /**
@@ -105,7 +238,8 @@ static int coap_server_trans_match_req(coap_server_trans_t *trans, coap_msg_t *m
  */
 static int coap_server_trans_match_resp(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    return ((trans->active) && (trans->resp.msg_id == msg->msg_id));
+    return ((coap_msg_get_ver(&trans->resp) != 0)
+         && (trans->resp.msg_id == msg->msg_id));
 }
 
 /**
@@ -591,7 +725,8 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
     const char *p = NULL;
 
     memset(trans, 0, sizeof(coap_server_trans_t));
-    trans->server = server;
+    trans->active = 1;
+    coap_server_trans_touch(trans);
     trans->timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
     if (trans->timer_fd == -1)
     {
@@ -607,8 +742,9 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
         memset(trans, 0, sizeof(coap_server_trans_t));
         return -errno;
     }
-    coap_server_trans_touch(trans);
-    trans->active = 1;
+    coap_msg_create(&trans->req);
+    coap_msg_create(&trans->resp);
+    trans->server = server;
     coap_log_debug("Created transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     return 0;
 }
@@ -680,6 +816,7 @@ int coap_server_create(coap_server_t *server, const char *host, unsigned port, i
     }
     coap_msg_gen_rand_str((char *)msg_id, sizeof(msg_id));
     server->msg_id = (((unsigned)msg_id[1]) << 8) | (unsigned)msg_id[0];
+    coap_server_path_list_create(&server->sep_list);
     server->handle = handle;
     p = inet_ntop(AF_INET6, &server_sin.sin6_addr, server_addr, sizeof(server_addr));
     if (p == NULL)
@@ -693,6 +830,7 @@ int coap_server_create(coap_server_t *server, const char *host, unsigned port, i
 
 void coap_server_destroy(coap_server_t *server)
 {
+    coap_server_path_list_destroy(&server->sep_list);
     close(server->sd);
     memset(server, 0, sizeof(coap_server_t));
 }
@@ -887,14 +1025,19 @@ static ssize_t coap_server_accept(coap_server_t *server, struct sockaddr_in6 *cl
     return 0;
 }
 
+int coap_server_reg_separate_resp_uri_path(coap_server_t *server, const char *str)
+{
+    return coap_server_path_list_add(&server->sep_list, str);
+}
+
 /**
  *  @brief Determine whether a request warrants a piggy-backed
  *         response or a separate response
  *
  *  This function makes the decision on whether to send a separate
- *  response or a piggy backed response. It will eventually look-up
- *  the uri-path from the request message in a user supplied table
- *  to make the decision, the idea being that some resources will
+ *  response or a piggy-backed response by searching for the URI
+ *  path taken from the request message structure in a user supplied
+ *  URI path list. The idea being that some resources will consistently
  *  require time to retrieve and others will not.
  *
  *  @param[in] server Pointer to a server structure
@@ -906,8 +1049,41 @@ static ssize_t coap_server_accept(coap_server_t *server, struct sockaddr_in6 *cl
  */ 
 static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
 {
-//    return COAP_SERVER_PIGGYBACKED;
-    return COAP_SERVER_SEPARATE;
+    coap_msg_op_t *op = NULL;
+    unsigned val_len = 0;
+    unsigned add = 0;
+    unsigned len = 0;
+    char buf[COAP_MSG_OP_URI_PATH_MAX_LEN] = {0};
+    char *val = NULL;
+    char *p = NULL;
+    int match = 0;
+
+    p = buf;
+    len = sizeof(buf) - 1;  /* strncpy writes n + 1 chars */
+    op = coap_msg_get_first_op(msg);
+    while (op != NULL)
+    {
+        if (coap_msg_op_get_num(op) == COAP_MSG_OP_URI_PATH_NUM)
+        {
+            strncpy(p, "/", len);
+            add = (1 < len) ? 1 : len;
+            p += add;
+            len -= add;
+            val = coap_msg_op_get_val(op);
+            strncpy(p, val, len);
+            val_len = strlen(val);
+            add = (val_len < len) ? val_len : len;
+            p += add;
+            len -= add;
+            op = coap_msg_op_get_next(op);
+        }
+    }
+    if (p == buf)
+    {
+        buf[0] = '/';
+    }
+    match = coap_server_path_list_match(&server->sep_list, buf);
+    return match ? COAP_SERVER_SEPARATE : COAP_SERVER_PIGGYBACKED;
 }
 
 /**
@@ -918,7 +1094,7 @@ static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
  *  @returns Operation status
  *  @retval 0 Success
  *  @retval -errno Error
- **/
+ */
 static int coap_server_exchange(coap_server_t *server)
 {
     struct sockaddr_in6 client_sin = {0};
@@ -960,6 +1136,7 @@ static int coap_server_exchange(coap_server_t *server)
     num = coap_server_trans_recv(trans, &recv_msg);
     if (num < 0)
     {
+        coap_server_trans_destroy(trans);
         coap_msg_destroy(&recv_msg);
         return num;
     }
@@ -975,7 +1152,12 @@ static int coap_server_exchange(coap_server_t *server)
             coap_log_info("Received duplicate confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
             ret = coap_server_trans_send_ack(trans, &recv_msg);
             coap_msg_destroy(&recv_msg);
-            return ret;
+            if (ret < 0)
+            {
+                coap_server_trans_destroy(trans);
+                return ret;
+            }
+            return 0;
         }
         else if (coap_msg_get_type(&recv_msg) == COAP_MSG_NON)
         {
@@ -993,20 +1175,30 @@ static int coap_server_exchange(coap_server_t *server)
     {
         if (coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
         {
-            /* the server must stop num_retransmitting its response */
+            /* the server must stop retransmitting its response */
             /* on any matching acknowledgement or reset message */
             coap_log_info("Received acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
             ret = coap_server_trans_stop_ack_timer(trans);
             coap_msg_destroy(&recv_msg);
-            return ret;
+            if (ret < 0)
+            {
+                coap_server_trans_destroy(trans);
+                return ret;
+            }
+            return 0;
         }
         else if (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
         {
             /* the server must stop retransmitting its response */
             /* on any matching acknowledgement or reset message */
-            coap_log_info("Received reset from address %s and port %u", server->client_addr, ntohs(server->client_sin.sin6_port));
-            coap_server_trans_destroy(trans);
+            coap_log_info("Received reset from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            ret = coap_server_trans_stop_ack_timer(trans);
             coap_msg_destroy(&recv_msg);
+            if (ret < 0)
+            {
+                coap_server_trans_destroy(trans);
+                return ret;
+            }
             return 0;
         }
     }
@@ -1018,7 +1210,12 @@ static int coap_server_exchange(coap_server_t *server)
     {
         ret = coap_server_trans_reject(trans, &recv_msg);
         coap_msg_destroy(&recv_msg);
-        return ret;
+        if (ret < 0)
+        {
+            coap_server_trans_destroy(trans);
+            return ret;
+        }
+        return 0;
     }
 
     /* clear details of the previous request/response */
@@ -1036,6 +1233,10 @@ static int coap_server_exchange(coap_server_t *server)
 
     /* determine response type */
     resp_type = coap_server_get_resp_type(server, &recv_msg);
+    if (resp_type == COAP_SERVER_SEPARATE)
+        coap_log_info("Request URI path requires a separate response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    else
+        coap_log_info("Request URI path requires a piggy-backed response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
 
     /* send an acknowledgement if necessary */
     if ((coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
@@ -1044,6 +1245,7 @@ static int coap_server_exchange(coap_server_t *server)
         ret = coap_server_trans_send_ack(trans, &recv_msg);
         if (ret < 0)
         {
+            coap_server_trans_destroy(trans);
             coap_msg_destroy(&recv_msg);
             return ret;
         }
@@ -1056,6 +1258,7 @@ static int coap_server_exchange(coap_server_t *server)
     if (ret < 0)
     {
         coap_msg_destroy(&send_msg);
+        coap_server_trans_destroy(trans);
         coap_msg_destroy(&recv_msg);
         return ret;
     }
@@ -1074,6 +1277,7 @@ static int coap_server_exchange(coap_server_t *server)
     if (ret < 0)
     {
         coap_msg_destroy(&send_msg);
+        coap_server_trans_destroy(trans);
         coap_msg_destroy(&recv_msg);
         return ret;
     }
@@ -1082,6 +1286,7 @@ static int coap_server_exchange(coap_server_t *server)
     if (ret < 0)
     {
         coap_msg_destroy(&send_msg);
+        coap_server_trans_destroy(trans);
         coap_msg_destroy(&recv_msg);
         return ret;
     }
@@ -1102,6 +1307,7 @@ static int coap_server_exchange(coap_server_t *server)
     if (ret < 0)
     {
         coap_msg_destroy(&send_msg);
+        coap_server_trans_destroy(trans);
         coap_msg_destroy(&recv_msg);
         return ret;
     }
@@ -1111,6 +1317,8 @@ static int coap_server_exchange(coap_server_t *server)
     if (num < 0)
     {
         coap_msg_destroy(&send_msg);
+        coap_server_trans_destroy(trans);
+        coap_msg_destroy(&recv_msg);
         return num;
     }
 
@@ -1119,8 +1327,8 @@ static int coap_server_exchange(coap_server_t *server)
     if (ret < 0)
     {
         coap_msg_destroy(&send_msg);
-        coap_msg_destroy(&recv_msg);
         coap_server_trans_destroy(trans);
+        coap_msg_destroy(&recv_msg);
         return ret;
     }
 
@@ -1128,9 +1336,9 @@ static int coap_server_exchange(coap_server_t *server)
     ret = coap_server_trans_set_resp(trans, &send_msg);
     if (ret < 0)
     {
-        coap_msg_destroy(&recv_msg);
         coap_msg_destroy(&send_msg);
         coap_server_trans_destroy(trans);
+        coap_msg_destroy(&recv_msg);
         return ret;
     }
 
@@ -1141,9 +1349,9 @@ static int coap_server_exchange(coap_server_t *server)
         ret = coap_server_trans_start_ack_timer(trans);
         if (ret < 0)
         {
-            coap_msg_destroy(&recv_msg);
             coap_msg_destroy(&send_msg);
             coap_server_trans_destroy(trans);
+            coap_msg_destroy(&recv_msg);
             return ret;
         }
     }
