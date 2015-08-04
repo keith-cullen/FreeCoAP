@@ -31,8 +31,9 @@
 #include "coap_server.h"
 #include "coap_log.h"
 
-#define HOST  "::1"
-#define PORT  12436
+#define HOST          "::1"
+#define PORT          12436
+#define SEP_URI_PATH  "/separate"
 
 static void print_coap_msg(coap_msg_t *msg)
 {
@@ -128,10 +129,18 @@ int main()
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         return -1;
     }
+    ret = coap_server_reg_separate_resp_uri_path(&server, SEP_URI_PATH);
+    if (ret < 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_server_destroy(&server);
+        return -1;
+    }
     ret = coap_server_run(&server);
     if (ret < 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_server_destroy(&server);
         return -1;
     }
     coap_server_destroy(&server);

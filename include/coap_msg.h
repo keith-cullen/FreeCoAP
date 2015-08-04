@@ -40,6 +40,9 @@
 #define COAP_MSG_MAX_CODE_DETAIL               31                               /**< Maximum code detail */
 #define COAP_MSG_MAX_MSG_ID                    ((1 << 16) - 1)                  /**< Maximum message ID */
 
+#define COAP_MSG_OP_URI_PATH_NUM               11                               /**< Uri-path option number */
+#define COAP_MSG_OP_URI_PATH_MAX_LEN           256                              /**< Maximum buffer length for a reconstructed URI path */
+
 #define COAP_MSG_MAX_BUF_LEN                   1152                             /**< Maximum buffer length for header and payload */
 
 #define coap_msg_op_num_is_critical(num)       ((num) & 1)                      /**< Indicate if an option is critical */
