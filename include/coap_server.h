@@ -51,6 +51,26 @@ typedef enum
 }
 coap_server_resp_t;
 
+/**
+ *  @brief URI path structure
+ */
+typedef struct coap_server_path
+{
+    char *str;
+    struct coap_server_path *next;
+}
+coap_server_path_t;
+
+/**
+ *  @brief URI path list structure
+ */
+typedef struct
+{
+    coap_server_path_t *first;
+    coap_server_path_t *last;
+}
+coap_server_path_list_t;
+
 struct coap_server;
 
 /**
@@ -79,9 +99,7 @@ typedef struct coap_server
 {
     int sd;
     unsigned msg_id;
-    struct sockaddr_in6 client_sin;
-    socklen_t client_sin_len;
-    char client_addr[COAP_SERVER_ADDR_BUF_LEN];
+    coap_server_path_list_t sep_list;
     coap_server_trans_t trans[COAP_SERVER_MAX_TRANS];
     int (* handle)(struct coap_server *, coap_msg_t *, coap_msg_t *);
 }
@@ -116,6 +134,18 @@ void coap_server_destroy(coap_server_t *server);
  *  @returns message ID value
  */
 unsigned coap_server_get_next_msg_id(coap_server_t *server);
+
+/**
+ *  @brief Register a URI path that warrants a separate response
+ *
+ *  @param[in] server Pointer to a server structure
+ *  @param[in] str String representation of a URI path
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -ENOMEM Out-of-memory
+ */ 
+int coap_server_reg_separate_resp_uri_path(coap_server_t *server, const char *str);
 
 /**
  *  @brief Run the server

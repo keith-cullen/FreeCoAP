@@ -33,8 +33,9 @@
 #include "coap_client.h"
 #include "coap_log.h"
 
-#define HOST  "::1"
-#define PORT  12436
+#define HOST          "::1"
+#define PORT          12436
+#define SEP_URI_PATH  "separate"
 
 static const char *result_str[] =
 {
@@ -120,7 +121,7 @@ static void print_coap_msg(coap_msg_t *msg)
     printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
 }
 
-static result_t __test_con(void)
+static result_t __test_con(int sep_resp)
 {
     coap_client_t client = {0};
     coap_msg_t resp = {0};
@@ -151,6 +152,17 @@ static result_t __test_con(void)
         coap_msg_destroy(&req);
         coap_client_destroy(&client);
         return ERROR;
+    }
+    if (sep_resp)
+    {
+        ret = coap_msg_add_op(&req, COAP_MSG_OP_URI_PATH_NUM, strlen(SEP_URI_PATH), SEP_URI_PATH);
+        if (ret != 0)
+        {
+            fprintf(stderr, "Error: %s\n", strerror(-ret));
+            coap_msg_destroy(&req);
+            coap_client_destroy(&client);
+            return ERROR;
+        }
     }
     ret = coap_msg_set_payload(&req, payload, strlen(payload));
     if (ret != 0)
@@ -197,19 +209,36 @@ static result_t __test_con(void)
     return result;
 }
 
-static int test_con(void)
+static int test_con_pb(void)
 {
     result_t result = PASS;
 
-    printf("==================================================\n");
-    printf("Confirmable request test\n");
-    printf("==================================================\n");
+    printf("================================================================================\n");
+    printf("Confirmable request with piggy-backed response\n");
+    printf("================================================================================\n");
 
-    result = __test_con();
+    result = __test_con(0);
 
-    printf("==================================================\n");
-    printf("Confirmable request test result: %s\n", result_to_str(result));
-    printf("==================================================\n");
+    printf("================================================================================\n");
+    printf("Confirmable request with piggy-backed response result: %s\n", result_to_str(result));
+    printf("================================================================================\n");
+
+    return result;
+}
+
+static int test_con_sep(void)
+{
+    result_t result = PASS;
+
+    printf("================================================================================\n");
+    printf("Confirmable request with separate response\n");
+    printf("================================================================================\n");
+
+    result = __test_con(1);
+
+    printf("================================================================================\n");
+    printf("Confirmable request with separate response result: %s\n", result_to_str(result));
+    printf("================================================================================\n");
 
     return result;
 }
@@ -295,15 +324,15 @@ static result_t test_non(void)
 {
     result_t result = PASS;
 
-    printf("==================================================\n");
-    printf("Non-confirmable request test\n");
-    printf("==================================================\n");
+    printf("================================================================================\n");
+    printf("Non-confirmable request\n");
+    printf("================================================================================\n");
 
     result = __test_non();
 
-    printf("==================================================\n");
-    printf("Non-confirmable request test result: %s\n", result_to_str(result));
-    printf("==================================================\n");
+    printf("================================================================================\n");
+    printf("Non-confirmable request result: %s\n", result_to_str(result));
+    printf("================================================================================\n");
 
     return result;
 }
@@ -357,9 +386,12 @@ int main(int argc, char **argv)
     switch (test_num)
     {
     case 1:
-        test_con();
+        test_con_pb();
         break;
     case 2:
+        test_con_sep();
+        break;
+    case 3:
         test_non();
         break;
     default:
