@@ -1,8 +1,14 @@
+ifeq ($(dtls),y)
+DTLS_CFLAGS = -DCOAP_DTLS_EN
+DTLS_LIBS = -lgnutls
+endif
+
 IDH = ../include
 IDS = ../src
 
 CC = gcc
 CFLAGS = -Wall -g -I $(IDH)
+CFLAGS += $(DTLS_CFLAGS)
 LD = gcc
 LDFLAGS =
 INCS = $(IDH)/coap_client.h \
@@ -12,6 +18,7 @@ OBJS = client.o \
        coap_client.o \
        coap_msg.o \
        coap_log.o
+LIBS += $(DTLS_LIBS)
 PROG = client
 RM = /bin/rm -f
 
