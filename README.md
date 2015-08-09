@@ -20,8 +20,6 @@ Copyright (c) 2015 Keith Cullen
 
 Released under a BSD style license.
 
-Contact: <keithcullen77@gmail.com>
-
 
 Test Instructions
 =================
@@ -36,14 +34,8 @@ $ make
 $ ./test_msg
 
 
-To build and test the client/server
------------------------------------
-
-By default:
-
-- The client and server test applications run on the same system.
-
-- The server test application listens on UDP port 12436.
+To build and run the server test application
+--------------------------------------------
 
 $ cd coap/test_server
 
@@ -51,10 +43,29 @@ $ make
 
 $ ./server
 
-(in a different termninal)
+To build and run the client test application
+--------------------------------------------
 
 $ cd coap/test_client
 
 $ make
+
+$ ./client
+
+To build and run the server test application with DTLS enabled
+--------------------------------------------------------------
+
+$ cd coap/test_server
+
+$ make dtls=y
+
+$ ./server
+
+To build and run the client test application with DTLS enabled
+--------------------------------------------------------------
+
+$ cd coap/test_client
+
+$ make dtls=y
 
 $ ./client

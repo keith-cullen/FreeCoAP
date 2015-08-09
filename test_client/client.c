@@ -33,9 +33,13 @@
 #include "coap_client.h"
 #include "coap_log.h"
 
-#define HOST          "::1"
-#define PORT          12436
-#define SEP_URI_PATH  "separate"
+#define HOST             "::1"
+#define PORT             12436
+#define SEP_URI_PATH     "separate"
+#define KEY_FILE_NAME    "client_privkey.pem"
+#define CERT_FILE_NAME   "client_cert.pem"
+#define TRUST_FILE_NAME  "root_server_cert.pem"
+#define CRL_FILE_NAME    ""
 
 static const char *result_str[] =
 {
@@ -121,6 +125,8 @@ static void print_coap_msg(coap_msg_t *msg)
     printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
 }
 
+/* the server will generate a separate response to a request with uri-path: '/separate' */
+/* ans a piggy-backed repsonse to every other request */
 static result_t __test_con(int sep_resp)
 {
     coap_client_t client = {0};
@@ -130,7 +136,11 @@ static result_t __test_con(int sep_resp)
     char *payload = "Hello, Server!";
     int ret = 0;
 
+#ifdef COAP_DTLS_EN
+    ret = coap_client_create(&client, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);
+#else
     ret = coap_client_create(&client, HOST, PORT);
+#endif
     if (ret != 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));
@@ -163,6 +173,87 @@ static result_t __test_con(int sep_resp)
             coap_client_destroy(&client);
             return ERROR;
         }
+    }
+    ret = coap_msg_set_payload(&req, payload, strlen(payload));
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return ERROR;
+    }
+    coap_msg_create(&resp);
+    ret = coap_client_exchange(&client, &req, &resp);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&resp);
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return ERROR;
+    }
+
+    printf("Sent:\n");
+    print_coap_msg(&req);
+    printf("Received:\n");
+    print_coap_msg(&resp);
+
+    if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
+    {
+        result = FAIL;
+    }
+    if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
+    {
+        result = FAIL;
+    }
+    else
+    {
+        if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
+        {
+            result = FAIL;
+        }
+    }
+    coap_msg_destroy(&resp);
+    coap_msg_destroy(&req);
+    coap_client_destroy(&client);
+    return result;
+}
+
+int __test_non(void)
+{
+    coap_client_t client = {0};
+    coap_msg_t resp = {0};
+    coap_msg_t req = {0};
+    result_t result = PASS;
+    char *payload = "Hello, Server!";
+    int ret = 0;
+
+#ifdef COAP_DTLS_EN
+    ret = coap_client_create(&client, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);
+#else
+    ret = coap_client_create(&client, HOST, PORT);
+#endif
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        return ERROR;
+    }
+    coap_msg_create(&req);
+    ret = coap_msg_set_type(&req, COAP_MSG_NON);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return ERROR;
+    }
+    ret = coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(-ret));
+        coap_msg_destroy(&req);
+        coap_client_destroy(&client);
+        return ERROR;
     }
     ret = coap_msg_set_payload(&req, payload, strlen(payload));
     if (ret != 0)
@@ -243,83 +334,6 @@ static int test_con_sep(void)
     return result;
 }
 
-int __test_non(void)
-{
-    coap_client_t client = {0};
-    coap_msg_t resp = {0};
-    coap_msg_t req = {0};
-    result_t result = PASS;
-    char *payload = "Hello, Server!";
-    int ret = 0;
-
-    ret = coap_client_create(&client, HOST, PORT);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        return ERROR;
-    }
-    coap_msg_create(&req);
-    ret = coap_msg_set_type(&req, COAP_MSG_NON);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-    ret = coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-    ret = coap_msg_set_payload(&req, payload, strlen(payload));
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-    coap_msg_create(&resp);
-    ret = coap_client_exchange(&client, &req, &resp);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&resp);
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-
-    printf("Sent:\n");
-    print_coap_msg(&req);
-    printf("Received:\n");
-    print_coap_msg(&resp);
-
-    if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
-    {
-        result = FAIL;
-    }
-    if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
-    {
-        result = FAIL;
-    }
-    else
-    {
-        if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
-        {
-            result = FAIL;
-        }
-    }
-    coap_msg_destroy(&resp);
-    coap_msg_destroy(&req);
-    coap_client_destroy(&client);
-    return result;
-}
-
 static result_t test_non(void)
 {
     result_t result = PASS;
@@ -339,8 +353,8 @@ static result_t test_non(void)
 
 static void usage(void)
 {
-    fprintf(stderr, "usage: client <options> test-num\n");
-    fprintf(stderr, "options:");
+    fprintf(stderr, "Usage: client <options> test-num\n");
+    fprintf(stderr, "Options:");
     fprintf(stderr, "    -l log-level - set the log level (0 to 4)\n");
 }
 
@@ -363,10 +377,10 @@ int main(int argc, char **argv)
             log_level = atoi(optarg);
             break;
         case ':':
-            fprintf(stderr, "option '%c' requires an argument\n", optopt);
+            fprintf(stderr, "Option '%c' requires an argument\n", optopt);
             return -1;
         case '?':
-            fprintf(stderr, "unknown option '%c'\n", optopt);
+            fprintf(stderr, "Unknown option '%c'\n", optopt);
             return -1;
         default:
              usage();
@@ -395,7 +409,7 @@ int main(int argc, char **argv)
         test_non();
         break;
     default:
-        fprintf(stderr, "invalid test number: %d\n", test_num);
+        fprintf(stderr, "Invalid test number: %d\n", test_num);
         return -1;
     }
 

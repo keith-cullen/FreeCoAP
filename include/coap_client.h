@@ -36,6 +36,10 @@
 
 #include <time.h>
 #include <netinet/in.h>
+#ifdef COAP_DTLS_EN
+#include <gnutls/gnutls.h>
+#include <gnutls/dtls.h>
+#endif
 #include "coap_msg.h"
 
 #define COAP_CLIENT_ADDR_BUF_LEN  128                                           /**< Buffer length for host addresses */
@@ -52,8 +56,41 @@ typedef struct
     struct sockaddr_in6 server_sin;
     socklen_t server_sin_len;
     char server_addr[COAP_CLIENT_ADDR_BUF_LEN];
+#ifdef COAP_DTLS_EN
+    gnutls_session_t session;
+    gnutls_certificate_credentials_t cred;
+    gnutls_priority_t priority;
+    gnutls_dtls_prestate_st prestate;
+#endif
 }
 coap_client_t;
+
+#ifdef COAP_DTLS_EN
+
+/**
+ *  @brief Initialise a client structure
+ *
+ *  @param[out] client Pointer to a client structure
+ *  @param[in] host Pointer to a string containing the host address of the server
+ *  @param[in] port Port number of the server
+ *  @param[in] key_file_name String containing the DTLS key file name
+ *  @param[in] cert_file_name String containing the DTLS certificate file name
+ *  @param[in] trust_file_name String containing the DTLS trust file name
+ *  @param[in] crls_file_name String containing the DTLS certificate revocation list file name
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno On error
+ */
+int coap_client_create(coap_client_t *client,
+                       const char *host,
+                       unsigned port,
+                       const char *key_file_name,
+                       const char *cert_file_name,
+                       const char *trust_file_name,
+                       const char *crl_file_name);
+
+#else  /* !COAP_DTLS_EN */
 
 /**
  *  @brief Initialise a client structure
@@ -66,7 +103,11 @@ coap_client_t;
  *  @retval 0 Success
  *  @retval -errno On error
  */
-int coap_client_create(coap_client_t *client, const char *host, unsigned port);
+int coap_client_create(coap_client_t *client,
+                       const char *host,
+                       unsigned port);
+
+#endif  /* COAP_DTLS_EN */
 
 /**
  *  @brief Deinitialise a client structure
