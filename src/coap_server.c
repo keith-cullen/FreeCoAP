@@ -45,8 +45,17 @@
 #include "coap_server.h"
 #include "coap_log.h"
 
-#define COAP_SERVER_ACK_TIMEOUT_SEC  2                                          /**< Minimum delay to wait before retransmitting a confirmable message */
-#define COAP_SERVER_MAX_RETRANSMIT   4                                          /**< Maximum number of times a confirmable message can be retransmitted */
+#define COAP_SERVER_ACK_TIMEOUT_SEC       2                                     /**< Minimum delay to wait before retransmitting a confirmable message */
+#define COAP_SERVER_MAX_RETRANSMIT        4                                     /**< Maximum number of times a confirmable message can be retransmitted */
+
+#ifdef COAP_DTLS_EN
+#define COAP_SERVER_DTLS_MTU              COAP_MSG_MAX_BUF_LEN                  /**< Maximum transmission unit excluding the UDP and IPv6 headers */
+#define COAP_SERVER_DTLS_RETRANS_TIMEOUT  1000                                  /**< Retransmission timeout (msec) for the DTLS handshake */
+#define COAP_SERVER_DTLS_TOTAL_TIMEOUT    60000                                 /**< Total timeout (msec) for the DTLS handshake */
+#define COAP_SERVER_DTLS_NUM_DH_BITS      1024                                  /**< DTLS Diffie-Hellman key size */
+#define COAP_SERVER_DTLS_PRIORITIES       "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
+                                                                                /**< DTLS priorities */
+#endif
 
 static int rand_init = 0;                                                       /**< Indicates if the random number generator has been initialised */
 
@@ -182,6 +191,302 @@ static int coap_server_path_list_match(coap_server_path_list_t *list, const char
     return 0;
 }
 
+#ifdef COAP_DTLS_EN
+
+/****************************************************************************************************
+ *                                      coap_server_trans_dtls                                      *
+ ****************************************************************************************************/
+
+/**
+ *  @brief Listen for a packet from the client
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ *
+ *  @returns Operation status
+ *  @retval 1 Success
+ *  @retval -errno Error
+ */
+int coap_server_trans_dtls_listen(coap_server_trans_t *trans)
+{
+    coap_server_t *server = NULL;
+    fd_set read_fds = {{0}};
+    int ret = 0;
+
+    server = trans->server;
+    while (1)
+    {
+        FD_ZERO(&read_fds);
+        FD_SET(server->sd, &read_fds);
+        ret = select(server->sd + 1, &read_fds, NULL, NULL, NULL);
+        if (ret == -1)
+        {
+            return -errno;
+        }
+        if (FD_ISSET(server->sd, &read_fds))
+        {
+            return 1;  /* success */
+        }
+    }
+}
+
+/**
+ *  @brief Listen for a packet from the client with a timeout
+ *
+ *  @param[in] trans Pointer to a transaction structure
+ *  @param[in] ms Timeout value in msec
+ *
+ *  @returns Operation status
+ *  @retval 1 Success
+ *  @retval 0 Timeout
+ *  @retval -errno Error
+ */
+int coap_server_trans_dtls_listen_timeout(coap_server_trans_t *trans, unsigned ms)
+{
+    coap_server_t *server = NULL;
+    struct timeval tv = {0};
+    fd_set read_fds = {{0}};
+    int ret = 0;
+
+    server = trans->server;
+    tv.tv_sec = ms / 1000;
+    tv.tv_usec = (ms % 1000) * 1000;
+    while (1)
+    {
+        FD_ZERO(&read_fds);
+        FD_SET(server->sd, &read_fds);
+        ret = select(server->sd + 1, &read_fds, NULL, NULL, &tv);
+        if (ret == -1)
+        {
+            return -errno;
+        }
+        if (ret == 0)
+        {
+            return 0;  /* timeout */
+        }
+        if (FD_ISSET(server->sd, &read_fds))
+        {
+            return 1;  /* success */
+        }
+    }
+}
+
+/**
+ *  @brief Receive data from the client
+ *
+ *  This is a call-back function that the
+ *  GnuTLS library uses to receive data.
+ *
+ *  @param[in,out] data Pointer to a transaction structure
+ *  @param[out] buf Pointer to a buffer
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns Number of bytes received or error
+ *  @retval 0 Number of bytes received
+ *  @retval -1 Error
+ */
+static ssize_t coap_server_trans_dtls_pull_func(gnutls_transport_ptr_t data, void *buf, size_t len)
+{
+    coap_server_trans_t *trans = NULL;
+    struct sockaddr_in6 client_sin = {0};
+    coap_server_t *server = NULL;
+    socklen_t client_sin_len = 0;
+    ssize_t num = 0;
+
+    trans = (coap_server_trans_t *)data;
+    server = trans->server;
+    client_sin_len = sizeof(client_sin);
+    errno = 0;
+    num = recvfrom(server->sd, buf, len, MSG_PEEK, (struct sockaddr *)&client_sin, &client_sin_len);  /* peek data */
+    if (num == -1)
+    {
+        return -1;
+    }
+    if ((client_sin_len != trans->client_sin_len)
+     || (memcmp(&client_sin, &trans->client_sin, trans->client_sin_len) != 0))
+    {
+        gnutls_transport_set_errno(trans->session, EAGAIN);
+        return -1;
+    }
+    return recvfrom(server->sd, buf, num, 0, (struct sockaddr *)&client_sin, &client_sin_len);  /* consume data */
+}
+
+/**
+ *  @brief Wait for receive data from the client
+ *
+ *  This is a call-back function that the GnuTLS
+ *  library uses to wait for receive data.
+ *
+ *  @param[in] data Pointer to a transaction structure
+ *  @param[in] ms Timeout in msec
+ *
+ *  @returns Number of bytes received or error
+ *  @retval >0 Number of bytes received
+ *  @retval 0 Timeout
+ *  @retval -1 Error
+ */
+static int coap_server_trans_dtls_pull_timeout_func(gnutls_transport_ptr_t data, unsigned ms)
+{
+    coap_server_trans_t *trans = NULL;
+    struct sockaddr_in6 client_sin = {0};
+    coap_server_t *server = NULL;
+    socklen_t client_sin_len = 0;
+    ssize_t num = 0;
+    char buf[COAP_SERVER_DTLS_MTU] = {0};
+    int ret = 0;
+
+    trans = (coap_server_trans_t *)data;
+    server = trans->server;
+    ret = coap_server_trans_dtls_listen_timeout(trans, ms);
+    if (ret == 0)
+    {
+        return 0;  /* timeout */
+    }
+    if (ret < 0)
+    {
+        return -1;
+    }
+    client_sin_len = sizeof(client_sin);
+    num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)&client_sin, &client_sin_len);  /* peek data */
+    if (num == -1)
+    {
+        return -1;
+    }
+    if ((client_sin_len != trans->client_sin_len)
+     || (memcmp(&client_sin, &trans->client_sin, trans->client_sin_len) != 0))
+    {
+        gnutls_transport_set_errno(trans->session, EAGAIN);
+        return -1;
+    }
+    return num;  /* success */
+}
+
+/**
+ *  @brief Send data to the client
+ *
+ *  This is a call-back function that the
+ *  GnuTLS library uses to send data.
+ *
+ *  @param[in,out] data Pointer to a transaction structure
+ *  @param[out] buf Pointer to a buffer
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns Number of bytes sent or error
+ *  @retval >0 Number of bytes sent
+ *  @retval -1 Error
+ */
+static ssize_t coap_server_trans_dtls_push_func(gnutls_transport_ptr_t data, const void *buf, size_t len)
+{
+    coap_server_trans_t *trans = NULL;
+    coap_server_t *server = NULL;
+
+    trans = (coap_server_trans_t *)data;
+    server = trans->server;
+    return sendto(server->sd, buf, len, 0, (struct sockaddr *)&trans->client_sin, trans->client_sin_len);
+}
+
+/**
+ *  @brief Perform a DTLS handshake with the client
+ *
+ *  @param[in,out] trans Pointer to a transaction structure
+ *
+ *  @returns Operation success
+ *  @retval 0 Success
+ *  @retval -1 Error
+ */
+static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
+{
+    int ret = 0;
+    int i = 0;
+
+    for (i = 0; i < COAP_SERVER_DTLS_TOTAL_TIMEOUT / COAP_SERVER_DTLS_RETRANS_TIMEOUT; i++)
+    {
+        ret = gnutls_handshake(trans->session);
+        if (ret == GNUTLS_E_SUCCESS)
+        {
+            return 0;  /* success */
+        }
+        if (ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
+        {
+            return -1;
+        }
+        if (ret == GNUTLS_E_INTERRUPTED)
+        {
+            return -EINTR;
+        }
+        if (ret != GNUTLS_E_AGAIN)
+        {
+            return -1;
+        }
+        ret = coap_server_trans_dtls_listen_timeout(trans, COAP_SERVER_DTLS_RETRANS_TIMEOUT);
+        if (ret < 0)
+        {
+            return ret;
+        }
+    }
+    return -1;
+}
+
+/**
+ *  @brief Initialise the DTLS members of a transaction structure
+ *
+ *  Perform a DTLS handshake with the client.
+ *
+ *  @param[out] trans Pointer to a transaction structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -1 Error
+ */
+static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
+{
+    coap_server_t *server = NULL;
+    int ret = 0;
+
+    server = trans->server;
+    ret = gnutls_init(&trans->session, GNUTLS_SERVER | GNUTLS_DATAGRAM | GNUTLS_NONBLOCK);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        return -1;
+    }
+    ret = gnutls_credentials_set(trans->session, GNUTLS_CRD_CERTIFICATE, server->cred);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        gnutls_deinit(trans->session);
+        return -1;
+    }
+    ret = gnutls_priority_set(trans->session, server->priority);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        gnutls_deinit(trans->session);
+        return -1;
+    }
+    gnutls_transport_set_ptr(trans->session, trans);
+    gnutls_transport_set_pull_function(trans->session, coap_server_trans_dtls_pull_func);
+    gnutls_transport_set_pull_timeout_function(trans->session, coap_server_trans_dtls_pull_timeout_func);
+    gnutls_transport_set_push_function(trans->session, coap_server_trans_dtls_push_func);
+    gnutls_dtls_set_mtu(trans->session, COAP_SERVER_DTLS_MTU);
+    gnutls_dtls_set_timeouts(trans->session, COAP_SERVER_DTLS_RETRANS_TIMEOUT, COAP_SERVER_DTLS_TOTAL_TIMEOUT);
+    ret = coap_server_trans_dtls_handshake(trans);
+    if (ret < 0)
+    {
+        gnutls_deinit(trans->session);
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ *  @brief Deinitialise the DTLS members of a transaction structure
+ *
+ *  @param[out] trans Pointer to a transaction structure
+ */
+static void coap_server_trans_dtls_destroy(coap_server_trans_t *trans)
+{
+    gnutls_deinit(trans->session);
+}
+
+#endif
+
 /****************************************************************************************************
  *                                        coap_server_trans                                         *
  ****************************************************************************************************/
@@ -194,6 +499,9 @@ static int coap_server_path_list_match(coap_server_path_list_t *list, const char
 static void coap_server_trans_destroy(coap_server_trans_t *trans)
 {
     coap_log_debug("Destroyed transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+#ifdef COAP_DTLS_EN
+    coap_server_trans_dtls_destroy(trans);
+#endif
     coap_msg_destroy(&trans->resp);
     coap_msg_destroy(&trans->req);
     close(trans->timer_fd);
@@ -448,21 +756,39 @@ static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
  */
 static int coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *msg)
 {
+#ifndef COAP_DTLS_EN
     coap_server_t *server = NULL;
+#endif
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
     int num = 0;
 
-    server = trans->server;
     num = coap_msg_format(msg, buf, sizeof(buf));
     if (num < 0)
     {
         return num;
     }
+#ifdef COAP_DTLS_EN
+    num = gnutls_record_send(trans->session, buf, num);
+    if (num < 0)
+    {
+        switch (num)
+        {
+            case GNUTLS_E_INTERRUPTED:
+                return -EINTR;
+            case GNUTLS_E_AGAIN:
+                return -EAGAIN;
+            default:
+                return -1;
+        }
+    }
+#else  /* !COAP_DTLS_EN */
+    server = trans->server;
     num = sendto(server->sd, buf, num, 0, (struct sockaddr *)&trans->client_sin, trans->client_sin_len);
     if (num == -1)
     {
         return -errno;
     }
+#endif  /* COAP_DTLS_EN */
     coap_server_trans_touch(trans);
     coap_log_debug("Sent to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     return num;
@@ -521,16 +847,33 @@ static void coap_server_trans_handle_format_error(coap_server_trans_t *trans, ch
  */
 static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *msg)
 {
+#ifndef COAP_DTLS_EN
     struct sockaddr_in6 client_sin = {0};
     coap_server_t *server = NULL;
     socklen_t client_sin_len = 0;
+#endif
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
     int num = 0;
     int ret = 0;
 
+#ifdef COAP_DTLS_EN
+    num = gnutls_record_recv(trans->session, buf, sizeof(buf));
+    if (num < 0)
+    {
+        switch (num)
+        {
+            case GNUTLS_E_INTERRUPTED:
+                return -EINTR;
+            case GNUTLS_E_AGAIN:
+                return -EAGAIN;
+            default:
+                return -1;
+        }
+    }
+#else  /* !COAP_DTLS_EN */
     server = trans->server;
     client_sin_len = sizeof(client_sin);
-    num = recvfrom(server->sd, buf, sizeof(buf), 0, (struct sockaddr *)&client_sin, &client_sin_len);
+    num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)&client_sin, &client_sin_len);
     if (num == -1)
     {
         return -errno;
@@ -538,15 +881,21 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
     if ((client_sin_len != trans->client_sin_len)
      || (memcmp(&client_sin, &trans->client_sin, client_sin_len) != 0))
     {
-        return -EINVAL;
+        return -EAGAIN;
     }
-    ret = coap_msg_parse(msg, buf, num);
-    if (ret == -EBADMSG)
+    num = recvfrom(server->sd, buf, num, 0, (struct sockaddr *)&client_sin, &client_sin_len);
+    if (num == -1)
     {
-        coap_server_trans_handle_format_error(trans, buf, num);
+        return -errno;
     }
+#endif  /* COAP_DTLS_EN */
+    ret = coap_msg_parse(msg, buf, num);
     if (ret < 0)
     {
+        if (ret == -EBADMSG)
+        {
+            coap_server_trans_handle_format_error(trans, buf, num);
+        }
         return ret;
     }
     coap_server_trans_touch(trans);
@@ -723,6 +1072,9 @@ static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
 static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t client_sin_len)
 {
     const char *p = NULL;
+#ifdef COAP_DTLS_EN
+    int ret = 0;
+#endif
 
     memset(trans, 0, sizeof(coap_server_trans_t));
     trans->active = 1;
@@ -745,15 +1097,147 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
     coap_msg_create(&trans->req);
     coap_msg_create(&trans->resp);
     trans->server = server;
+#ifdef COAP_DTLS_EN
+    ret = coap_server_trans_dtls_create(trans);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&trans->resp);
+        coap_msg_destroy(&trans->req);
+        close(trans->timer_fd);
+        memset(trans, 0, sizeof(coap_server_trans_t));
+        return -1;
+    }
+#endif
     coap_log_debug("Created transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     return 0;
 }
+
+#ifdef COAP_DTLS_EN
+
+/****************************************************************************************************
+ *                                         coap_server_dtls                                         *
+ ****************************************************************************************************/
+
+/**
+ *  @brief Initialise the DTLS members of a server structure
+ *
+ *  @param[out] server Pointer to a server structure
+ *  @param[in] key_file_name String containing the DTLS key file name
+ *  @param[in] cert_file_name String containing the DTLS certificate file name
+ *  @param[in] trust_file_name String containing the DTLS trust file name
+ *  @param[in] crl_file_name String containing the DTLS certificate revocation list file name
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -1 Error
+ */
+static int coap_server_dtls_create(coap_server_t *server,
+                                   const char *key_file_name,
+                                   const char *cert_file_name,
+                                   const char *trust_file_name,
+                                   const char *crl_file_name)
+{
+    int ret = 0;
+
+    ret = gnutls_global_init();
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        return -1;
+    }
+    ret = gnutls_certificate_allocate_credentials(&server->cred);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        gnutls_global_deinit();
+        return -1;
+    }
+    if ((trust_file_name != NULL) && (strlen(trust_file_name) != 0))
+    {
+        ret = gnutls_certificate_set_x509_trust_file(server->cred, trust_file_name, GNUTLS_X509_FMT_PEM);
+        if (ret == 0)
+        {
+            gnutls_certificate_free_credentials(server->cred);
+            gnutls_global_deinit();
+            return -1;
+        }
+    }
+    if ((crl_file_name != NULL) && (strlen(crl_file_name) != 0))
+    {
+        ret = gnutls_certificate_set_x509_crl_file(server->cred, crl_file_name, GNUTLS_X509_FMT_PEM);
+        if (ret < 0)
+        {
+            gnutls_certificate_free_credentials(server->cred);
+            gnutls_global_deinit();
+            return -1;
+        }
+    }
+    ret = gnutls_certificate_set_x509_key_file(server->cred, cert_file_name, key_file_name, GNUTLS_X509_FMT_PEM);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        gnutls_certificate_free_credentials(server->cred);
+        gnutls_global_deinit();
+        return -1;
+    }
+    ret = gnutls_dh_params_init(&server->dh_params);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        gnutls_certificate_free_credentials(server->cred);
+        gnutls_global_deinit();
+        return -1;
+    }
+    ret = gnutls_dh_params_generate2(server->dh_params, COAP_SERVER_DTLS_NUM_DH_BITS);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        gnutls_dh_params_deinit(server->dh_params);
+        gnutls_certificate_free_credentials(server->cred);
+        gnutls_global_deinit();
+        return -1;
+    }
+    gnutls_certificate_set_dh_params(server->cred, server->dh_params);
+    ret = gnutls_priority_init(&server->priority, COAP_SERVER_DTLS_PRIORITIES, NULL);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        gnutls_dh_params_deinit(server->dh_params);
+        gnutls_certificate_free_credentials(server->cred);
+        gnutls_global_deinit();
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ *  @brief Deinitialise the DTLS members of a server structure
+ *
+ *  @param[out] trans Pointer to a server structure
+ */
+static void coap_server_dtls_destroy(coap_server_t *server)
+{
+    gnutls_priority_deinit(server->priority);
+    gnutls_certificate_free_credentials(server->cred);
+    gnutls_dh_params_deinit(server->dh_params);
+    gnutls_global_deinit();
+}
+
+#endif
 
 /****************************************************************************************************
  *                                           coap_server                                            *
  ****************************************************************************************************/
 
-int coap_server_create(coap_server_t *server, const char *host, unsigned port, int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *))
+#ifdef COAP_DTLS_EN
+int coap_server_create(coap_server_t *server,
+                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       const char *host,
+                       unsigned port,
+                       const char *key_file_name,
+                       const char *cert_file_name,
+                       const char *trust_file_name,
+                       const char *crl_file_name)
+#else
+int coap_server_create(coap_server_t *server,
+                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       const char *host,
+                       unsigned port)
+#endif
 {
     struct sockaddr_in6 server_sin = {0};
     unsigned char msg_id[2] = {0};
@@ -778,20 +1262,23 @@ int coap_server_create(coap_server_t *server, const char *host, unsigned port, i
     flags = fcntl(server->sd, F_GETFL, 0);
     if (flags == -1)
     {
-        coap_server_destroy(server);
+        close(server->sd);
+        memset(server, 0, sizeof(coap_server_t));
         return -errno;
     }
     ret = fcntl(server->sd, F_SETFL, flags | O_NONBLOCK);
     if (ret == -1)
     {
-        coap_server_destroy(server);
+        close(server->sd);
+        memset(server, 0, sizeof(coap_server_t));
         return -errno;
     }
     opt_val = 1;
     ret = setsockopt(server->sd, SOL_SOCKET, SO_REUSEADDR, &opt_val, (socklen_t)sizeof(opt_val));
     if (ret == -1)
     {
-        coap_server_destroy(server);
+        close(server->sd);
+        memset(server, 0, sizeof(coap_server_t));
         return -errno;
     }
     server_sin.sin6_family = AF_INET6;
@@ -799,19 +1286,22 @@ int coap_server_create(coap_server_t *server, const char *host, unsigned port, i
     ret = inet_pton(AF_INET6, host, &server_sin.sin6_addr);
     if (ret == 0)
     {
-        coap_server_destroy(server);
+        close(server->sd);
+        memset(server, 0, sizeof(coap_server_t));
         return -EINVAL;
     }
     else if (ret == -1)
     {
-        coap_server_destroy(server);
+        close(server->sd);
+        memset(server, 0, sizeof(coap_server_t));
         return -errno;
     }
     server_sin_len = sizeof(server_sin);
     ret = bind(server->sd, (struct sockaddr *)&server_sin, server_sin_len);
     if (ret == -1)
     {
-        coap_server_destroy(server);
+        close(server->sd);
+        memset(server, 0, sizeof(coap_server_t));
         return -errno;
     }
     coap_msg_gen_rand_str((char *)msg_id, sizeof(msg_id));
@@ -821,15 +1311,41 @@ int coap_server_create(coap_server_t *server, const char *host, unsigned port, i
     p = inet_ntop(AF_INET6, &server_sin.sin6_addr, server_addr, sizeof(server_addr));
     if (p == NULL)
     {
-        coap_server_destroy(server);
+        coap_server_path_list_destroy(&server->sep_list);
+        close(server->sd);
+        memset(server, 0, sizeof(coap_server_t));
         return -errno;
     }
+#ifdef COAP_DTLS_EN
+    ret = coap_server_dtls_create(server, key_file_name, cert_file_name, trust_file_name, crl_file_name);
+    if (ret < 0)
+    {
+        coap_server_path_list_destroy(&server->sep_list);
+        close(server->sd);
+        memset(server, 0, sizeof(coap_server_t));
+        return ret;
+    }
+#endif
     coap_log_notice("Listening on address %s and port %d", server_addr, ntohs(server_sin.sin6_port));
     return 0;
 }
 
 void coap_server_destroy(coap_server_t *server)
 {
+    coap_server_trans_t *trans = NULL;
+    int i = 0;
+
+    for (i = 0; i < COAP_SERVER_NUM_TRANS; i++)
+    {
+        trans = &server->trans[i];
+        if (trans->active)
+        {
+            coap_server_trans_destroy(trans);
+        }
+    }
+#ifdef COAP_DTLS_EN
+    coap_server_dtls_destroy(server);
+#endif
     coap_server_path_list_destroy(&server->sep_list);
     close(server->sd);
     memset(server, 0, sizeof(coap_server_t));
@@ -863,7 +1379,7 @@ static coap_server_trans_t *coap_server_find_trans(coap_server_t *server, struct
     coap_server_trans_t *trans = NULL;
     unsigned i = 0;
 
-    for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
+    for (i = 0; i < COAP_SERVER_NUM_TRANS; i++)
     {
         trans = &server->trans[i];
         if ((trans->active)
@@ -890,7 +1406,7 @@ static coap_server_trans_t *coap_server_find_empty_trans(coap_server_t *server)
     coap_server_trans_t *trans = NULL;
     unsigned i = 0;
 
-    for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
+    for (i = 0; i < COAP_SERVER_NUM_TRANS; i++)
     {
         trans = &server->trans[i];
         if (!trans->active)
@@ -920,7 +1436,7 @@ static coap_server_trans_t *coap_server_find_oldest_trans(coap_server_t *server)
     unsigned j = 0;
     time_t min_last_use = 0;
 
-    for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
+    for (i = 0; i < COAP_SERVER_NUM_TRANS; i++)
     {
         trans = &server->trans[i];
         if (trans->active)
@@ -960,7 +1476,7 @@ static int coap_server_listen(coap_server_t *server)
         FD_ZERO(&read_fds);
         FD_SET(server->sd, &read_fds);
         max_fd = server->sd;
-        for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
+        for (i = 0; i < COAP_SERVER_NUM_TRANS; i++)
         {
             trans = &server->trans[i];
             if (trans->active)
@@ -981,7 +1497,7 @@ static int coap_server_listen(coap_server_t *server)
         {
             return 0;
         }
-        for (i = 0; i < COAP_SERVER_MAX_TRANS; i++)
+        for (i = 0; i < COAP_SERVER_NUM_TRANS; i++)
         {
             trans = &server->trans[i];
             if ((trans->active) && (FD_ISSET(trans->timer_fd, &read_fds)))
@@ -1025,7 +1541,7 @@ static ssize_t coap_server_accept(coap_server_t *server, struct sockaddr_in6 *cl
     return 0;
 }
 
-int coap_server_reg_separate_resp_uri_path(coap_server_t *server, const char *str)
+int coap_server_add_sep_resp_uri_path(coap_server_t *server, const char *str)
 {
     return coap_server_path_list_add(&server->sep_list, str);
 }
@@ -1053,13 +1569,14 @@ static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
     unsigned val_len = 0;
     unsigned add = 0;
     unsigned len = 0;
+    char val_buf[COAP_MSG_OP_URI_PATH_MAX_LEN] = {0};
     char buf[COAP_MSG_OP_URI_PATH_MAX_LEN] = {0};
     char *val = NULL;
     char *p = NULL;
     int match = 0;
 
     p = buf;
-    len = sizeof(buf) - 1;  /* strncpy writes n + 1 chars */
+    len = sizeof(buf) - 1;
     op = coap_msg_get_first_op(msg);
     while (op != NULL)
     {
@@ -1069,12 +1586,17 @@ static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
             add = (1 < len) ? 1 : len;
             p += add;
             len -= add;
+
             val = coap_msg_op_get_val(op);
-            strncpy(p, val, len);
-            val_len = strlen(val);
+            val_len = coap_msg_op_get_len(op);
+            if (val_len > sizeof(val_buf) - 1)
+                val_len = sizeof(val_buf) - 1;
+            memcpy(val_buf, val, val_len);
+            strncpy(p, val_buf, len);
             add = (val_len < len) ? val_len : len;
             p += add;
             len -= add;
+
             op = coap_msg_op_get_next(op);
         }
     }
@@ -1129,6 +1651,12 @@ static int coap_server_exchange(coap_server_t *server)
         {
             return ret;
         }
+#ifdef COAP_DTLS_EN
+        /* if DTLS is enabled then coap_server_trans_create has consumed */
+        /* the received data as part of the handshake, we need to wait for */
+        /* more data to arrive and identify the sender */
+        return 0;
+#endif
     }
 
     /* receive message */

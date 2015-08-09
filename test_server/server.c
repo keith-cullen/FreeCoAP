@@ -31,9 +31,13 @@
 #include "coap_server.h"
 #include "coap_log.h"
 
-#define HOST          "::1"
-#define PORT          12436
-#define SEP_URI_PATH  "/separate"
+#define HOST             "::1"
+#define PORT             12436
+#define KEY_FILE_NAME    "server_privkey.pem"
+#define CERT_FILE_NAME   "server_cert.pem"
+#define TRUST_FILE_NAME  "root_client_cert.pem"
+#define CRL_FILE_NAME    ""
+#define SEP_URI_PATH     "/separate"
 
 static void print_coap_msg(coap_msg_t *msg)
 {
@@ -123,13 +127,17 @@ int main()
 
     coap_log_set_level(COAP_LOG_INFO);
 
-    ret = coap_server_create(&server, HOST, PORT, handle);
+#ifdef COAP_DTLS_EN
+    ret = coap_server_create(&server, handle, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);
+#else
+    ret = coap_server_create(&server, handle, HOST, PORT);
+#endif
     if (ret < 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         return -1;
     }
-    ret = coap_server_reg_separate_resp_uri_path(&server, SEP_URI_PATH);
+    ret = coap_server_add_sep_resp_uri_path(&server, SEP_URI_PATH);
     if (ret < 0)
     {
         fprintf(stderr, "Error: %s\n", strerror(-ret));

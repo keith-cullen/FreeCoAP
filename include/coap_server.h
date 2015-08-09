@@ -36,9 +36,13 @@
 
 #include <time.h>
 #include <netinet/in.h>
+#ifdef COAP_DTLS_EN
+#include <gnutls/gnutls.h>
+#include <gnutls/dtls.h>
+#endif
 #include "coap_msg.h"
 
-#define COAP_SERVER_MAX_TRANS     8                                             /**< Maximum number of active transactions per server */
+#define COAP_SERVER_NUM_TRANS     8                                             /**< Maximum number of active transactions per server */
 #define COAP_SERVER_ADDR_BUF_LEN  128                                           /**< Buffer length for host addresses */
 
 /**
@@ -89,6 +93,9 @@ typedef struct coap_server_trans
     coap_msg_t req;
     coap_msg_t resp;
     struct coap_server *server;
+#ifdef COAP_DTLS_EN
+    gnutls_session_t session;
+#endif
 }
 coap_server_trans_t;
 
@@ -100,24 +107,63 @@ typedef struct coap_server
     int sd;
     unsigned msg_id;
     coap_server_path_list_t sep_list;
-    coap_server_trans_t trans[COAP_SERVER_MAX_TRANS];
+    coap_server_trans_t trans[COAP_SERVER_NUM_TRANS];
     int (* handle)(struct coap_server *, coap_msg_t *, coap_msg_t *);
+#ifdef COAP_DTLS_EN
+    gnutls_certificate_credentials_t cred;
+    gnutls_priority_t priority;
+    gnutls_dh_params_t dh_params;
+#endif
 }
 coap_server_t;
+
+#ifdef COAP_DTLS_EN
 
 /**
  *  @brief Initialise a server structure
  *
  *  @param[out] server Pointer to a server structure
+ *  @param[in] handle Call-back function to handle client requests
  *  @param[in] host Pointer to a string containing the host address of the server
  *  @param[in] port Port number of the server
- *  @param[in] handle Call-back function to handle client requests
+ *  @param[in] key_file_name String containing the DTLS key file name
+ *  @param[in] cert_file_name String containing the DTLS certificate file name
+ *  @param[in] trust_file_name String containing the DTLS trust file name
+ *  @param[in] crl_file_name String containing the DTLS certificate revocation list file name
  *
  *  @returns Operation status
  *  @retval 0 Success
  *  @retval -errno Error
  */
-int coap_server_create(coap_server_t *server, const char *host, unsigned port, int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *));
+int coap_server_create(coap_server_t *server,
+                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       const char *host,
+                       unsigned port,
+                       const char *key_file_name,
+                       const char *cert_file_name,
+                       const char *trust_file_name,
+                       const char *crl_file_name);
+
+#else  /* !COAP_DTLS_EN */
+
+/**
+ *  @brief Initialise a server structure
+ *
+ *  @param[out] server Pointer to a server structure
+ *  @param[in] handle Call-back function to handle client requests
+ *  @param[in] host Pointer to a string containing the host address of the server
+ *  @param[in] port Port number of the server
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval -errno Error
+ */
+int coap_server_create(coap_server_t *server,
+                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       const char *host,
+                       unsigned port);
+
+#endif  /* COAP_DTLS_EN */
 
 /**
  *  @brief Deinitialise a server structure
@@ -136,7 +182,7 @@ void coap_server_destroy(coap_server_t *server);
 unsigned coap_server_get_next_msg_id(coap_server_t *server);
 
 /**
- *  @brief Register a URI path that warrants a separate response
+ *  @brief Register a URI path that requires a separate response
  *
  *  @param[in] server Pointer to a server structure
  *  @param[in] str String representation of a URI path
@@ -145,7 +191,7 @@ unsigned coap_server_get_next_msg_id(coap_server_t *server);
  *  @retval 0 Success
  *  @retval -ENOMEM Out-of-memory
  */ 
-int coap_server_reg_separate_resp_uri_path(coap_server_t *server, const char *str);
+int coap_server_add_sep_resp_uri_path(coap_server_t *server, const char *str);
 
 /**
  *  @brief Run the server
