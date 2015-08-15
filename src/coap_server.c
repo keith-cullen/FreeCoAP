@@ -49,6 +49,7 @@
 #define COAP_SERVER_MAX_RETRANSMIT        4                                     /**< Maximum number of times a confirmable message can be retransmitted */
 
 #ifdef COAP_DTLS_EN
+
 #define COAP_SERVER_DTLS_MTU              COAP_MSG_MAX_BUF_LEN                  /**< Maximum transmission unit excluding the UDP and IPv6 headers */
 #define COAP_SERVER_DTLS_RETRANS_TIMEOUT  1000                                  /**< Retransmission timeout (msec) for the DTLS handshake */
 #define COAP_SERVER_DTLS_TOTAL_TIMEOUT    60000                                 /**< Total timeout (msec) for the DTLS handshake */
@@ -485,7 +486,7 @@ static void coap_server_trans_dtls_destroy(coap_server_trans_t *trans)
     gnutls_deinit(trans->session);
 }
 
-#endif
+#endif  /* COAP_DTLS_EN */
 
 /****************************************************************************************************
  *                                        coap_server_trans                                         *
@@ -781,14 +782,14 @@ static int coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *msg)
                 return -1;
         }
     }
-#else  /* !COAP_DTLS_EN */
+#else
     server = trans->server;
     num = sendto(server->sd, buf, num, 0, (struct sockaddr *)&trans->client_sin, trans->client_sin_len);
     if (num == -1)
     {
         return -errno;
     }
-#endif  /* COAP_DTLS_EN */
+#endif
     coap_server_trans_touch(trans);
     coap_log_debug("Sent to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     return num;
@@ -870,7 +871,7 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
                 return -1;
         }
     }
-#else  /* !COAP_DTLS_EN */
+#else
     server = trans->server;
     client_sin_len = sizeof(client_sin);
     num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)&client_sin, &client_sin_len);
@@ -888,7 +889,7 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
     {
         return -errno;
     }
-#endif  /* COAP_DTLS_EN */
+#endif
     ret = coap_msg_parse(msg, buf, num);
     if (ret < 0)
     {
@@ -1217,7 +1218,7 @@ static void coap_server_dtls_destroy(coap_server_t *server)
     gnutls_global_deinit();
 }
 
-#endif
+#endif  /* COAP_DTLS_EN */
 
 /****************************************************************************************************
  *                                           coap_server                                            *
