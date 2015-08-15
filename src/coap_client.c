@@ -49,6 +49,7 @@
 #define COAP_CLIENT_RESP_TIMEOUT_SEC  30                                        /**< Maximum amount of time to wait for a response */
 
 #ifdef COAP_DTLS_EN
+
 #define COAP_CLIENT_DTLS_MTU              COAP_MSG_MAX_BUF_LEN                  /**< Maximum transmission unit excluding the UDP and IPv6 headers */
 #define COAP_CLIENT_DTLS_RETRANS_TIMEOUT  1000                                  /**< Retransmission timeout (msec) for the DTLS handshake */
 #define COAP_CLIENT_DTLS_TOTAL_TIMEOUT    60000                                 /**< Total timeout (msec) for the DTLS handshake */
@@ -376,7 +377,7 @@ static void coap_client_dtls_destroy(coap_client_t *client)
     gnutls_global_deinit();
 }
 
-#endif
+#endif  /* COAP_DTLS_EN */
 
 /****************************************************************************************************
  *                                           coap_client                                            *
@@ -699,13 +700,13 @@ static int coap_client_send(coap_client_t *client, coap_msg_t *msg)
                 return -1;
         }
     }
-#else  /* !COAP_DTLS_EN */
+#else
     num = send(client->sd, buf, num, 0);
     if (num == -1)
     {
         return -errno;
     }
-#endif  /* COAP_DTLS_EN */
+#endif
     coap_log_debug("Sent to address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
     return num;
 }
@@ -780,13 +781,13 @@ static int coap_client_recv(coap_client_t *client, coap_msg_t *msg)
                 return -1;
         }
     }
-#else  /* !COAP_DTLS_EN */
+#else
     num = recv(client->sd, buf, sizeof(buf), 0);
     if (num == -1)
     {
         return -errno;
     }
-#endif  /* COAP_DTLS_EN */
+#endif
     ret = coap_msg_parse(msg, buf, num);
     if (ret == -EBADMSG)
     {
