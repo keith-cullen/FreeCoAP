@@ -60,8 +60,8 @@ coap_server_resp_t;
  */
 typedef struct coap_server_path
 {
-    char *str;
-    struct coap_server_path *next;
+    char *str;                                                                  /**< String containing a path */
+    struct coap_server_path *next;                                              /**< Pointer to the next URI path structure in the list */
 }
 coap_server_path_t;
 
@@ -70,8 +70,8 @@ coap_server_path_t;
  */
 typedef struct
 {
-    coap_server_path_t *first;
-    coap_server_path_t *last;
+    coap_server_path_t *first;                                                  /**< Pointer to the first URI path structure in the list */
+    coap_server_path_t *last;                                                   /**< Pointer to the last URI path structure in the list */
 }
 coap_server_path_list_t;
 
@@ -82,19 +82,19 @@ struct coap_server;
  */
 typedef struct coap_server_trans
 {
-    int active;
-    time_t last_use;
-    int timer_fd;
-    struct timespec timeout;
-    unsigned num_retrans;
-    struct sockaddr_in6 client_sin;
-    socklen_t client_sin_len;
-    char client_addr[COAP_SERVER_ADDR_BUF_LEN];
-    coap_msg_t req;
-    coap_msg_t resp;
-    struct coap_server *server;
+    int active;                                                                 /**< Flag to indicate if this transaction structure contains valid data */
+    time_t last_use;                                                            /**< The time that this transaction structure was last used */
+    int timer_fd;                                                               /**< Timer file descriptor */
+    struct timespec timeout;                                                    /**< Timeout value */
+    unsigned num_retrans;                                                       /**< Current number of retransmissions */
+    struct sockaddr_in6 client_sin;                                             /**< Ipv6 socket structure */
+    socklen_t client_sin_len;                                                   /**< Ipv6 socket structure length */
+    char client_addr[COAP_SERVER_ADDR_BUF_LEN];                                 /**< String to hold the client address */
+    coap_msg_t req;                                                             /**< Last request message received for this transaction */
+    coap_msg_t resp;                                                            /**< Last response message sent for this transaction */
+    struct coap_server *server;                                                 /**< Pointer to the containing server structure */
 #ifdef COAP_DTLS_EN
-    gnutls_session_t session;
+    gnutls_session_t session;                                                   /**< DTLS session */
 #endif
 }
 coap_server_trans_t;
@@ -104,15 +104,15 @@ coap_server_trans_t;
  */
 typedef struct coap_server
 {
-    int sd;
-    unsigned msg_id;
-    coap_server_path_list_t sep_list;
-    coap_server_trans_t trans[COAP_SERVER_NUM_TRANS];
-    int (* handle)(struct coap_server *, coap_msg_t *, coap_msg_t *);
+    int sd;                                                                     /**< Socket descriptor */
+    unsigned msg_id;                                                            /**< Last message ID value used in a response message */
+    coap_server_path_list_t sep_list;                                           /**< List of URI paths that require separate responses */
+    coap_server_trans_t trans[COAP_SERVER_NUM_TRANS];                           /**< Array of transaction structures */
+    int (* handle)(struct coap_server *, coap_msg_t *, coap_msg_t *);           /**< Call-back function to handle requests and generate responses */
 #ifdef COAP_DTLS_EN
-    gnutls_certificate_credentials_t cred;
-    gnutls_priority_t priority;
-    gnutls_dh_params_t dh_params;
+    gnutls_certificate_credentials_t cred;                                      /**< DTLS credentials */
+    gnutls_priority_t priority;                                                 /**< DTLS priorities */
+    gnutls_dh_params_t dh_params;                                               /**< Diffie-Hellman parameters */
 #endif
 }
 coap_server_t;
@@ -133,7 +133,7 @@ coap_server_t;
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 int coap_server_create(coap_server_t *server,
                        int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
@@ -156,7 +156,7 @@ int coap_server_create(coap_server_t *server,
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 int coap_server_create(coap_server_t *server,
                        int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
@@ -168,14 +168,14 @@ int coap_server_create(coap_server_t *server,
 /**
  *  @brief Deinitialise a server structure
  *
- *  @param[in] server Pointer to a server structure
+ *  @param[in,out] server Pointer to a server structure
  */
 void coap_server_destroy(coap_server_t *server);
 
 /**
  *  @brief Get a new message ID value
  *
- *  @param[in] server Pointer to a server structure
+ *  @param[in,out] server Pointer to a server structure
  *
  *  @returns message ID value
  */
@@ -184,12 +184,12 @@ unsigned coap_server_get_next_msg_id(coap_server_t *server);
 /**
  *  @brief Register a URI path that requires a separate response
  *
- *  @param[in] server Pointer to a server structure
+ *  @param[in,out] server Pointer to a server structure
  *  @param[in] str String representation of a URI path
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -ENOMEM Out-of-memory
+ *  @retval <0 Error
  */ 
 int coap_server_add_sep_resp_uri_path(coap_server_t *server, const char *str);
 
@@ -200,9 +200,11 @@ int coap_server_add_sep_resp_uri_path(coap_server_t *server, const char *str);
  *  call the handle call-back function in the server structure
  *  and send the response to the client.
  *
+ *  @param[in,out] server Pointer to a server structure
+ *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 int coap_server_run(coap_server_t *server);
 

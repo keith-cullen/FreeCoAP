@@ -49,18 +49,17 @@
  */
 typedef struct
 {
-    int sd;
-    int timer_fd;
-    struct timespec timeout;
-    unsigned num_retrans;
-    struct sockaddr_in6 server_sin;
-    socklen_t server_sin_len;
-    char server_addr[COAP_CLIENT_ADDR_BUF_LEN];
+    int sd;                                                                     /**< Socket descriptor */
+    int timer_fd;                                                               /**< Timer file descriptor */
+    struct timespec timeout;                                                    /**< Timeout value */
+    unsigned num_retrans;                                                       /**< Current number of retransmissions */
+    struct sockaddr_in6 server_sin;                                             /**< Ipv6 socket structture */
+    socklen_t server_sin_len;                                                   /**< Ipv6 socket structure length */
+    char server_addr[COAP_CLIENT_ADDR_BUF_LEN];                                 /**< String to hold the server address */
 #ifdef COAP_DTLS_EN
-    gnutls_session_t session;
-    gnutls_certificate_credentials_t cred;
-    gnutls_priority_t priority;
-    gnutls_dtls_prestate_st prestate;
+    gnutls_session_t session;                                                   /**< DTLS session */
+    gnutls_certificate_credentials_t cred;                                      /**< DTLS credentials */
+    gnutls_priority_t priority;                                                 /**< DTLS priorities */
 #endif
 }
 coap_client_t;
@@ -80,7 +79,7 @@ coap_client_t;
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno On error
+ *  @retval <0 Error
  */
 int coap_client_create(coap_client_t *client,
                        const char *host,
@@ -101,7 +100,7 @@ int coap_client_create(coap_client_t *client,
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno On error
+ *  @retval <0 Error
  */
 int coap_client_create(coap_client_t *client,
                        const char *host,
@@ -112,21 +111,25 @@ int coap_client_create(coap_client_t *client,
 /**
  *  @brief Deinitialise a client structure
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[in,out] client Pointer to a client structure
  */
 void coap_client_destroy(coap_client_t *client);
 
 /**
  *  @brief Send a request to the server and receive the response
  *
- *  @param[in] client Pointer to a client structure
- *  @param[in] req Pointer to a message structure containing the request
- *  @param[out] resp Pointer to a message structure to store the response
+ *  @param[in,out] client Pointer to a client structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *
+ *  This function sets the message ID and token fields of
+ *  the request message overriding any values set by the
+ *  calling function.
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno On Error
- */
+ *  @retval <0 Error
+ **/
 int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp);
 
 #endif

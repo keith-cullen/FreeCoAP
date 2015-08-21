@@ -31,16 +31,28 @@
 #include "coap_server.h"
 #include "coap_log.h"
 
-#define HOST             "::1"
-#define PORT             12436
-#define KEY_FILE_NAME    "server_privkey.pem"
-#define CERT_FILE_NAME   "server_cert.pem"
-#define TRUST_FILE_NAME  "root_client_cert.pem"
-#define CRL_FILE_NAME    ""
-#define SEP_URI_PATH     "/separate"
+#define HOST             "::1"                                                  /**< Host address to listen on */
+#define PORT             12436                                                  /**< UDP port number to listen on */
+#define KEY_FILE_NAME    "server_privkey.pem"                                   /**< DTLS key file name */
+#define CERT_FILE_NAME   "server_cert.pem"                                      /**< DTLS certificate file name */
+#define TRUST_FILE_NAME  "root_client_cert.pem"                                 /**< DTLS trust file name */
+#define CRL_FILE_NAME    ""                                                     /**< DTLS certificate revocation list file name */
+#define SEP_URI_PATH     "/separate"                                            /**< URI path that requires a separate response */
 
-static void print_coap_msg(coap_msg_t *msg)
+/**
+ *  @brief Print a CoAP message
+ *
+ *  @param[in] msg Pointer to a message structure
+ */
+/**
+ *  @brief Print a CoAP message
+ *
+ *  @param[in] str String to be printed before the message
+ *  @param[in] msg Pointer to a message structure
+ */
+static void print_coap_msg(const char *str, coap_msg_t *msg)
 {
+    coap_log_level_t log_level = 0;
     coap_msg_op_t *op = NULL;
     unsigned num = 0;
     unsigned len = 0;
@@ -50,6 +62,12 @@ static void print_coap_msg(coap_msg_t *msg)
     char *token = NULL;
     char *val = NULL;
 
+    log_level = coap_log_get_level();
+    if (log_level < COAP_LOG_INFO)
+    {
+        return;
+    }
+    printf("%s\n", str);
     printf("ver:         0x%02x\n", coap_msg_get_ver(msg));
     printf("type:        0x%02x\n", coap_msg_get_type(msg));
     printf("token_len:   %d\n", coap_msg_get_token_len(msg));
@@ -90,13 +108,24 @@ static void print_coap_msg(coap_msg_t *msg)
     printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
 }
 
-/* the handler function is called to service a request
- * and produce a response, this function should only set
- * the code and payload fields in the response message,
- * the other fields are set by the server library when
- * this function returns
+/**
+ *  @brief Callback function to handle requests and generate responses
+ *
+ *  The handler function is called to service a request
+ *  and produce a response. This function should only set
+ *  the code and payload fields in the response message.
+ *  The other fields are set by the server library when
+ *  this function returns.
+ *
+ *  @param[in,out] server Pointer to a server structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
  */
-int handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
+int server_handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
 {
     char *payload = "Hello, Client!";
     int ret = 0;
@@ -113,10 +142,8 @@ int handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
         fprintf(stderr, "Error: %s\n", strerror(-ret));
         return ret;
     }
-    printf("Received:\n");
-    print_coap_msg(req);
-    printf("Sent: (Note: the type, message ID and token fields have not been set by the server library yet)\n");
-    print_coap_msg(resp);
+    print_coap_msg("Received:", req);
+    print_coap_msg("Sent: (Note: the type, message ID and token fields have not been set by the server library yet)", resp);
     return 0;
 }
 
@@ -128,9 +155,9 @@ int main()
     coap_log_set_level(COAP_LOG_INFO);
 
 #ifdef COAP_DTLS_EN
-    ret = coap_server_create(&server, handle, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);
+    ret = coap_server_create(&server, server_handle, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);
 #else
-    ret = coap_server_create(&server, handle, HOST, PORT);
+    ret = coap_server_create(&server, server_handle, HOST, PORT);
 #endif
     if (ret < 0)
     {
