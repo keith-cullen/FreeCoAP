@@ -25,38 +25,50 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "harness.h"
+/**
+ *  @file test.h
+ *
+ *  @brief Include file for the FreeCoAP test harness
+ */
 
-#define START_STR "\n----------------------------------------\n"
-#define PASS_STR    "-----------------<pass>-----------------\n"
-#define FAIL_STR    "*****************[FAIL]*****************\n"
+#ifndef TEST_H
+#define TEST_H
 
-size_t harness_run(harness_test *test, size_t num_tests)
+#define DEBUG_PRINT(fmt, ...) //printf(fmt, ## __VA_ARGS__)                     /**< Debug print */
+
+/**
+ *  @brief Test result enumeration
+ */
+typedef enum {FAIL = 0, PASS} test_result_t;
+
+/**
+ *  @brief Test data typedef
+ */
+typedef void *test_data_t;
+
+/**
+ *  @brief Test function typedef
+ */
+typedef test_result_t (*test_func_t)(test_data_t);
+
+/**
+ *  @brief Test structure
+ */
+typedef struct
 {
-    harness_result result = 0;
-    size_t num_passed = 0;  
-    size_t i = 0;
-
-    printf(START_STR);
-    for (i = 0; i < num_tests; i++)
-    {
-        result = (*test[i].func)(test[i].data);
-        if (result == PASS)
-        {
-            num_passed++;
-            printf(PASS_STR);
-        }
-        else
-        {
-            printf(FAIL_STR);
-        }
-    }
-    if (num_passed < num_tests)
-        printf("\n[Total: %zd, Pass: %zd, Fail: %zd]\n\n", num_tests, num_passed, num_tests - num_passed);
-    else
-        printf("\n[Total: %zd, Pass: %zd]\n\n", num_tests, num_passed);
-
-    return num_passed;
+    test_func_t func;                                                           /**< Test function */
+    test_data_t data;                                                           /**< Test data */
 }
+test_t;
+
+/**
+ *  @brief Run the tests
+ *
+ *  @param[in] test Pointer to an array of test structures
+ *  @param[in] num_tests Number of test structures in the array
+ *
+ *  @returns Number of tests that passed
+ */
+unsigned test_run(test_t *test, unsigned num_tests);
+
+#endif

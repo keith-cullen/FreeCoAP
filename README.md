@@ -27,7 +27,7 @@ Test Instructions
 To build and test the message parser/formatter
 ----------------------------------------------
 
-$ cd coap/test_msg
+$ cd test_msg
 
 $ make
 
@@ -37,7 +37,7 @@ $ ./test_msg
 To build and run the server test application
 --------------------------------------------
 
-$ cd coap/test_server
+$ cd test_server
 
 $ make
 
@@ -46,7 +46,7 @@ $ ./server
 To build and run the client test application
 --------------------------------------------
 
-$ cd coap/test_client
+$ cd test_client
 
 $ make
 
@@ -55,7 +55,7 @@ $ ./client
 To build and run the server test application with DTLS enabled
 --------------------------------------------------------------
 
-$ cd coap/test_server
+$ cd test_server
 
 $ make dtls=y
 
@@ -64,7 +64,7 @@ $ ./server
 To build and run the client test application with DTLS enabled
 --------------------------------------------------------------
 
-$ cd coap/test_client
+$ cd test_client
 
 $ make dtls=y
 

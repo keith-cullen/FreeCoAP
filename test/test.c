@@ -25,16 +25,44 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef HARNESS_H
-#define HARNESS_H
+/**
+ *  @file test.c
+ *
+ *  @brief Source file for the FreeCoAP test harness
+ */
 
-#define DEBUG_PRINT(fmt, ...) //printf(fmt, ## __VA_ARGS__)
+#include <stdlib.h>
+#include <stdio.h>
+#include "test.h"
 
-typedef enum {FAIL = 0, PASS} harness_result;
-typedef void *harness_data;
-typedef harness_result (*harness_func)(harness_data);
-typedef struct {harness_func func; harness_data data;} harness_test;
+#define START_STR   "\n----------------------------------------\n"              /**< String printed at the start of a test */
+#define PASS_STR    "-----------------<pass>-----------------\n"                /**< String printed at the end of a test that passed */
+#define FAIL_STR    "*****************[FAIL]*****************\n"                /**< String printed at the end of a test that failed */
 
-size_t harness_run(harness_test *test, size_t num_tests);
+unsigned test_run(test_t *test, unsigned num_tests)
+{
+    test_result_t result = 0;
+    unsigned num_passed = 0;  
+    unsigned i = 0;
 
-#endif
+    printf(START_STR);
+    for (i = 0; i < num_tests; i++)
+    {
+        result = (*test[i].func)(test[i].data);
+        if (result == PASS)
+        {
+            num_passed++;
+            printf(PASS_STR);
+        }
+        else
+        {
+            printf(FAIL_STR);
+        }
+    }
+    if (num_passed < num_tests)
+        printf("\n[Total: %u, Pass: %u, Fail: %u]\n\n", num_tests, num_passed, num_tests - num_passed);
+    else
+        printf("\n[Total: %u, Pass: %u]\n\n", num_tests, num_passed);
+
+    return num_passed;
+}

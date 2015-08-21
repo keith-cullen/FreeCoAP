@@ -157,10 +157,10 @@ coap_msg_server_err_t;
  */
 typedef struct coap_msg_op
 {
-    unsigned num;
-    unsigned len;
-    char *val;
-    struct coap_msg_op *next;
+    unsigned num;                                                               /**< Option number */
+    unsigned len;                                                               /**< Option lenght */
+    char *val;                                                                  /**< Pointer to a buffer containing the option value */
+    struct coap_msg_op *next;                                                   /**< Pointer to the next option structure in the list */
 }
 coap_msg_op_t;
 
@@ -169,8 +169,8 @@ coap_msg_op_t;
  */
 typedef struct
 {
-    coap_msg_op_t *first;
-    coap_msg_op_t *last;
+    coap_msg_op_t *first;                                                       /**< Pointer to the first option structure in the list */
+    coap_msg_op_t *last;                                                        /**< Pointer to the last option structure in the list */
 }
 coap_msg_op_list_t;
 
@@ -179,16 +179,16 @@ coap_msg_op_list_t;
  */
 typedef struct
 {
-    unsigned ver;
-    coap_msg_type_t type;
-    unsigned token_len;
-    unsigned code_class;
-    unsigned code_detail;
-    unsigned msg_id;
-    char token[COAP_MSG_MAX_TOKEN_LEN];
-    coap_msg_op_list_t op_list;
-    char *payload;
-    unsigned payload_len;
+    unsigned ver;                                                               /**< CoAP version */
+    coap_msg_type_t type;                                                       /**< Message type */
+    unsigned token_len;                                                         /**< Token length */
+    unsigned code_class;                                                        /**< Code class */
+    unsigned code_detail;                                                       /**< Code detail */
+    unsigned msg_id;                                                            /**< Message ID */
+    char token[COAP_MSG_MAX_TOKEN_LEN];                                         /**< Token value */
+    coap_msg_op_list_t op_list;                                                 /**< Option list */
+    char *payload;                                                              /**< Pointer to a buffer containing the payload */
+    unsigned payload_len;                                                       /**< Length of the payload */
 }
 coap_msg_t;
 
@@ -210,14 +210,14 @@ void coap_msg_create(coap_msg_t *msg);
 /**
  *  @brief Deinitialise a message structure
  *
- *  @param[in] msg Pointer to a message structure
+ *  @param[in,out] msg Pointer to a message structure
  */
 void coap_msg_destroy(coap_msg_t *msg);
 
 /**
  *  @brief Deinitialise and initialise a message structure
  *
- *  @param[out] msg Pointer to a message structure
+ *  @param[in,out] msg Pointer to a message structure
  */
 void coap_msg_reset(coap_msg_t *msg);
 
@@ -235,22 +235,20 @@ void coap_msg_reset(coap_msg_t *msg);
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -EBADMSG The message is corrupt
+ *  @retval <0 Error
  */
 int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned *msg_id);
 
 /**
  *  @brief Parse a message
  *
- *  @param[out] msg Pointer to a message structure
+ *  @param[in,out] msg Pointer to a message structure
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -EINVAL Invalid argument
- *  @retval -ENOMEM Out-of-memory
- *  @retval -EBADMSG The message is corrupt
+ *  @retval <0 Error
  */
 int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len);
 
@@ -262,7 +260,7 @@ int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len);
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -EINVAL Invalid argument
+ *  @retval <0 Error
  */
 int coap_msg_set_type(coap_msg_t *msg, unsigned type);
 
@@ -275,7 +273,7 @@ int coap_msg_set_type(coap_msg_t *msg, unsigned type);
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -EINVAL Invalid argument
+ *  @retval <0 Error
  */
 int coap_msg_set_code(coap_msg_t *msg, unsigned code_class, unsigned code_detail);
 
@@ -287,7 +285,7 @@ int coap_msg_set_code(coap_msg_t *msg, unsigned code_class, unsigned code_detail
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -EINVAL Invalid argument
+ *  @retval <0 Error
  */
 int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id);
 
@@ -300,23 +298,23 @@ int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id);
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -EINVAL Invalid argument
+ *  @retval <0 Error
  */
 int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len);
 
 /**
  *  @brief Add a token to a message structure
  *
- *  @param[out] msg Pointer to a message structure
+ *  @param[in,out] msg Pointer to a message structure
  *  @param[in] num Option number
  *  @param[in] len Option length
  *  @param[in] val Pointer to a buffer containing the option value
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -ENOMEM Out-of-memory
+ *  @retval <0 Error
  */
-int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, char *val);
+int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, const char *val);
 
 /**
  *  @brief Set the payload in a message
@@ -326,13 +324,13 @@ int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, char *val);
  *  to contain the new payload and copy the buffer argument
  *  into the new payload buffer.
  *
- *  @param[out] msg Pointer to a message structure
+ *  @param[in,out] msg Pointer to a message structure
  *  @param[in] buf Pointer to a buffer containing the payload
  *  @param[in] len Length of the buffer
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -ENOMEM Out-of-memory
+ *  @retval <0 Error
  */
 int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len);
 
@@ -345,21 +343,19 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len);
  *
  *  @returns Operation status
  *  @retval >0 Length of the formatted message
- *  @retval -ENOSPC Insufficient buffer length
- *  @retval -EBADMSG Message is corrupt
+ *  @retval <0 Error
  */
 int coap_msg_format(coap_msg_t *msg, char *buf, unsigned len);
 
 /**
  *  @brief Copy a message
  *
- *  @param[out] dst Pointer to the destination message structure
+ *  @param[in,out] dst Pointer to the destination message structure
  *  @param[in] src Pointer to the source message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -EINVAL Invalid argument
- *  @retval -ENOMEM Out-of-memory
+ *  @retval <0 Error
  */
 int coap_msg_copy(coap_msg_t *dst, coap_msg_t *src);
 

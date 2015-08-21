@@ -60,6 +60,13 @@ coap_log_level_t;
 void coap_log_set_level(coap_log_level_t level);
 
 /**
+ *  @brief Get the log level
+ *
+ *  @returns The current log level
+ */
+coap_log_level_t coap_log_get_level(void);
+
+/**
  *  @brief Log an error message
  *
  *  @param[in] msg String containing format specifiers
