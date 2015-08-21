@@ -32,50 +32,97 @@
 #include <getopt.h>
 #include "coap_client.h"
 #include "coap_log.h"
+#include "test.h"
 
-#define HOST             "::1"
-#define PORT             12436
-#define SEP_URI_PATH     "separate"
-#define KEY_FILE_NAME    "client_privkey.pem"
-#define CERT_FILE_NAME   "client_cert.pem"
-#define TRUST_FILE_NAME  "root_server_cert.pem"
-#define CRL_FILE_NAME    ""
+#define HOST             "::1"                                                  /**< Host address of the server */
+#define PORT             12436                                                  /**< UDP port number of the server */
+#define KEY_FILE_NAME    "client_privkey.pem"                                   /**< DTLS key file name */
+#define CERT_FILE_NAME   "client_cert.pem"                                      /**< DTLS certificate file name */
+#define TRUST_FILE_NAME  "root_server_cert.pem"                                 /**< DTLS trust file name */
+#define CRL_FILE_NAME    ""                                                     /**< DTLS certificate revocation list file name */
+#define SEP_URI_PATH     "separate"                                             /**< URI path option value to trigger a separate response from the server */
 
-static const char *result_str[] =
+/**
+ *  @brief Client test data structure
+ */
+typedef struct
 {
-    "ERROR",
-    "FAIL",
-    "PASS",
-    "UNKNOWN"
+    const char *desc;                                                           /**< Test description */
+    const char *host;                                                           /**< Server host address */
+    unsigned port;                                                              /**< Server UDP port */
+    const char *key_file_name;                                                  /**< DTLS key file name */
+    const char *cert_file_name;                                                 /**< DTLS certificate file name */
+    const char *trust_file_name;                                                /**< DTLS trust file name */
+    const char *crl_file_name;                                                  /**< DTLS certificate revocation list file name */
+    const char *uri_path_opt;                                                   /**< URI path option value */
+    coap_msg_type_t type;                                                       /**< Message type */
+    unsigned code_class;                                                        /**< Message code class */
+    unsigned code_detail;                                                       /**< Message code detail */
+    char *payload;                                                              /**< Buffer containing the payload */
+    unsigned payload_len;                                                       /**< Length of the buffer containing the payload */
+}
+test_client_data_t;
+
+test_client_data_t test1_data =
+{
+    .desc = "test 1: send a confirmable request and expect a piggy-backed response",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .uri_path_opt = NULL,
+    .type = COAP_MSG_CON,
+    .code_class = 0x0,
+    .code_detail = 0x1,
+    .payload = "Hello server!",
+    .payload_len = 13
 };
 
-typedef enum
+test_client_data_t test2_data =
 {
-    ERROR = 0,
-    FAIL,
-    PASS,
-    UNKNOWN
-}
-result_t;
+    .desc = "test 2: send a confirmable request and expect a separate response",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .uri_path_opt = SEP_URI_PATH,
+    .type = COAP_MSG_CON,
+    .code_class = 0x0,
+    .code_detail = 0x1,
+    .payload = "Hello server!",
+    .payload_len = 13
+};
 
-static const char *result_to_str(result_t result)
+test_client_data_t test3_data =
 {
-    switch (result)
-    {
-    case ERROR:
-        return result_str[ERROR];
-    case FAIL:
-        return result_str[FAIL];
-    case PASS:
-        return result_str[PASS];
-    case UNKNOWN:
-        return result_str[UNKNOWN];
-    }
-    return result_str[UNKNOWN];
-}
+    .desc = "test 3: send a non-confirmable request",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .uri_path_opt = NULL,
+    .type = COAP_MSG_NON,
+    .code_class = 0x0,
+    .code_detail = 0x1,
+    .payload = "Hello server!",
+    .payload_len = 13
+};
 
-static void print_coap_msg(coap_msg_t *msg)
+/**
+ *  @brief Print a CoAP message
+ *
+ *  @param[in] str String to be printed before the message
+ *  @param[in] msg Pointer to a message structure
+ */
+static void print_coap_msg(const char *str, coap_msg_t *msg)
 {
+    coap_log_level_t log_level = 0;
     coap_msg_op_t *op = NULL;
     unsigned num = 0;
     unsigned len = 0;
@@ -85,6 +132,12 @@ static void print_coap_msg(coap_msg_t *msg)
     char *token = NULL;
     char *val = NULL;
 
+    log_level = coap_log_get_level();
+    if (log_level < COAP_LOG_INFO)
+    {
+        return;
+    }
+    printf("%s\n", str);
     printf("ver:         0x%02x\n", coap_msg_get_ver(msg));
     printf("type:        0x%02x\n", coap_msg_get_type(msg));
     printf("token_len:   %d\n", coap_msg_get_token_len(msg));
@@ -125,159 +178,118 @@ static void print_coap_msg(coap_msg_t *msg)
     printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
 }
 
-/* the server will generate a separate response to a request with uri-path: '/separate' */
-/* ans a piggy-backed repsonse to every other request */
-static result_t __test_con(int sep_resp)
+/**
+ *  @brief Send a request to the server and receive the response
+ *
+ *  @param[in] test_data Pointer to a client test data structure
+ *  @param[out] client Pointer to a client structure
+ *  @param[out] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *
+ *  @returns Test result
+ */
+static test_result_t test_client_exchange(test_client_data_t *test_data, coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
-    coap_client_t client = {0};
-    coap_msg_t resp = {0};
-    coap_msg_t req = {0};
-    result_t result = PASS;
-    char *payload = "Hello, Server!";
     int ret = 0;
 
-#ifdef COAP_DTLS_EN
-    ret = coap_client_create(&client, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);
-#else
-    ret = coap_client_create(&client, HOST, PORT);
-#endif
+    coap_msg_create(req);
+    ret = coap_msg_set_type(req, test_data->type);
     if (ret != 0)
     {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        return ERROR;
+        coap_log_error("Error: %s\n", strerror(-ret));
+        coap_msg_destroy(req);
+        coap_client_destroy(client);
+        return FAIL;
     }
-    coap_msg_create(&req);
-    ret = coap_msg_set_type(&req, COAP_MSG_CON);
+    ret = coap_msg_set_code(req, COAP_MSG_REQ, COAP_MSG_GET);
     if (ret != 0)
     {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
+        coap_log_error("Error: %s\n", strerror(-ret));
+        coap_msg_destroy(req);
+        coap_client_destroy(client);
+        return FAIL;
     }
-    ret = coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
-    if (ret != 0)
+    if (test_data->uri_path_opt)
     {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-    if (sep_resp)
-    {
-        ret = coap_msg_add_op(&req, COAP_MSG_OP_URI_PATH_NUM, strlen(SEP_URI_PATH), SEP_URI_PATH);
+        ret = coap_msg_add_op(req, COAP_MSG_OP_URI_PATH_NUM, strlen(test_data->uri_path_opt), test_data->uri_path_opt);
         if (ret != 0)
         {
-            fprintf(stderr, "Error: %s\n", strerror(-ret));
-            coap_msg_destroy(&req);
-            coap_client_destroy(&client);
-            return ERROR;
+            coap_log_error("Error: %s\n", strerror(-ret));
+            coap_msg_destroy(req);
+            coap_client_destroy(client);
+            return FAIL;
         }
     }
-    ret = coap_msg_set_payload(&req, payload, strlen(payload));
-    if (ret != 0)
+    if (test_data->payload)
     {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-    coap_msg_create(&resp);
-    ret = coap_client_exchange(&client, &req, &resp);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&resp);
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-
-    printf("Sent:\n");
-    print_coap_msg(&req);
-    printf("Received:\n");
-    print_coap_msg(&resp);
-
-    if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
-    {
-        result = FAIL;
-    }
-    if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
-    {
-        result = FAIL;
-    }
-    else
-    {
-        if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
+        ret = coap_msg_set_payload(req, test_data->payload, test_data->payload_len);
+        if (ret != 0)
         {
-            result = FAIL;
+            coap_log_error("Error: %s\n", strerror(-ret));
+            coap_msg_destroy(req);
+            coap_client_destroy(client);
+            return FAIL;
         }
     }
-    coap_msg_destroy(&resp);
-    coap_msg_destroy(&req);
-    coap_client_destroy(&client);
-    return result;
+    coap_msg_create(resp);
+    ret = coap_client_exchange(client, req, resp);
+    if (ret != 0)
+    {
+        coap_log_error("Error: %s\n", strerror(-ret));
+        coap_msg_destroy(resp);
+        coap_msg_destroy(req);
+        coap_client_destroy(client);
+        return FAIL;
+    }
+
+    print_coap_msg("Sent:", req);
+    print_coap_msg("Received:", resp);
+
+    return PASS;
 }
 
-int __test_non(void)
+/**
+ *  @brief Test an exchange with the server
+ *
+ *  @param[in] data Pointer to a client test data structure
+ *
+ *  @returns Test result
+ */
+static test_result_t test_client_func(test_data_t data)
 {
+    test_client_data_t *test_data = (test_client_data_t *)data;
+    test_result_t result = PASS;
     coap_client_t client = {0};
     coap_msg_t resp = {0};
     coap_msg_t req = {0};
-    result_t result = PASS;
-    char *payload = "Hello, Server!";
     int ret = 0;
 
+    printf("%s\n", test_data->desc);
+
 #ifdef COAP_DTLS_EN
-    ret = coap_client_create(&client, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);
+    ret = coap_client_create(&client,
+                             test_data->host,
+                             test_data->port,
+                             test_data->key_file_name,
+                             test_data->cert_file_name,
+                             test_data->trust_file_name,
+                             test_data->crl_file_name);
 #else
-    ret = coap_client_create(&client, HOST, PORT);
+    ret = coap_client_create(&client,
+                             test_data->host,
+                             test_data->port);
 #endif
     if (ret != 0)
     {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        return ERROR;
-    }
-    coap_msg_create(&req);
-    ret = coap_msg_set_type(&req, COAP_MSG_NON);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-    ret = coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-    ret = coap_msg_set_payload(&req, payload, strlen(payload));
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
-    }
-    coap_msg_create(&resp);
-    ret = coap_client_exchange(&client, &req, &resp);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(-ret));
-        coap_msg_destroy(&resp);
-        coap_msg_destroy(&req);
-        coap_client_destroy(&client);
-        return ERROR;
+        coap_log_error("Error: %s\n", strerror(-ret));
+        return FAIL;
     }
 
-    printf("Sent:\n");
-    print_coap_msg(&req);
-    printf("Received:\n");
-    print_coap_msg(&resp);
+    ret = test_client_exchange(test_data, &client, &req, &resp);
+    if (ret != PASS)
+    {
+        return ret;
+    }
 
     if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
     {
@@ -294,76 +306,34 @@ int __test_non(void)
             result = FAIL;
         }
     }
+
     coap_msg_destroy(&resp);
     coap_msg_destroy(&req);
     coap_client_destroy(&client);
-    return result;
-}
-
-static int test_con_pb(void)
-{
-    result_t result = PASS;
-
-    printf("================================================================================\n");
-    printf("Confirmable request with piggy-backed response\n");
-    printf("================================================================================\n");
-
-    result = __test_con(0);
-
-    printf("================================================================================\n");
-    printf("Confirmable request with piggy-backed response result: %s\n", result_to_str(result));
-    printf("================================================================================\n");
 
     return result;
 }
 
-static int test_con_sep(void)
-{
-    result_t result = PASS;
 
-    printf("================================================================================\n");
-    printf("Confirmable request with separate response\n");
-    printf("================================================================================\n");
-
-    result = __test_con(1);
-
-    printf("================================================================================\n");
-    printf("Confirmable request with separate response result: %s\n", result_to_str(result));
-    printf("================================================================================\n");
-
-    return result;
-}
-
-static result_t test_non(void)
-{
-    result_t result = PASS;
-
-    printf("================================================================================\n");
-    printf("Non-confirmable request\n");
-    printf("================================================================================\n");
-
-    result = __test_non();
-
-    printf("================================================================================\n");
-    printf("Non-confirmable request result: %s\n", result_to_str(result));
-    printf("================================================================================\n");
-
-    return result;
-}
-
+/**
+ *  @brief Show usage
+ */
 static void usage(void)
 {
-    fprintf(stderr, "Usage: client <options> test-num\n");
-    fprintf(stderr, "Options:");
-    fprintf(stderr, "    -l log-level - set the log level (0 to 4)\n");
+    coap_log_error("Usage: client <options> test-num\n");
+    coap_log_error("Options:");
+    coap_log_error("    -l log-level - set the log level (0 to 4)\n");
 }
 
 int main(int argc, char **argv)
 {
     const char *opts = ":hl:";
-    int log_level = 0;
+    int log_level = COAP_LOG_ERROR;
     int test_num = 0;
     int c = 0;
+    test_t tests[] = {{test_client_func, &test1_data},
+                      {test_client_func, &test2_data},
+                      {test_client_func, &test3_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
@@ -377,40 +347,36 @@ int main(int argc, char **argv)
             log_level = atoi(optarg);
             break;
         case ':':
-            fprintf(stderr, "Option '%c' requires an argument\n", optopt);
+            coap_log_error("Option '%c' requires an argument\n", optopt);
             return -1;
         case '?':
-            fprintf(stderr, "Unknown option '%c'\n", optopt);
+            coap_log_error("Unknown option '%c'\n", optopt);
             return -1;
         default:
-             usage();
+            usage();
         }
     }
-
-    if (optind >= argc)
+    /* if there is an argument after the options then interpret it as a test number */
+    if (optind < argc)
     {
-        usage();
-        return -1;
+        test_num = atoi(argv[optind]);
     }
-
-    test_num = atoi(argv[optind]);
 
     coap_log_set_level(log_level);
 
     switch (test_num)
     {
     case 1:
-        test_con_pb();
+        test_run(&tests[0], 1);
         break;
     case 2:
-        test_con_sep();
+        test_run(&tests[1], 1);
         break;
     case 3:
-        test_non();
+        test_run(&tests[2], 1);
         break;
     default:
-        fprintf(stderr, "Invalid test number: %d\n", test_num);
-        return -1;
+        test_run(tests, 3);
     }
 
     return 0;

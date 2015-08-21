@@ -66,36 +66,6 @@ static int rand_init = 0;                                                       
  ****************************************************************************************************/
 
 /**
- *  @brief Listen for a packet from the server
- *
- *  @param[in] client Pointer to a client structure
- *
- *  @returns Operation status
- *  @retval 1 Success
- *  @retval -errno Error
- */
-int coap_client_dtls_listen(coap_client_t *client)
-{
-    fd_set read_fds = {{0}};
-    int ret = 0;
-
-    while (1)
-    {
-        FD_ZERO(&read_fds);
-        FD_SET(client->sd, &read_fds);
-        ret = select(client->sd + 1, &read_fds, NULL, NULL, NULL);
-        if (ret == -1)
-        {
-            return -errno;
-        }
-        if (FD_ISSET(client->sd, &read_fds))
-        {
-            return 1;  /* success */
-        }
-    }
-}
-
-/**
  *  @brief Listen for a packet from the server with a timeout
  *
  *  @param[in] client Pointer to a client structure
@@ -104,9 +74,9 @@ int coap_client_dtls_listen(coap_client_t *client)
  *  @returns Operation status
  *  @retval 1 Success
  *  @retval 0 Timeout
- *  @retval -errno Error
+ *  @retval <0 Error
  */
-int coap_client_dtls_listen_timeout(coap_client_t *client, unsigned ms)
+static int coap_client_dtls_listen_timeout(coap_client_t *client, unsigned ms)
 {
     struct timeval tv = {0};
     fd_set read_fds = {{0}};
@@ -145,7 +115,7 @@ int coap_client_dtls_listen_timeout(coap_client_t *client, unsigned ms)
  *  @param[in] len Length of the buffer
  *
  *  @returns Number of bytes received or error
- *  @retval 0 Number of bytes received
+ *  @retval >0 Number of bytes received
  *  @retval -1 Error
  */
 static ssize_t coap_client_dtls_pull_func(gnutls_transport_ptr_t data, void *buf, size_t len)
@@ -201,8 +171,8 @@ static int coap_client_dtls_pull_timeout_func(gnutls_transport_ptr_t data, unsig
  *  This is a call-back function that the
  *  GnuTLS library uses to send data.
  *
- *  @param[in,out] data Pointer to a client structure
- *  @param[out] buf Pointer to a buffer
+ *  @param[in] data Pointer to a client structure
+ *  @param[in] buf Pointer to a buffer
  *  @param[in] len Length of the buffer
  *
  *  @returns Number of bytes sent or error
@@ -224,7 +194,7 @@ static ssize_t coap_client_dtls_push_func(gnutls_transport_ptr_t data, const voi
  *
  *  @returns Operation success
  *  @retval 0 Success
- *  @retval -1 Error
+ *  @retval <0 Error
  */
 static int coap_client_dtls_handshake(coap_client_t *client)
 {
@@ -237,14 +207,6 @@ static int coap_client_dtls_handshake(coap_client_t *client)
         if (ret == GNUTLS_E_SUCCESS)
         {
             return 0;  /* success */
-        }
-        if (ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
-        {
-            return -1;
-        }
-        if (ret == GNUTLS_E_INTERRUPTED)
-        {
-            return -EINTR;
         }
         if (ret != GNUTLS_E_AGAIN)
         {
@@ -270,7 +232,7 @@ static int coap_client_dtls_handshake(coap_client_t *client)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno On error
+ *  @retval -1 Error
  */
 static int coap_client_dtls_create(coap_client_t *client,
                                    const char *key_file_name,
@@ -369,6 +331,11 @@ static int coap_client_dtls_create(coap_client_t *client,
     return 0;
 }
 
+/**
+ *  @brief Deinitialise a client structure
+ *
+ *  @param[in,out] client Pointer to a client structure
+ */
 static void coap_client_dtls_destroy(coap_client_t *client)
 {
     gnutls_deinit(client->session);
@@ -550,7 +517,7 @@ static void coap_client_double_timeout(coap_client_t *client)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_start_timer(coap_client_t *client)
 {
@@ -569,11 +536,11 @@ static int coap_client_start_timer(coap_client_t *client)
 /**
  *  @brief Stop the timer in a client structure
  *
- *  @param[in,out] client Pointer to a client structure
+ *  @param[out] client Pointer to a client structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_stop_timer(coap_client_t *client)
 {
@@ -595,7 +562,7 @@ static int coap_client_stop_timer(coap_client_t *client)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_start_ack_timer(coap_client_t *client)
 {
@@ -607,7 +574,11 @@ static int coap_client_start_ack_timer(coap_client_t *client)
 /**
  *  @brief Stop the acknowledgement timer in a client structure
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[out] client Pointer to a client structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
  */
 static int coap_client_stop_ack_timer(coap_client_t *client)
 {
@@ -625,7 +596,7 @@ static int coap_client_stop_ack_timer(coap_client_t *client)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_update_ack_timer(coap_client_t *client)
 {
@@ -649,6 +620,10 @@ static int coap_client_update_ack_timer(coap_client_t *client)
  *  @brief Initialise and start the response timer in a client structure
  *
  *  @param[out] client Pointer to a client structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
  */
 static int coap_client_start_resp_timer(coap_client_t *client)
 {
@@ -659,7 +634,11 @@ static int coap_client_start_resp_timer(coap_client_t *client)
 /**
  *  @brief Stop the response timer in a client structure
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[out] client Pointer to a client structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
  */
 static int coap_client_stop_resp_timer(coap_client_t *client)
 {
@@ -669,12 +648,12 @@ static int coap_client_stop_resp_timer(coap_client_t *client)
 /**
  *  @brief Send a message to the server
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[in,out] client Pointer to a client structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Number of bytes sent or error code
- *  @retval >= 0 Number of bytes sent
- *  @retval -errno Error
+ *  @retval >0 Number of bytes sent
+ *  @retval <0 Error
  */
 static int coap_client_send(coap_client_t *client, coap_msg_t *msg)
 {
@@ -690,15 +669,11 @@ static int coap_client_send(coap_client_t *client, coap_msg_t *msg)
     num = gnutls_record_send(client->session, buf, num);
     if (num < 0)
     {
-        switch (num)
+        if (num == GNUTLS_E_AGAIN)
         {
-            case GNUTLS_E_INTERRUPTED:
-                return -EINTR;
-            case GNUTLS_E_AGAIN:
-                return -EAGAIN;
-            default:
-                return -1;
+            return -EAGAIN;
         }
+        return -1;
     }
 #else
     num = send(client->sd, buf, num, 0);
@@ -719,7 +694,7 @@ static int coap_client_send(coap_client_t *client, coap_msg_t *msg)
  *  Extract enough information from the received message
  *  to form a reset message.
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[in,out] client Pointer to a client structure
  *  @param[in] buf Buffer containing the message
  *  @param[in] len length of the buffer
  */
@@ -754,12 +729,12 @@ static void coap_client_handle_format_error(coap_client_t *client, char *buf, un
 /**
  *  @brief Receive a message from the server
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[in,out] client Pointer to a client structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Number of bytes received or error code
- *  @retval >= 0 Number of bytes received
- *  @retval -errno Error
+ *  @retval >0 Number of bytes received
+ *  @retval <0 Error
  */
 static int coap_client_recv(coap_client_t *client, coap_msg_t *msg)
 {
@@ -771,15 +746,11 @@ static int coap_client_recv(coap_client_t *client, coap_msg_t *msg)
     num = gnutls_record_recv(client->session, buf, sizeof(buf));
     if (num < 0)
     {
-        switch (num)
+        if (num == GNUTLS_E_AGAIN)
         {
-            case GNUTLS_E_INTERRUPTED:
-                return -EINTR;
-            case GNUTLS_E_AGAIN:
-                return -EAGAIN;
-            default:
-                return -1;
+            return -EAGAIN;
         }
+        return -1;
     }
 #else
     num = recv(client->sd, buf, sizeof(buf), 0);
@@ -806,12 +777,12 @@ static int coap_client_recv(coap_client_t *client, coap_msg_t *msg)
  *
  *  Send a reset message to the server.
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[in,out] client Pointer to a client structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_reject_con(coap_client_t *client, coap_msg_t *msg)
 {
@@ -860,12 +831,12 @@ static int coap_client_reject_non(coap_client_t *client, coap_msg_t *msg)
 /**
  *  @brief Reject a received message
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[in,out] client Pointer to a client structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_reject(coap_client_t *client, coap_msg_t *msg)
 {
@@ -879,12 +850,12 @@ static int coap_client_reject(coap_client_t *client, coap_msg_t *msg)
 /**
  *  @brief Send an acknowledgement message to the server
  *
- *  @param[in] client Pointer to a client structure
+ *  @param[in,out] client Pointer to a client structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_send_ack(coap_client_t *client, coap_msg_t *msg)
 {
@@ -927,7 +898,7 @@ static int coap_client_send_ack(coap_client_t *client, coap_msg_t *msg)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_handle_ack_timeout(coap_client_t *client, coap_msg_t *msg)
 {
@@ -961,7 +932,7 @@ static int coap_client_handle_ack_timeout(coap_client_t *client, coap_msg_t *msg
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_listen_ack(coap_client_t *client, coap_msg_t *msg)
 {
@@ -1003,11 +974,11 @@ static int coap_client_listen_ack(coap_client_t *client, coap_msg_t *msg)
 /**
  *  @brief Wait for a message to arrive or the response timer to expire
  *
- *  @param[in,out] client Pointer to a client structure
+ *  @param[in] client Pointer to a client structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_listen_resp(coap_client_t *client)
 {
@@ -1070,7 +1041,7 @@ static int coap_client_match_token(coap_msg_t *req, coap_msg_t *resp)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  **/
 static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
@@ -1136,7 +1107,7 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
  *  @brief Handle the response to a confirmable request
  *
  *  The request has already been sent to the server.
- *  Receive the acknowledgement and respone and send
+ *  Receive the acknowledgement and response and send
  *  an acknowledgement back to the server.
  *
  *  @param[in,out] client Pointer to a client structure
@@ -1145,7 +1116,7 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
@@ -1278,21 +1249,6 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
     return 0;
 }
 
-/**
- *  @brief Send a request to the server and receive the response
- *
- *  @param[in,out] client Pointer to a client structure
- *  @param[in] req Pointer to the request message
- *  @param[out] resp Pointer to the response message
- *
- *  This function sets the message ID and token fields of
- *  the request message overriding any values set by the
- *  calling function.
- *
- *  @returns Operation status
- *  @retval 0 Success
- *  @retval -errno Error
- **/
 int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
     unsigned char msg_id_buf[2] = {0};

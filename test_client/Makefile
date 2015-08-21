@@ -5,19 +5,22 @@ endif
 
 IDH = ../include
 IDS = ../src
+IDT = ../test
 
 CC = gcc
-CFLAGS = -Wall -g -I $(IDH)
+CFLAGS = -Wall -g -I $(IDH) -I$(IDT)
 CFLAGS += $(DTLS_CFLAGS)
 LD = gcc
 LDFLAGS =
 INCS = $(IDH)/coap_client.h \
        $(IDH)/coap_msg.h \
-       $(IDH)/coap_log.h
+       $(IDH)/coap_log.h \
+       $(IDT)/test.h
 OBJS = client.o \
        coap_client.o \
        coap_msg.o \
-       coap_log.o
+       coap_log.o \
+       test.o
 LIBS += $(DTLS_LIBS)
 PROG = client
 RM = /bin/rm -f
@@ -36,6 +39,9 @@ coap_msg.o: $(IDS)/coap_msg.c $(INCS)
 
 coap_log.o: $(IDS)/coap_log.c $(INCS)
 	$(CC) $(CFLAGS) -c $(IDS)/coap_log.c
+
+test.o: $(IDT)/test.c $(INCS)
+	$(CC) $(CFLAGS) -c $(IDT)/test.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)

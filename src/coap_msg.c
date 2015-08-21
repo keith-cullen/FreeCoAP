@@ -70,7 +70,7 @@ void coap_msg_gen_rand_str(char *buf, unsigned len)
  *  @returns Pointer to the option structure
  *  @retval NULL Out-of-memory
  */
-static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, char *val)
+static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, const char *val)
 {
     coap_msg_op_t *op = NULL;
 
@@ -95,7 +95,7 @@ static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, char *val)
 /**
  *  @brief Free an option structure that was allocated by coap_msg_op_new
  *
- *  @param[in] op Pointer to the option structure
+ *  @param[in,out] op Pointer to the option structure
  */
 static void coap_msg_op_delete(coap_msg_op_t *op)
 {
@@ -106,7 +106,7 @@ static void coap_msg_op_delete(coap_msg_op_t *op)
 /**
  *  @brief Initialise an option linked-list structure
  *
- *  @param[in,out] list Pointer to an option linked-list structure
+ *  @param[out] list Pointer to an option linked-list structure
  */
 static void coap_msg_op_list_create(coap_msg_op_list_t *list)
 {
@@ -136,16 +136,16 @@ static void coap_msg_op_list_destroy(coap_msg_op_list_t *list)
 /**
  *  @brief Allocate an option structure and add it to the end of an option linked-list structure
  *
- *  @param[out] list Pointer to an option linked-list structure
+ *  @param[in,out] list Pointer to an option linked-list structure
  *  @param[in] num Option number
  *  @param[in] len Option length
  *  @param[in] val Pointer to a buffer containing the option value
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -ENOMEM Out-of-memory
+ *  @retval <0 Error
  */
-static int coap_msg_op_list_add_last(coap_msg_op_list_t *list, unsigned num, unsigned len, char *val)
+static int coap_msg_op_list_add_last(coap_msg_op_list_t *list, unsigned num, unsigned len, const char *val)
 {
     coap_msg_op_t *op = NULL;
 
@@ -172,16 +172,16 @@ static int coap_msg_op_list_add_last(coap_msg_op_list_t *list, unsigned num, uns
  *
  *  The option is added to the list at a position determined by the option number.
  *
- *  @param[in] list Pointer to an option linked-list structure
+ *  @param[in,out] list Pointer to an option linked-list structure
  *  @param[in] num Option number
  *  @param[in] len Option length
  *  @param[in] val Pointer to a buffer containing the option value
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -ENOMEM Out-of-memory
+ *  @retval <0 Error
  */
-static int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned len, char *val)
+static int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned len, const char *val)
 {
     coap_msg_op_t *prev = NULL;
     coap_msg_op_t *op = NULL;
@@ -264,7 +264,7 @@ void coap_msg_reset(coap_msg_t *msg)
  *  @param[in] msg Pointer to a message structure
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -EBADMSG The message is corrupt
+ *  @retval <0 Error
  */
 static int coap_msg_check(coap_msg_t *msg)
 {
@@ -310,8 +310,7 @@ int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned
  *
  *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
- *  @retval -EINVAL Invalid argument
- *  @retval -EBADMSG The message is corrupt
+ *  @retval <0 Error
  */
 static int coap_msg_parse_hdr(coap_msg_t *msg, char *buf, unsigned len)
 {
@@ -357,7 +356,7 @@ static int coap_msg_parse_hdr(coap_msg_t *msg, char *buf, unsigned len)
  *
  *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
- *  @retval -EBADMSG The message is corrupt
+ *  @retval <0 Error
  */
 static int coap_msg_parse_token(coap_msg_t *msg, char *buf, unsigned len)
 {
@@ -372,13 +371,13 @@ static int coap_msg_parse_token(coap_msg_t *msg, char *buf, unsigned len)
 /**
  *  @brief Parse an option in a message
  *
- *  @param[out] msg Pointer to a message structure
+ *  @param[in,out] msg Pointer to a message structure
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
  *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
- *  @retval -EBADMSG The message is corrupt
+ *  @retval <0 Error
  */
 static int coap_msg_parse_op(coap_msg_t *msg, char *buf, unsigned len)
 {
@@ -466,13 +465,13 @@ static int coap_msg_parse_op(coap_msg_t *msg, char *buf, unsigned len)
 /**
  *  @brief Parse the options in a message
  *
- *  @param[out] msg Pointer to a message structure
+ *  @param[in,out] msg Pointer to a message structure
  *  @param[in] buf Pointer to a buffer containing the message
  *  @param[in] len Length of the buffer
  *
  *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
- *  @retval -EBADMSG The message is corrupt
+ *  @retval <0 Error
  */
 static int coap_msg_parse_ops(coap_msg_t *msg, char *buf, unsigned len)
 {
@@ -505,8 +504,7 @@ static int coap_msg_parse_ops(coap_msg_t *msg, char *buf, unsigned len)
  *
  *  @returns Number of bytes parsed or error code
  *  @retval >0 Number of bytes parsed
- *  @retval -ENOMEM Out-of-memory
- *  @retval -EBADMSG The message is corrupt
+ *  @retval <0 Error
  */
 static int coap_msg_parse_payload(coap_msg_t *msg, char *buf, unsigned len)
 {
@@ -625,7 +623,7 @@ int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len)
     return 0;
 }
 
-int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, char *val)
+int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, const char *val)
 {
     return coap_msg_op_list_add(&msg->op_list, num, len, val);
 }
@@ -660,7 +658,7 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len)
  *
  *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
- *  @retval -ENOSPC Insufficient buffer length
+ *  @retval <0 Error
  */
 static int coap_msg_format_hdr(coap_msg_t *msg, char *buf, unsigned len)
 {
@@ -689,7 +687,7 @@ static int coap_msg_format_hdr(coap_msg_t *msg, char *buf, unsigned len)
  *
  *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
- *  @retval -ENOSPC Insufficient buffer length
+ *  @retval <0 Error
  */
 static int coap_msg_format_token(coap_msg_t *msg, char *buf, unsigned len)
 {
@@ -711,7 +709,7 @@ static int coap_msg_format_token(coap_msg_t *msg, char *buf, unsigned len)
  *
  *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
- *  @retval -ENOSPC Insufficient buffer length
+ *  @retval <0 Error
  */
 static int coap_msg_format_op(coap_msg_op_t *op, unsigned prev_num, char *buf, unsigned len)
 {
@@ -826,7 +824,7 @@ static int coap_msg_format_op(coap_msg_op_t *op, unsigned prev_num, char *buf, u
  *
  *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
- *  @retval -ENOSPC Insufficient buffer length
+ *  @retval <0 Error
  */
 static int coap_msg_format_ops(coap_msg_t *msg, char *buf, unsigned len)
 {
@@ -860,7 +858,7 @@ static int coap_msg_format_ops(coap_msg_t *msg, char *buf, unsigned len)
  *
  *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
- *  @retval -ENOSPC Insufficient buffer length
+ *  @retval <0 Error
  */
 static int coap_msg_format_payload(coap_msg_t *msg, char *buf, unsigned len)
 {

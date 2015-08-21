@@ -51,6 +51,11 @@ void coap_log_set_level(coap_log_level_t level)
     }
 }
 
+coap_log_level_t coap_log_get_level(void)
+{
+    return coap_log_level;
+}
+
 void coap_log_error(const char *msg, ...)
 {
     va_list arg_list;

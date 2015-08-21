@@ -69,7 +69,7 @@ static int rand_init = 0;                                                       
  *
  *  @param[in] str String representation of a URI path
  *
- *  @returns A new URI path structure
+ *  @returns New URI path structure
  *  @retval NULL Out-of-memory
  */
 static coap_server_path_t *coap_server_path_new(const char *str)
@@ -94,7 +94,7 @@ static coap_server_path_t *coap_server_path_new(const char *str)
 /**
  *  @brief Free a URI path structure
  *
- *  @param[in] path Pointer to a URI path structure
+ *  @param[in,out] path Pointer to a URI path structure
  */
 static void coap_server_path_delete(coap_server_path_t *path)
 {
@@ -105,7 +105,7 @@ static void coap_server_path_delete(coap_server_path_t *path)
 /**
  *  @brief Initialise a URI path list structure
  *
- *  @param[in] list Pointer to a URI path list structure
+ *  @param[out] list Pointer to a URI path list structure
  */
 static void coap_server_path_list_create(coap_server_path_list_t *list)
 {
@@ -115,7 +115,7 @@ static void coap_server_path_list_create(coap_server_path_list_t *list)
 /**
  *  @brief Deinitialise a URI path list structure
  *
- *  @param[in] list Pointer to a URI path list structure
+ *  @param[in,out] list Pointer to a URI path list structure
  */
 static void coap_server_path_list_destroy(coap_server_path_list_t *list)
 {
@@ -135,12 +135,12 @@ static void coap_server_path_list_destroy(coap_server_path_list_t *list)
 /**
  *  @brief Add a URI path to a URI path list structure
  *
- *  @param[in] list Pointer to a URI path list structure
+ *  @param[in,out] list Pointer to a URI path list structure
  *  @param[in] str String representation of a URI path
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -ENOMEM Out-of-memory
+ *  @retval <0 Error
  */
 static int coap_server_path_list_add(coap_server_path_list_t *list, const char *str)
 {
@@ -199,38 +199,6 @@ static int coap_server_path_list_match(coap_server_path_list_t *list, const char
  ****************************************************************************************************/
 
 /**
- *  @brief Listen for a packet from the client
- *
- *  @param[in] trans Pointer to a transaction structure
- *
- *  @returns Operation status
- *  @retval 1 Success
- *  @retval -errno Error
- */
-int coap_server_trans_dtls_listen(coap_server_trans_t *trans)
-{
-    coap_server_t *server = NULL;
-    fd_set read_fds = {{0}};
-    int ret = 0;
-
-    server = trans->server;
-    while (1)
-    {
-        FD_ZERO(&read_fds);
-        FD_SET(server->sd, &read_fds);
-        ret = select(server->sd + 1, &read_fds, NULL, NULL, NULL);
-        if (ret == -1)
-        {
-            return -errno;
-        }
-        if (FD_ISSET(server->sd, &read_fds))
-        {
-            return 1;  /* success */
-        }
-    }
-}
-
-/**
  *  @brief Listen for a packet from the client with a timeout
  *
  *  @param[in] trans Pointer to a transaction structure
@@ -239,9 +207,9 @@ int coap_server_trans_dtls_listen(coap_server_trans_t *trans)
  *  @returns Operation status
  *  @retval 1 Success
  *  @retval 0 Timeout
- *  @retval -errno Error
+ *  @retval <0 Error
  */
-int coap_server_trans_dtls_listen_timeout(coap_server_trans_t *trans, unsigned ms)
+static int coap_server_trans_dtls_listen_timeout(coap_server_trans_t *trans, unsigned ms)
 {
     coap_server_t *server = NULL;
     struct timeval tv = {0};
@@ -317,7 +285,7 @@ static ssize_t coap_server_trans_dtls_pull_func(gnutls_transport_ptr_t data, voi
  *  This is a call-back function that the GnuTLS
  *  library uses to wait for receive data.
  *
- *  @param[in] data Pointer to a transaction structure
+ *  @param[in,out] data Pointer to a transaction structure
  *  @param[in] ms Timeout in msec
  *
  *  @returns Number of bytes received or error
@@ -367,8 +335,8 @@ static int coap_server_trans_dtls_pull_timeout_func(gnutls_transport_ptr_t data,
  *  This is a call-back function that the
  *  GnuTLS library uses to send data.
  *
- *  @param[in,out] data Pointer to a transaction structure
- *  @param[out] buf Pointer to a buffer
+ *  @param[in] data Pointer to a transaction structure
+ *  @param[in] buf Pointer to a buffer
  *  @param[in] len Length of the buffer
  *
  *  @returns Number of bytes sent or error
@@ -392,7 +360,7 @@ static ssize_t coap_server_trans_dtls_push_func(gnutls_transport_ptr_t data, con
  *
  *  @returns Operation success
  *  @retval 0 Success
- *  @retval -1 Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
 {
@@ -405,14 +373,6 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
         if (ret == GNUTLS_E_SUCCESS)
         {
             return 0;  /* success */
-        }
-        if (ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
-        {
-            return -1;
-        }
-        if (ret == GNUTLS_E_INTERRUPTED)
-        {
-            return -EINTR;
         }
         if (ret != GNUTLS_E_AGAIN)
         {
@@ -479,7 +439,7 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
 /**
  *  @brief Deinitialise the DTLS members of a transaction structure
  *
- *  @param[out] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  */
 static void coap_server_trans_dtls_destroy(coap_server_trans_t *trans)
 {
@@ -495,7 +455,7 @@ static void coap_server_trans_dtls_destroy(coap_server_trans_t *trans)
 /**
  *  @brief Deinitialise a transaction structure
  *
- *  @param[in] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  */
 static void coap_server_trans_destroy(coap_server_trans_t *trans)
 {
@@ -512,7 +472,7 @@ static void coap_server_trans_destroy(coap_server_trans_t *trans)
 /**
  *  @brief Mark the last time the transaction structure was used
  *
- *  @param trans Pointer to a transaction structure
+ *  @param[out] trans Pointer to a transaction structure
  */
 static void coap_server_trans_touch(coap_server_trans_t *trans)
 {
@@ -532,7 +492,7 @@ static void coap_server_trans_touch(coap_server_trans_t *trans)
 static int coap_server_trans_match_req(coap_server_trans_t *trans, coap_msg_t *msg)
 {
     return ((coap_msg_get_ver(&trans->req) != 0)
-         && (trans->req.msg_id == msg->msg_id));
+         && (coap_msg_get_msg_id(&trans->req) == coap_msg_get_msg_id(msg)));
 }
 
 /**
@@ -548,14 +508,13 @@ static int coap_server_trans_match_req(coap_server_trans_t *trans, coap_msg_t *m
 static int coap_server_trans_match_resp(coap_server_trans_t *trans, coap_msg_t *msg)
 {
     return ((coap_msg_get_ver(&trans->resp) != 0)
-         && (trans->resp.msg_id == msg->msg_id));
+         && (coap_msg_get_msg_id(&trans->resp) == coap_msg_get_msg_id(msg)));
 }
 
 /**
  *  @brief Clear the request message in a transaction structure
  *
- *  @param[out] trans Pointer to a transaction structure
- *  @param[in] msg Pointer to a message structure
+ *  @param[in,out] trans Pointer to a transaction structure
  */
 static void coap_server_trans_clear_req(coap_server_trans_t *trans)
 {
@@ -565,8 +524,7 @@ static void coap_server_trans_clear_req(coap_server_trans_t *trans)
 /**
  *  @brief Clear the response message in a transaction structure
  *
- *  @param[out] trans Pointer to a transaction structure
- *  @param[in] msg Pointer to a message structure
+ *  @param[in,out] trans Pointer to a transaction structure
  */
 static void coap_server_trans_clear_resp(coap_server_trans_t *trans)
 {
@@ -576,12 +534,12 @@ static void coap_server_trans_clear_resp(coap_server_trans_t *trans)
 /**
  *  @brief Set the request message in a transaction structure
  *
- *  @param[out] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_set_req(coap_server_trans_t *trans, coap_msg_t *msg)
 {
@@ -592,12 +550,12 @@ static int coap_server_trans_set_req(coap_server_trans_t *trans, coap_msg_t *msg
 /**
  *  @brief Set the response message in a transaction structure
  *
- *  @param[out] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_set_resp(coap_server_trans_t *trans, coap_msg_t *msg)
 {
@@ -650,7 +608,7 @@ static void coap_server_trans_double_timeout(coap_server_trans_t *trans)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_start_timer(coap_server_trans_t *trans)
 {
@@ -669,11 +627,11 @@ static int coap_server_trans_start_timer(coap_server_trans_t *trans)
 /**
  *  @brief Stop the timer in a transaction structure
  *
- *  @param[in,out] trans Pointer to a transaction structure
+ *  @param[out] trans Pointer to a transaction structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_stop_timer(coap_server_trans_t *trans)
 {
@@ -695,7 +653,7 @@ static int coap_server_trans_stop_timer(coap_server_trans_t *trans)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_start_ack_timer(coap_server_trans_t *trans)
 {
@@ -707,7 +665,11 @@ static int coap_server_trans_start_ack_timer(coap_server_trans_t *trans)
 /**
  *  @brief Stop the acknowledgement timer in a transaction structure
  *
- *  @param[in] trans Pointer to a transaction structure
+ *  @param[out] trans Pointer to a transaction structure
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
  */
 static int coap_server_trans_stop_ack_timer(coap_server_trans_t *trans)
 {
@@ -725,7 +687,7 @@ static int coap_server_trans_stop_ack_timer(coap_server_trans_t *trans)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
 {
@@ -748,12 +710,12 @@ static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
 /**
  *  @brief Send a message to the client
  *
- *  @param[in] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Number of bytes sent or error code
- *  @retval >= 0 Number of bytes sent
- *  @retval -errno Error
+ *  @retval >0 Number of bytes sent
+ *  @retval <0 Error
  */
 static int coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *msg)
 {
@@ -772,15 +734,11 @@ static int coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *msg)
     num = gnutls_record_send(trans->session, buf, num);
     if (num < 0)
     {
-        switch (num)
+        if (num == GNUTLS_E_AGAIN)
         {
-            case GNUTLS_E_INTERRUPTED:
-                return -EINTR;
-            case GNUTLS_E_AGAIN:
-                return -EAGAIN;
-            default:
-                return -1;
+            return -EAGAIN;
         }
+        return -1;
     }
 #else
     server = trans->server;
@@ -803,7 +761,7 @@ static int coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *msg)
  *  Extract enough information from the received message
  *  to form a reset message.
  *
- *  @param[in] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] buf Buffer containing the message
  *  @param[in] len length of the buffer
  */
@@ -839,12 +797,12 @@ static void coap_server_trans_handle_format_error(coap_server_trans_t *trans, ch
 /**
  *  @brief Receive a message from the client
  *
- *  @param[in] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Number of bytes received or error code
- *  @retval >= 0 Number of bytes received
- *  @retval -errno Error
+ *  @retval >0 Number of bytes received
+ *  @retval <0 Error
  */
 static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *msg)
 {
@@ -861,15 +819,11 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
     num = gnutls_record_recv(trans->session, buf, sizeof(buf));
     if (num < 0)
     {
-        switch (num)
+        if (num == GNUTLS_E_AGAIN)
         {
-            case GNUTLS_E_INTERRUPTED:
-                return -EINTR;
-            case GNUTLS_E_AGAIN:
-                return -EAGAIN;
-            default:
-                return -1;
+            return -EAGAIN;
         }
+        return -1;
     }
 #else
     server = trans->server;
@@ -909,12 +863,12 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
  *
  *  Send a reset message to the client.
  *
- *  @param[in] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_reject_con(coap_server_trans_t *trans, coap_msg_t *msg)
 {
@@ -963,12 +917,12 @@ static int coap_server_trans_reject_non(coap_server_trans_t *trans, coap_msg_t *
 /**
  *  @brief Reject a received message
  *
- *  @param[in] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_reject(coap_server_trans_t *trans, coap_msg_t *msg)
 {
@@ -982,12 +936,12 @@ static int coap_server_trans_reject(coap_server_trans_t *trans, coap_msg_t *msg)
 /**
  *  @brief Send an acknowledgement message to the client
  *
- *  @param[in] trans Pointer to a transaction structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] msg Pointer to a message structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_send_ack(coap_server_trans_t *trans, coap_msg_t *msg)
 {
@@ -1025,12 +979,11 @@ static int coap_server_trans_send_ack(coap_server_trans_t *trans, coap_msg_t *ms
  *  and if the maximum number of retransmits has not been reached
  *  then retransmit the last response to the client.
  *
- *  @param[in,out] server Pointer to a client structure
  *  @param[in,out] trans Pointer to a transaction structure
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
 {
@@ -1068,7 +1021,7 @@ static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t client_sin_len)
 {
@@ -1208,7 +1161,7 @@ static int coap_server_dtls_create(coap_server_t *server,
 /**
  *  @brief Deinitialise the DTLS members of a server structure
  *
- *  @param[out] trans Pointer to a server structure
+ *  @param[in,out] trans Pointer to a server structure
  */
 static void coap_server_dtls_destroy(coap_server_t *server)
 {
@@ -1420,7 +1373,7 @@ static coap_server_trans_t *coap_server_find_empty_trans(coap_server_t *server)
 }
 
 /**
- *  @brief Search for oldest transaction structure in a server structure
+ *  @brief Search for the oldest transaction structure in a server structure
  *
  *  Search for the transaction structure in a server structure that was
  *  used least recently.
@@ -1462,7 +1415,7 @@ static coap_server_trans_t *coap_server_find_oldest_trans(coap_server_t *server)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_listen(coap_server_t *server)
 {
@@ -1518,15 +1471,15 @@ static int coap_server_listen(coap_server_t *server)
  *  @brief Accept an incoming connection
  *
  *  @param[in] server Pointer to a server structure
- *  @param[in] client_sin Pointer to a struct sockaddr_in6
- *  @param[in] client_sin_len Length of the struct sockaddr_in6
+ *  @param[out] client_sin Pointer to an IPv6 socket structure
+ *  @param[out] client_sin_len Length of the IPv6 socket structure
  *
  *  Get the address and port number of the client.
  *  Do not read the received data.
  *
  *  @returns Number of bytes received or error code
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static ssize_t coap_server_accept(coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t *client_sin_len)
 {
@@ -1616,7 +1569,7 @@ static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -errno Error
+ *  @retval <0 Error
  */
 static int coap_server_exchange(coap_server_t *server)
 {
@@ -1761,11 +1714,14 @@ static int coap_server_exchange(coap_server_t *server)
     }
 
     /* determine response type */
-    resp_type = coap_server_get_resp_type(server, &recv_msg);
-    if (resp_type == COAP_SERVER_SEPARATE)
-        coap_log_info("Request URI path requires a separate response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-    else
-        coap_log_info("Request URI path requires a piggy-backed response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
+    {
+        resp_type = coap_server_get_resp_type(server, &recv_msg);
+        if (resp_type == COAP_SERVER_SEPARATE)
+            coap_log_info("Request URI path requires a separate response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        else
+            coap_log_info("Request URI path requires a piggy-backed response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    }
 
     /* send an acknowledgement if necessary */
     if ((coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
