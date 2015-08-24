@@ -59,7 +59,7 @@ typedef struct
     unsigned code_class;                                                        /**< Message code class */
     unsigned code_detail;                                                       /**< Message code detail */
     char *payload;                                                              /**< Buffer containing the payload */
-    unsigned payload_len;                                                       /**< Length of the buffer containing the payload */
+    size_t payload_len;                                                         /**< Length of the buffer containing the payload */
 }
 test_client_data_t;
 
@@ -175,7 +175,7 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
         printf("%c", payload[i]);
     }
     printf("\n");
-    printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
+    printf("payload_len: %zu\n", coap_msg_get_payload_len(msg));
 }
 
 /**
@@ -188,7 +188,7 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
  *
  *  @returns Test result
  */
-static test_result_t test_client_exchange(test_client_data_t *test_data, coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
+static test_result_t exchange(test_client_data_t *test_data, coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
     int ret = 0;
 
@@ -255,7 +255,7 @@ static test_result_t test_client_exchange(test_client_data_t *test_data, coap_cl
  *
  *  @returns Test result
  */
-static test_result_t test_client_func(test_data_t data)
+static test_result_t test_exchange_func(test_data_t data)
 {
     test_client_data_t *test_data = (test_client_data_t *)data;
     test_result_t result = PASS;
@@ -285,7 +285,7 @@ static test_result_t test_client_func(test_data_t data)
         return FAIL;
     }
 
-    ret = test_client_exchange(test_data, &client, &req, &resp);
+    ret = exchange(test_data, &client, &req, &resp);
     if (ret != PASS)
     {
         return ret;
@@ -331,9 +331,9 @@ int main(int argc, char **argv)
     int log_level = COAP_LOG_ERROR;
     int test_num = 0;
     int c = 0;
-    test_t tests[] = {{test_client_func, &test1_data},
-                      {test_client_func, &test2_data},
-                      {test_client_func, &test3_data}};
+    test_t tests[] = {{test_exchange_func, &test1_data},
+                      {test_exchange_func, &test2_data},
+                      {test_exchange_func, &test3_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
