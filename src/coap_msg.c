@@ -31,7 +31,6 @@
  *  @brief Source file for the FreeCoAP message parser/formatter library
  */
 
-#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
@@ -41,13 +40,13 @@
 
 #define coap_msg_op_list_get_first(list)       ((list)->first)                  /**< Get the first option from an option linked-list */
 #define coap_msg_op_list_get_last(list)        ((list)->last)                   /**< Get the last option in an option linked-list */
-#define coap_msg_op_list_is_empty(list)        ((list)->first == NULL)          /**< Indicate if an option linked-list is empty */
+#define coap_msg_op_list_is_empty(list)        ((list)->first == NULL)          /**< Indicate whether or not an option linked-list is empty */
 
-static int coap_msg_rand_init = 0;                                              /**< Indicates if the random number generator has been initialised */
+static int coap_msg_rand_init = 0;                                              /**< Indicates whether or not the random number generator has been initialised */
 
-void coap_msg_gen_rand_str(char *buf, unsigned len)
+void coap_msg_gen_rand_str(char *buf, size_t len)
 {
-    unsigned i = 0;
+    size_t i = 0;
 
     if (!coap_msg_rand_init)
     {
@@ -290,7 +289,7 @@ static int coap_msg_check(coap_msg_t *msg)
     return 0;
 }
 
-int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned *msg_id)
+int coap_msg_parse_type_msg_id(char *buf, size_t len, unsigned *type, unsigned *msg_id)
 {
     if (len < 4)
     {
@@ -312,7 +311,7 @@ int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned
  *  @retval >0 Number of bytes parsed
  *  @retval <0 Error
  */
-static int coap_msg_parse_hdr(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_parse_hdr(coap_msg_t *msg, char *buf, size_t len)
 {
     char *p = buf;
 
@@ -358,7 +357,7 @@ static int coap_msg_parse_hdr(coap_msg_t *msg, char *buf, unsigned len)
  *  @retval >0 Number of bytes parsed
  *  @retval <0 Error
  */
-static int coap_msg_parse_token(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_parse_token(coap_msg_t *msg, char *buf, size_t len)
 {
     if (len < msg->token_len)
     {
@@ -379,7 +378,7 @@ static int coap_msg_parse_token(coap_msg_t *msg, char *buf, unsigned len)
  *  @retval >0 Number of bytes parsed
  *  @retval <0 Error
  */
-static int coap_msg_parse_op(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_parse_op(coap_msg_t *msg, char *buf, size_t len)
 {
     coap_msg_op_t *prev = NULL;
     unsigned op_delta = 0;
@@ -473,10 +472,10 @@ static int coap_msg_parse_op(coap_msg_t *msg, char *buf, unsigned len)
  *  @retval >0 Number of bytes parsed
  *  @retval <0 Error
  */
-static int coap_msg_parse_ops(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_parse_ops(coap_msg_t *msg, char *buf, size_t len)
 {
+    ssize_t num = 0;
     char *p = buf;
-    int num = 0;
 
     while (1)
     {
@@ -506,7 +505,7 @@ static int coap_msg_parse_ops(coap_msg_t *msg, char *buf, unsigned len)
  *  @retval >0 Number of bytes parsed
  *  @retval <0 Error
  */
-static int coap_msg_parse_payload(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_parse_payload(coap_msg_t *msg, char *buf, size_t len)
 {
     char *p = buf;
 
@@ -535,10 +534,10 @@ static int coap_msg_parse_payload(coap_msg_t *msg, char *buf, unsigned len)
     return p - buf;
 }
 
-int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len)
+ssize_t coap_msg_parse(coap_msg_t *msg, char *buf, size_t len)
 {
+    ssize_t num = 0;
     char *p = buf;
-    int num = 0;
 
     coap_msg_destroy(msg);
     num = coap_msg_parse_hdr(msg, p, len);
@@ -612,7 +611,7 @@ int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id)
     return 0;
 }
 
-int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len)
+int coap_msg_set_token(coap_msg_t *msg, char *buf, size_t len)
 {
     if (len > COAP_MSG_MAX_TOKEN_LEN)
     {
@@ -628,7 +627,7 @@ int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, const char *val
     return coap_msg_op_list_add(&msg->op_list, num, len, val);
 }
 
-int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len)
+int coap_msg_set_payload(coap_msg_t *msg, char *buf, size_t len)
 {
     msg->payload_len = 0;
     if (msg->payload != NULL)
@@ -660,7 +659,7 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len)
  *  @retval >0 Length of the formatted message
  *  @retval <0 Error
  */
-static int coap_msg_format_hdr(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_format_hdr(coap_msg_t *msg, char *buf, size_t len)
 {
     uint16_t msg_id = 0;
 
@@ -689,7 +688,7 @@ static int coap_msg_format_hdr(coap_msg_t *msg, char *buf, unsigned len)
  *  @retval >0 Length of the formatted message
  *  @retval <0 Error
  */
-static int coap_msg_format_token(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_format_token(coap_msg_t *msg, char *buf, size_t len)
 {
     if (len < msg->token_len)
     {
@@ -711,7 +710,7 @@ static int coap_msg_format_token(coap_msg_t *msg, char *buf, unsigned len)
  *  @retval >0 Length of the formatted message
  *  @retval <0 Error
  */
-static int coap_msg_format_op(coap_msg_op_t *op, unsigned prev_num, char *buf, unsigned len)
+static ssize_t coap_msg_format_op(coap_msg_op_t *op, unsigned prev_num, char *buf, size_t len)
 {
     unsigned op_delta = 0;
     unsigned num = 0;
@@ -826,12 +825,12 @@ static int coap_msg_format_op(coap_msg_op_t *op, unsigned prev_num, char *buf, u
  *  @retval >0 Length of the formatted message
  *  @retval <0 Error
  */
-static int coap_msg_format_ops(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_format_ops(coap_msg_t *msg, char *buf, size_t len)
 {
     coap_msg_op_t *op = NULL;
     unsigned prev_num = 0;
+    ssize_t num = 0;
     char *p = buf;
-    int num = 0;
 
     op = coap_msg_op_list_get_first(&msg->op_list);
     while (op != NULL)
@@ -860,7 +859,7 @@ static int coap_msg_format_ops(coap_msg_t *msg, char *buf, unsigned len)
  *  @retval >0 Length of the formatted message
  *  @retval <0 Error
  */
-static int coap_msg_format_payload(coap_msg_t *msg, char *buf, unsigned len)
+static ssize_t coap_msg_format_payload(coap_msg_t *msg, char *buf, size_t len)
 {
     if (msg->payload_len == 0)
     {
@@ -875,10 +874,10 @@ static int coap_msg_format_payload(coap_msg_t *msg, char *buf, unsigned len)
     return msg->payload_len + 1;
 }
 
-int coap_msg_format(coap_msg_t *msg, char *buf, unsigned len)
+ssize_t coap_msg_format(coap_msg_t *msg, char *buf, size_t len)
 {
+    ssize_t num = 0;
     char *p = buf;
-    int num = 0;
     int ret = 0;
 
     ret = coap_msg_check(msg);

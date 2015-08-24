@@ -41,6 +41,7 @@
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <sys/timerfd.h>
+#include <linux/types.h>
 #include "coap_client.h"
 #include "coap_log.h"
 
@@ -57,7 +58,7 @@
                                                                                 /**< DTLS priorities */
 #endif
 
-static int rand_init = 0;                                                       /**< Indicates if the random number generator has been initialised */
+static int rand_init = 0;                                                       /**< Indicates whether or not the random number generator has been initialised */
 
 #ifdef COAP_DTLS_EN
 
@@ -320,13 +321,13 @@ static int coap_client_dtls_create(coap_client_t *client,
     gnutls_dtls_set_mtu(client->session, COAP_CLIENT_DTLS_MTU);
     gnutls_dtls_set_timeouts(client->session, COAP_CLIENT_DTLS_RETRANS_TIMEOUT, COAP_CLIENT_DTLS_TOTAL_TIMEOUT);
     ret = coap_client_dtls_handshake(client);
-    if (ret != 0)
+    if (ret < 0)
     {
         gnutls_deinit(client->session);
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        return -1;
+        return ret;
     }
     return 0;
 }
@@ -655,10 +656,10 @@ static int coap_client_stop_resp_timer(coap_client_t *client)
  *  @retval >0 Number of bytes sent
  *  @retval <0 Error
  */
-static int coap_client_send(coap_client_t *client, coap_msg_t *msg)
+static ssize_t coap_client_send(coap_client_t *client, coap_msg_t *msg)
 {
+    ssize_t num = 0;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
-    int num = 0;
 
     num = coap_msg_format(msg, buf, sizeof(buf));
     if (num < 0)
@@ -698,7 +699,7 @@ static int coap_client_send(coap_client_t *client, coap_msg_t *msg)
  *  @param[in] buf Buffer containing the message
  *  @param[in] len length of the buffer
  */
-static void coap_client_handle_format_error(coap_client_t *client, char *buf, unsigned len)
+static void coap_client_handle_format_error(coap_client_t *client, char *buf, size_t len)
 {
     coap_msg_t msg = {0};
     unsigned msg_id = 0;
@@ -736,11 +737,11 @@ static void coap_client_handle_format_error(coap_client_t *client, char *buf, un
  *  @retval >0 Number of bytes received
  *  @retval <0 Error
  */
-static int coap_client_recv(coap_client_t *client, coap_msg_t *msg)
+static ssize_t coap_client_recv(coap_client_t *client, coap_msg_t *msg)
 {
+    ssize_t num = 0;
+    ssize_t ret = 0;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
-    int num = 0;
-    int ret = 0;
 
 #ifdef COAP_DTLS_EN
     num = gnutls_record_recv(client->session, buf, sizeof(buf));
@@ -1030,80 +1031,6 @@ static int coap_client_match_token(coap_msg_t *req, coap_msg_t *resp)
 }
 
 /**
- *  @brief Handle the response to a non-confirmable request
- *
- *  The request has already been sent to the server.
- *  Receive the response.
- *
- *  @param[in,out] client Pointer to a client structure
- *  @param[in] req Pointer to the request message
- *  @param[out] resp Pointer to the response message
- *
- *  @returns Operation status
- *  @retval 0 Success
- *  @retval <0 Error
- **/
-static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
-{
-    int num = 0;
-    int ret = 0;
-
-    coap_log_info("Expecting response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
-    coap_client_start_resp_timer(client);
-    while (1)
-    {
-        ret = coap_client_listen_resp(client);
-        if (ret < 0)
-        {
-            return ret;
-        }
-        num = coap_client_recv(client, resp);
-        if (num == -EBADMSG)
-        {
-            coap_msg_reset(resp);
-            continue;
-        }
-        else if (num < 0)
-        {
-            return num;
-        }
-        if (coap_msg_get_msg_id(resp) == coap_msg_get_msg_id(req))
-        {
-            if (coap_msg_get_type(resp) == COAP_MSG_RST)
-            {
-                coap_log_info("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
-                return -ECONNRESET;
-            }
-        }
-        if (coap_client_match_token(req, resp))
-        {
-            ret = coap_client_stop_resp_timer(client);
-            if (ret < 0)
-            {
-                return ret;
-            }
-            if (coap_msg_get_type(resp) == COAP_MSG_NON)
-            {
-                coap_log_info("Received non-confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
-                return 0;
-            }
-            else if (coap_msg_get_type(resp) == COAP_MSG_CON)
-            {
-                coap_log_info("Received confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
-                return coap_client_send_ack(client, resp);
-            }
-        }
-        ret = coap_client_reject(client, resp);
-        if (ret < 0 )
-        {
-            return ret;
-        }
-        coap_msg_reset(resp);
-    }
-    return 0;
-}
-
-/**
  *  @brief Handle the response to a confirmable request
  *
  *  The request has already been sent to the server.
@@ -1120,7 +1047,7 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
  */
 static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
-    int num = 0;
+    ssize_t num = 0;
     int ret = 0;
 
     /*  wait for piggy-backed response in ack message
@@ -1249,12 +1176,86 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
     return 0;
 }
 
+/**
+ *  @brief Handle the response to a non-confirmable request
+ *
+ *  The request has already been sent to the server.
+ *  Receive the response.
+ *
+ *  @param[in,out] client Pointer to a client structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ **/
+static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
+{
+    ssize_t num = 0;
+    int ret = 0;
+
+    coap_log_info("Expecting response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+    coap_client_start_resp_timer(client);
+    while (1)
+    {
+        ret = coap_client_listen_resp(client);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        num = coap_client_recv(client, resp);
+        if (num == -EBADMSG)
+        {
+            coap_msg_reset(resp);
+            continue;
+        }
+        else if (num < 0)
+        {
+            return num;
+        }
+        if (coap_msg_get_msg_id(resp) == coap_msg_get_msg_id(req))
+        {
+            if (coap_msg_get_type(resp) == COAP_MSG_RST)
+            {
+                coap_log_info("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+                return -ECONNRESET;
+            }
+        }
+        if (coap_client_match_token(req, resp))
+        {
+            ret = coap_client_stop_resp_timer(client);
+            if (ret < 0)
+            {
+                return ret;
+            }
+            if (coap_msg_get_type(resp) == COAP_MSG_NON)
+            {
+                coap_log_info("Received non-confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+                return 0;
+            }
+            else if (coap_msg_get_type(resp) == COAP_MSG_CON)
+            {
+                coap_log_info("Received confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+                return coap_client_send_ack(client, resp);
+            }
+        }
+        ret = coap_client_reject(client, resp);
+        if (ret < 0 )
+        {
+            return ret;
+        }
+        coap_msg_reset(resp);
+    }
+    return 0;
+}
+
 int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
 {
     unsigned char msg_id_buf[2] = {0};
     unsigned msg_id = 0;
+    ssize_t num = 0;
     char token[4] = {0};
-    int num = 0;
     int ret = 0;
 
     if ((coap_msg_get_type(req) == COAP_MSG_ACK)
@@ -1295,13 +1296,13 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     {
         return num;
     }
-    if (coap_msg_get_type(req) == COAP_MSG_NON)
-    {
-        return coap_client_exchange_non(client, req, resp);
-    }
-    else if (coap_msg_get_type(req) == COAP_MSG_CON)
+    if (coap_msg_get_type(req) == COAP_MSG_CON)
     {
         return coap_client_exchange_con(client, req, resp);
+    }
+    else if (coap_msg_get_type(req) == COAP_MSG_NON)
+    {
+        return coap_client_exchange_non(client, req, resp);
     }
     return -EINVAL;
 }
