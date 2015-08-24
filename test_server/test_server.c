@@ -105,7 +105,7 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
         printf("%c", payload[i]);
     }
     printf("\n");
-    printf("payload_len: %d\n", coap_msg_get_payload_len(msg));
+    printf("payload_len: %zu\n", coap_msg_get_payload_len(msg));
 }
 
 /**

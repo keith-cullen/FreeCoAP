@@ -42,6 +42,7 @@
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <sys/timerfd.h>
+#include <linux/types.h>
 #include "coap_server.h"
 #include "coap_log.h"
 
@@ -717,13 +718,13 @@ static int coap_server_trans_update_ack_timer(coap_server_trans_t *trans)
  *  @retval >0 Number of bytes sent
  *  @retval <0 Error
  */
-static int coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *msg)
+static ssize_t coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *msg)
 {
 #ifndef COAP_DTLS_EN
     coap_server_t *server = NULL;
 #endif
+    ssize_t num = 0;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
-    int num = 0;
 
     num = coap_msg_format(msg, buf, sizeof(buf));
     if (num < 0)
@@ -811,9 +812,9 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
     coap_server_t *server = NULL;
     socklen_t client_sin_len = 0;
 #endif
+    ssize_t num = 0;
+    ssize_t ret = 0;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
-    int num = 0;
-    int ret = 0;
 
 #ifdef COAP_DTLS_EN
     num = gnutls_record_recv(trans->session, buf, sizeof(buf));
@@ -873,7 +874,7 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
 static int coap_server_trans_reject_con(coap_server_trans_t *trans, coap_msg_t *msg)
 {
     coap_msg_t rej = {0};
-    int num = 0;
+    ssize_t num = 0;
     int ret = 0;
 
     coap_log_info("Rejecting confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
@@ -946,7 +947,7 @@ static int coap_server_trans_reject(coap_server_trans_t *trans, coap_msg_t *msg)
 static int coap_server_trans_send_ack(coap_server_trans_t *trans, coap_msg_t *msg)
 {
     coap_msg_t ack = {0};
-    int num = 0;
+    ssize_t num = 0;
     int ret = 0;
 
     coap_log_info("Acknowledging confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
@@ -987,7 +988,7 @@ static int coap_server_trans_send_ack(coap_server_trans_t *trans, coap_msg_t *ms
  */
 static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
 {
-    int num = 0;
+    ssize_t num = 0;
     int ret = 0;
 
     coap_log_debug("Transaction expired for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
@@ -1059,7 +1060,7 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
         coap_msg_destroy(&trans->req);
         close(trans->timer_fd);
         memset(trans, 0, sizeof(coap_server_trans_t));
-        return -1;
+        return ret;
     }
 #endif
     coap_log_debug("Created transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
@@ -1287,7 +1288,7 @@ int coap_server_create(coap_server_t *server,
 void coap_server_destroy(coap_server_t *server)
 {
     coap_server_trans_t *trans = NULL;
-    int i = 0;
+    unsigned i = 0;
 
     for (i = 0; i < COAP_SERVER_NUM_TRANS; i++)
     {
@@ -1481,10 +1482,10 @@ static int coap_server_listen(coap_server_t *server)
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static ssize_t coap_server_accept(coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t *client_sin_len)
+static int coap_server_accept(coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t *client_sin_len)
 {
+    ssize_t num = 0;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
-    int num = 0;
 
     *client_sin_len = sizeof(struct sockaddr_in6);
     num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)client_sin, client_sin_len);
@@ -1520,9 +1521,9 @@ int coap_server_add_sep_resp_uri_path(coap_server_t *server, const char *str)
 static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
 {
     coap_msg_op_t *op = NULL;
-    unsigned val_len = 0;
-    unsigned add = 0;
-    unsigned len = 0;
+    size_t val_len = 0;
+    size_t add = 0;
+    size_t len = 0;
     char val_buf[COAP_MSG_OP_URI_PATH_MAX_LEN] = {0};
     char buf[COAP_MSG_OP_URI_PATH_MAX_LEN] = {0};
     char *val = NULL;
@@ -1579,8 +1580,8 @@ static int coap_server_exchange(coap_server_t *server)
     coap_msg_t send_msg = {0};
     socklen_t client_sin_len = 0;
     unsigned msg_id = 0;
+    ssize_t num = 0;
     int resp_type = 0;
-    int num = 0;
     int ret = 0;
 
     /* accept incoming connection */

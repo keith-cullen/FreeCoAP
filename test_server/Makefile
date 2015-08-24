@@ -14,7 +14,7 @@ LDFLAGS =
 INCS = $(IDH)/coap_server.h \
        $(IDH)/coap_msg.h \
        $(IDH)/coap_log.h
-OBJS = server.o \
+OBJS = test_server.o \
        coap_server.o \
        coap_msg.o \
        coap_log.o
@@ -25,8 +25,8 @@ RM = /bin/rm -f
 $(PROG): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
 
-server.o: server.c $(INCS)
-	$(CC) $(CFLAGS) -c server.c
+test_server.o: test_server.c $(INCS)
+	$(CC) $(CFLAGS) -c test_server.c
 
 coap_server.o: $(IDS)/coap_server.c $(INCS)
 	$(CC) $(CFLAGS) -c $(IDS)/coap_server.c

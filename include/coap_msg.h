@@ -34,6 +34,9 @@
 #ifndef COAP_MSG_H
 #define COAP_MSG_H
 
+#include <stdlib.h>
+#include <linux/types.h>
+
 #define COAP_MSG_VER                           0x01                             /**< CoAP version */
 #define COAP_MSG_MAX_TOKEN_LEN                 8                                /**< Maximum token length */
 #define COAP_MSG_MAX_CODE_CLASS                7                                /**< Maximum code class */
@@ -188,7 +191,7 @@ typedef struct
     char token[COAP_MSG_MAX_TOKEN_LEN];                                         /**< Token value */
     coap_msg_op_list_t op_list;                                                 /**< Option list */
     char *payload;                                                              /**< Pointer to a buffer containing the payload */
-    unsigned payload_len;                                                       /**< Length of the payload */
+    size_t payload_len;                                                         /**< Length of the payload */
 }
 coap_msg_t;
 
@@ -198,7 +201,7 @@ coap_msg_t;
  *  @param[out] buf Pointer to the buffer to store the random string
  *  @param[in] len Length of the buffer
  */
-void coap_msg_gen_rand_str(char *buf, unsigned len);
+void coap_msg_gen_rand_str(char *buf, size_t len);
 
 /**
  *  @brief Initialise a message structure
@@ -237,7 +240,7 @@ void coap_msg_reset(coap_msg_t *msg);
  *  @retval 0 Success
  *  @retval <0 Error
  */
-int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned *msg_id);
+int coap_msg_parse_type_msg_id(char *buf, size_t len, unsigned *type, unsigned *msg_id);
 
 /**
  *  @brief Parse a message
@@ -250,7 +253,7 @@ int coap_msg_parse_type_msg_id(char *buf, unsigned len, unsigned *type, unsigned
  *  @retval 0 Success
  *  @retval <0 Error
  */
-int coap_msg_parse(coap_msg_t *msg, char *buf, unsigned len);
+ssize_t coap_msg_parse(coap_msg_t *msg, char *buf, size_t len);
 
 /**
  *  @brief Set the type in a message
@@ -300,7 +303,7 @@ int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id);
  *  @retval 0 Success
  *  @retval <0 Error
  */
-int coap_msg_set_token(coap_msg_t *msg, char *buf, unsigned len);
+int coap_msg_set_token(coap_msg_t *msg, char *buf, size_t len);
 
 /**
  *  @brief Add a token to a message structure
@@ -332,7 +335,7 @@ int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, const char *val
  *  @retval 0 Success
  *  @retval <0 Error
  */
-int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len);
+int coap_msg_set_payload(coap_msg_t *msg, char *buf, size_t len);
 
 /**
  *  @brief Format a message
@@ -341,11 +344,11 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, unsigned len);
  *  @param[out] buf Pointer to a buffer to contain the formatted message
  *  @param[in] len Length of the buffer
  *
- *  @returns Operation status
+ *  @returns Length of the formatted message or error code
  *  @retval >0 Length of the formatted message
  *  @retval <0 Error
  */
-int coap_msg_format(coap_msg_t *msg, char *buf, unsigned len);
+ssize_t coap_msg_format(coap_msg_t *msg, char *buf, size_t len);
 
 /**
  *  @brief Copy a message
