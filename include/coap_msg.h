@@ -34,7 +34,7 @@
 #ifndef COAP_MSG_H
 #define COAP_MSG_H
 
-#include <stdlib.h>
+#include <stddef.h>
 #include <linux/types.h>
 
 #define COAP_MSG_VER                           0x01                             /**< CoAP version */
