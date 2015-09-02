@@ -31,6 +31,7 @@
  *  @brief Source file for the FreeCoAP message parser/formatter library
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
