@@ -52,8 +52,8 @@ $ make
 
 $ ./client
 
-To build and run the server test application with DTLS enabled
---------------------------------------------------------------
+To build and run the server test application with DTLS
+------------------------------------------------------
 
 $ cd test_server
 
@@ -61,8 +61,8 @@ $ make dtls=y
 
 $ ./server
 
-To build and run the client test application with DTLS enabled
---------------------------------------------------------------
+To build and run the client test application with DTLS
+------------------------------------------------------
 
 $ cd test_client
 

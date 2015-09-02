@@ -25,6 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ *  @file test_msg.c
+ *
+ *  @brief Source file for the FreeCoAP message parser/formatter unit tests
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>

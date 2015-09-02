@@ -25,6 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ *  @file test_client.c
+ *
+ *  @brief Source file for the FreeCoAP client test application
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,6 +49,20 @@
 #define SEP_URI_PATH     "separate"                                             /**< URI path option value to trigger a separate response from the server */
 
 /**
+ *  @brief Client test message data structure
+ */
+typedef struct
+{
+    coap_msg_type_t type;                                                       /**< Message type */
+    unsigned code_class;                                                        /**< Message code class */
+    unsigned code_detail;                                                       /**< Message code detail */
+    const char *uri_path_opt;                                                   /**< URI path option value */
+    char *payload;                                                              /**< Buffer containing the payload */
+    size_t payload_len;                                                         /**< Length of the buffer containing the payload */
+}
+test_client_msg_data_t;
+
+/**
  *  @brief Client test data structure
  */
 typedef struct
@@ -54,14 +74,24 @@ typedef struct
     const char *cert_file_name;                                                 /**< DTLS certificate file name */
     const char *trust_file_name;                                                /**< DTLS trust file name */
     const char *crl_file_name;                                                  /**< DTLS certificate revocation list file name */
-    const char *uri_path_opt;                                                   /**< URI path option value */
-    coap_msg_type_t type;                                                       /**< Message type */
-    unsigned code_class;                                                        /**< Message code class */
-    unsigned code_detail;                                                       /**< Message code detail */
-    char *payload;                                                              /**< Buffer containing the payload */
-    size_t payload_len;                                                         /**< Length of the buffer containing the payload */
+    test_client_msg_data_t *msg_data;                                           /**< Array of message data structures */
+    size_t num_msg_data;                                                        /**< Length of the aarray of message data structures */
 }
 test_client_data_t;
+
+#define TEST1_NUM_MSG_DATA  1
+
+test_client_msg_data_t test1_msg_data[TEST1_NUM_MSG_DATA] =
+{
+    {
+        .type = COAP_MSG_CON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = NULL,
+        .payload = "Hello server!",
+        .payload_len = 13
+    }
+};
 
 test_client_data_t test1_data =
 {
@@ -72,12 +102,22 @@ test_client_data_t test1_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
-    .uri_path_opt = NULL,
-    .type = COAP_MSG_CON,
-    .code_class = 0x0,
-    .code_detail = 0x1,
-    .payload = "Hello server!",
-    .payload_len = 13
+    .msg_data = test1_msg_data,
+    .num_msg_data = TEST1_NUM_MSG_DATA
+};
+
+#define TEST2_NUM_MSG_DATA  1
+
+test_client_msg_data_t test2_msg_data[TEST2_NUM_MSG_DATA] =
+{
+    {
+        .type = COAP_MSG_CON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = SEP_URI_PATH,
+        .payload = "Hello server!",
+        .payload_len = 13
+    }
 };
 
 test_client_data_t test2_data =
@@ -89,12 +129,22 @@ test_client_data_t test2_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
-    .uri_path_opt = SEP_URI_PATH,
-    .type = COAP_MSG_CON,
-    .code_class = 0x0,
-    .code_detail = 0x1,
-    .payload = "Hello server!",
-    .payload_len = 13
+    .msg_data = test2_msg_data,
+    .num_msg_data = TEST2_NUM_MSG_DATA
+};
+
+#define TEST3_NUM_MSG_DATA  1
+
+test_client_msg_data_t test3_msg_data[TEST3_NUM_MSG_DATA] =
+{
+    {
+        .type = COAP_MSG_NON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = NULL,
+        .payload = "Hello server!",
+        .payload_len = 13
+    }
 };
 
 test_client_data_t test3_data =
@@ -106,12 +156,113 @@ test_client_data_t test3_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
-    .uri_path_opt = NULL,
-    .type = COAP_MSG_NON,
-    .code_class = 0x0,
-    .code_detail = 0x1,
-    .payload = "Hello server!",
-    .payload_len = 13
+    .msg_data = test3_msg_data,
+    .num_msg_data = TEST3_NUM_MSG_DATA
+};
+
+#define TEST4_NUM_MSG_DATA  2
+
+test_client_msg_data_t test4_msg_data[TEST4_NUM_MSG_DATA] =
+{
+    {
+        .type = COAP_MSG_CON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = NULL,
+        .payload = "Hello server!",
+        .payload_len = 13
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = NULL,
+        .payload = "Hello again server!",
+        .payload_len = 19
+    }
+};
+
+test_client_data_t test4_data =
+{
+    .desc = "test 4: send two confirmable requests and expect piggy-backed responses",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .msg_data = test4_msg_data,
+    .num_msg_data = TEST4_NUM_MSG_DATA
+};
+
+#define TEST5_NUM_MSG_DATA  2
+
+test_client_msg_data_t test5_msg_data[TEST5_NUM_MSG_DATA] =
+{
+    {
+        .type = COAP_MSG_CON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = SEP_URI_PATH,
+        .payload = "Hello server!",
+        .payload_len = 13
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = SEP_URI_PATH,
+        .payload = "Hello again server!",
+        .payload_len = 19
+    }
+};
+
+test_client_data_t test5_data =
+{
+    .desc = "test 5: send two confirmable requests and expect separate responses",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .msg_data = test5_msg_data,
+    .num_msg_data = TEST5_NUM_MSG_DATA
+};
+
+#define TEST6_NUM_MSG_DATA  2
+
+test_client_msg_data_t test6_msg_data[TEST6_NUM_MSG_DATA] =
+{
+    {
+        .type = COAP_MSG_NON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = NULL,
+        .payload = "Hello server!",
+        .payload_len = 13
+    },
+    {
+        .type = COAP_MSG_NON,
+        .code_class = 0x0,
+        .code_detail = 0x1,
+        .uri_path_opt = NULL,
+        .payload = "Hello again server!",
+        .payload_len = 19
+    }
+};
+
+test_client_data_t test6_data =
+{
+    .desc = "test 6: send two non-confirmable requests",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .msg_data = test6_msg_data,
+    .num_msg_data = TEST6_NUM_MSG_DATA
 };
 
 /**
@@ -181,64 +332,51 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
 /**
  *  @brief Send a request to the server and receive the response
  *
- *  @param[in] test_data Pointer to a client test data structure
- *  @param[out] client Pointer to a client structure
+ *  @param[in,out] client Pointer to a client structure
+ *  @param[in] msg_data Pointer to a client test message data structure used to construct the request message
  *  @param[out] req Pointer to the request message
  *  @param[out] resp Pointer to the response message
  *
  *  @returns Test result
  */
-static test_result_t exchange(test_client_data_t *test_data, coap_client_t *client, coap_msg_t *req, coap_msg_t *resp)
+static test_result_t exchange(coap_client_t *client, test_client_msg_data_t *msg_data, coap_msg_t *req, coap_msg_t *resp)
 {
     int ret = 0;
 
-    coap_msg_create(req);
-    ret = coap_msg_set_type(req, test_data->type);
+    ret = coap_msg_set_type(req, msg_data->type);
     if (ret != 0)
     {
         coap_log_error("Error: %s\n", strerror(-ret));
-        coap_msg_destroy(req);
-        coap_client_destroy(client);
         return FAIL;
     }
     ret = coap_msg_set_code(req, COAP_MSG_REQ, COAP_MSG_GET);
     if (ret != 0)
     {
         coap_log_error("Error: %s\n", strerror(-ret));
-        coap_msg_destroy(req);
-        coap_client_destroy(client);
         return FAIL;
     }
-    if (test_data->uri_path_opt)
+    if (msg_data->uri_path_opt)
     {
-        ret = coap_msg_add_op(req, COAP_MSG_OP_URI_PATH_NUM, strlen(test_data->uri_path_opt), test_data->uri_path_opt);
+        ret = coap_msg_add_op(req, COAP_MSG_OP_URI_PATH_NUM, strlen(msg_data->uri_path_opt), msg_data->uri_path_opt);
         if (ret != 0)
         {
             coap_log_error("Error: %s\n", strerror(-ret));
-            coap_msg_destroy(req);
-            coap_client_destroy(client);
             return FAIL;
         }
     }
-    if (test_data->payload)
+    if (msg_data->payload)
     {
-        ret = coap_msg_set_payload(req, test_data->payload, test_data->payload_len);
+        ret = coap_msg_set_payload(req, msg_data->payload, msg_data->payload_len);
         if (ret != 0)
         {
             coap_log_error("Error: %s\n", strerror(-ret));
-            coap_msg_destroy(req);
-            coap_client_destroy(client);
             return FAIL;
         }
     }
-    coap_msg_create(resp);
     ret = coap_client_exchange(client, req, resp);
     if (ret != 0)
     {
         coap_log_error("Error: %s\n", strerror(-ret));
-        coap_msg_destroy(resp);
-        coap_msg_destroy(req);
-        coap_client_destroy(client);
         return FAIL;
     }
 
@@ -262,6 +400,7 @@ static test_result_t test_exchange_func(test_data_t data)
     coap_client_t client = {0};
     coap_msg_t resp = {0};
     coap_msg_t req = {0};
+    unsigned i = 0;
     int ret = 0;
 
     printf("%s\n", test_data->desc);
@@ -285,30 +424,39 @@ static test_result_t test_exchange_func(test_data_t data)
         return FAIL;
     }
 
-    ret = exchange(test_data, &client, &req, &resp);
-    if (ret != PASS)
+    for (i = 0; i < test_data->num_msg_data; i++)
     {
-        return ret;
-    }
+        coap_msg_create(&req);
+        coap_msg_create(&resp);
 
-    if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
-    {
-        result = FAIL;
-    }
-    if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
-    {
-        result = FAIL;
-    }
-    else
-    {
-        if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
+        ret = exchange(&client, &test_data->msg_data[i], &req, &resp);
+        if (ret != PASS)
+        {
+            coap_msg_destroy(&resp);
+            coap_msg_destroy(&req);
+            coap_client_destroy(&client);
+            return ret;
+        }
+
+        if (coap_msg_get_ver(&req) != coap_msg_get_ver(&resp))
         {
             result = FAIL;
         }
-    }
+        if (coap_msg_get_token_len(&req) != coap_msg_get_token_len(&resp))
+        {
+            result = FAIL;
+        }
+        else
+        {
+            if (memcmp(coap_msg_get_token(&req), coap_msg_get_token(&resp), coap_msg_get_token_len(&req)) != 0)
+            {
+                result = FAIL;
+            }
+        }
 
-    coap_msg_destroy(&resp);
-    coap_msg_destroy(&req);
+        coap_msg_destroy(&resp);
+        coap_msg_destroy(&req);
+    }
     coap_client_destroy(&client);
 
     return result;
@@ -333,7 +481,10 @@ int main(int argc, char **argv)
     int c = 0;
     test_t tests[] = {{test_exchange_func, &test1_data},
                       {test_exchange_func, &test2_data},
-                      {test_exchange_func, &test3_data}};
+                      {test_exchange_func, &test3_data},
+                      {test_exchange_func, &test4_data},
+                      {test_exchange_func, &test5_data},
+                      {test_exchange_func, &test6_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
@@ -375,8 +526,17 @@ int main(int argc, char **argv)
     case 3:
         test_run(&tests[2], 1);
         break;
+    case 4:
+        test_run(&tests[3], 1);
+        break;
+    case 5:
+        test_run(&tests[4], 1);
+        break;
+    case 6:
+        test_run(&tests[5], 1);
+        break;
     default:
-        test_run(tests, 3);
+        test_run(tests, 6);
     }
 
     return 0;
