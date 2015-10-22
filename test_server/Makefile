@@ -6,11 +6,14 @@ endif
 IDH = ../include
 IDS = ../src
 
-CC = gcc
-CFLAGS = -Wall -g -I $(IDH)
+CFLAGS = $(EXTRA_CFLAGS) \
+         --sysroot=$(ROOTFS) \
+         -Wall \
+         -I $(IDH)
 CFLAGS += $(DTLS_CFLAGS)
-LD = gcc
-LDFLAGS =
+LDFLAGS = $(EXTRA_LDFLAGS) \
+          --sysroot=$(ROOTFS) \
+          -L$(ROOTFS)/usr/local/lib
 INCS = $(IDH)/coap_server.h \
        $(IDH)/coap_msg.h \
        $(IDH)/coap_log.h

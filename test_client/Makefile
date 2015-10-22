@@ -7,11 +7,15 @@ IDH = ../include
 IDS = ../src
 IDT = ../test
 
-CC = gcc
-CFLAGS = -Wall -g -I $(IDH) -I$(IDT)
+CFLAGS = $(EXTRA_CFLAGS) \
+         --sysroot=$(ROOTFS) \
+         -Wall \
+         -I$(IDH) \
+         -I$(IDT)
 CFLAGS += $(DTLS_CFLAGS)
-LD = gcc
-LDFLAGS =
+LDFLAGS = $(EXTRA_LDFLAGS) \
+          --sysroot=$(ROOTFS) \
+          -L$(ROOTFS)/usr/local/lib
 INCS = $(IDH)/coap_client.h \
        $(IDH)/coap_msg.h \
        $(IDH)/coap_log.h \
