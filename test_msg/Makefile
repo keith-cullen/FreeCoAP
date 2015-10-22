@@ -2,17 +2,20 @@ IDH=../include
 IDS=../src
 IDT=../test
 
-CC = gcc
-CFLAGS = -Wall -g -I$(IDH) -I$(IDT)
-LD = gcc
-LDFLAGS =
+CFLAGS = $(EXTRA_CFLAGS) \
+         --sysroot=$(ROOTFS) \
+         -Wall \
+         -I$(IDH) \
+         -I$(IDT)
+LDFLAGS = $(EXTRA_LDFLAGS) \
+          --sysroot=$(ROOTFS)
 INCS = $(IDH)/coap_msg.h \
        $(IDT)/test.h
 OBJS = test_msg.o \
        coap_msg.o \
        coap_log.o \
        test.o
-LIBS =
+LIBS = $(EXTRA_LIBS)
 PROG = test_msg
 RM = /bin/rm -f
 

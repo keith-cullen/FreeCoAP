@@ -20,52 +20,125 @@ Copyright (c) 2015 Keith Cullen
 
 Released under a BSD style license.
 
+Tested on Intel Galileo.
+
+
+Build Instructions
+=================
+
+To build the message parser/formatter for the host machine
+----------------------------------------------------------
+
+$ cd FreeCoAP/test_msg
+
+$ ./build_host
+
+To build the message parser/formatter for Intel Quark
+-----------------------------------------------------
+
+$ cd FreeCoAP/test_msg
+
+$ ./build_quark
+
+(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+
+To build the server test application for the host machine
+---------------------------------------------------------
+
+$ cd FreeCoAP/test_server
+
+$ ./build_host
+
+To build the server test application with DTLS for the host machine
+-------------------------------------------------------------------
+
+$ cd FreeCoAP/test_server
+
+$ ./build_host dtls
+
+To build the server test application for Intel Quark
+----------------------------------------------------
+
+$ cd FreeCoAP/test_server
+
+$ ./build_quark
+
+(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+
+To build the server test application with DTLS for Intel Quark
+--------------------------------------------------------------
+
+$ cd FreeCoAP/test_server
+
+$ ./build_quark dtls
+
+(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+
+To build the client test application for the host machine
+---------------------------------------------------------
+
+$ cd FreeCoAP/test_client
+
+$ ./build_host
+
+To build the client test application with DTLS for the host machine
+-------------------------------------------------------------------
+
+$ cd FreeCoAP/test_client
+
+$ ./build_host dtls
+
+To build the client test application for Intel Quark
+----------------------------------------------------
+
+$ cd FreeCoAP/test_client
+
+$ ./build_quark
+
+(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+
+To build the client test application with DTLS for Intel Quark
+--------------------------------------------------------------
+
+$ cd FreeCoAP/test_client
+
+$ ./build_quark dtls
+
+(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+
 
 Test Instructions
 =================
 
-To build and test the message parser/formatter
-----------------------------------------------
+To test the message/parser formatter
+------------------------------------
 
-$ cd test_msg
-
-$ make
+$ cd FreeCoAP/test_msg
 
 $ ./test_msg
 
+To test the client and server test applications
+-----------------------------------------------
 
-To build and run the server test application
---------------------------------------------
-
-$ cd test_server
-
-$ make
+$ cd FreeCoAP/test_server
 
 $ ./server
 
-To build and run the client test application
---------------------------------------------
+(In a different terminal window)
 
-$ cd test_client
-
-$ make
+$ cd FreeCoAP/test_client
 
 $ ./client
 
-To build and run the server test application with DTLS
-------------------------------------------------------
 
-$ cd test_server
+Validation History
+==================
 
-$ make dtls=y
+v0.1
+----
 
-$ ./server
+Ubuntu 15.04, Linux 3.19.0, x86_64, with GnuTLS 3.2.0
 
-To build and run the client test application with DTLS
-------------------------------------------------------
+Fedora 21, Linux 4.1.8, x86_64, with GnuTLS 3.2.0
 
-$ cd test_client
-
-$ make dtls=y
-
-$ ./client
+Quark BSP 1.2, Linux 3.14.28, i586 with GnuTLS 3.3.5
