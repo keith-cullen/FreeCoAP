@@ -40,7 +40,7 @@ $ cd FreeCoAP/test_msg
 
 $ ./build_quark
 
-(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
 
 To build the server test application for the host machine
 ---------------------------------------------------------
@@ -63,7 +63,7 @@ $ cd FreeCoAP/test_server
 
 $ ./build_quark
 
-(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
 
 To build the server test application with DTLS for Intel Quark
 --------------------------------------------------------------
@@ -72,7 +72,7 @@ $ cd FreeCoAP/test_server
 
 $ ./build_quark dtls
 
-(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
 
 To build the client test application for the host machine
 ---------------------------------------------------------
@@ -95,7 +95,7 @@ $ cd FreeCoAP/test_client
 
 $ ./build_quark
 
-(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
 
 To build the client test application with DTLS for Intel Quark
 --------------------------------------------------------------
@@ -104,7 +104,7 @@ $ cd FreeCoAP/test_client
 
 $ ./build_quark dtls
 
-(assumes that the Quark SDK has been installed at /opt/iot-devkit/1.7.2)
+(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
 
 
 Test Instructions
@@ -122,13 +122,13 @@ To test the client and server test applications
 
 $ cd FreeCoAP/test_server
 
-$ ./server
+$ ./test_server
 
 (In a different terminal window)
 
 $ cd FreeCoAP/test_client
 
-$ ./client
+$ ./test_client
 
 
 Validation History
