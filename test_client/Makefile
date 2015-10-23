@@ -26,7 +26,7 @@ OBJS = test_client.o \
        coap_log.o \
        test.o
 LIBS += $(DTLS_LIBS)
-PROG = client
+PROG = test_client
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)

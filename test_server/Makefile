@@ -22,7 +22,7 @@ OBJS = test_server.o \
        coap_msg.o \
        coap_log.o
 LIBS += $(DTLS_LIBS)
-PROG = server
+PROG = test_server
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
