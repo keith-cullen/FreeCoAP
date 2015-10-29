@@ -1,6 +1,9 @@
 ifeq ($(dtls),y)
 DTLS_CFLAGS = -DCOAP_DTLS_EN
-DTLS_LIBS = -lgnutls
+DTLS_LIBS = -lgmp \
+            -lhogweed \
+            -lnettle \
+            -lgnutls
 endif
 
 IDH = ../include

@@ -20,7 +20,7 @@ Copyright (c) 2015 Keith Cullen
 
 Released under a BSD style license.
 
-Tested on Intel Galileo.
+Tested on Intel Galileo and Raspberry Pi.
 
 
 Build Instructions
@@ -137,8 +137,34 @@ Validation History
 v0.1
 ----
 
-Ubuntu 15.04, Linux 3.19.0, x86_64, with GnuTLS 3.2.0
+Intel Galileo Gen1
+------------------
+Quark BSP 1.2
 
-Fedora 21, Linux 4.1.8, x86_64, with GnuTLS 3.2.0
+Linux 3.14.28-ltsi-yocto-standard #1 Tue Oct 20 01:46:36 IST 2015 GNU/Linux
 
-Quark BSP 1.2, Linux 3.14.28, i586 with GnuTLS 3.3.5
+GnuTLS 3.3.5
+
+Raspberry Pi model B
+--------------------
+Raspbian wheezy
+
+Linux 3.12.28+ #709 PREEMPT Mon Sep 8 15:28:00 BST 2014 armv6l GNU/Linux
+
+GnuTLS 3.2.0
+
+Lenovo ThinkPad X240
+--------------------
+Fedora 21
+
+Linux 4.1.8-100.fc21.x86_64 #1 SMP Tue Sep 22 12:13:06 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.2.0
+
+HP Pavilion
+-----------
+Ubuntu 15.04
+
+Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.2.0
