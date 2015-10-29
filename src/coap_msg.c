@@ -327,8 +327,7 @@ static ssize_t coap_msg_parse_hdr(coap_msg_t *msg, char *buf, size_t len)
     }
     msg->type = (p[0] >> 4) & 0x03;
     msg->token_len = p[0] & 0x0f;
-    if ((msg->token_len > sizeof(msg->token))
-     || (msg->token_len > 8))
+    if (msg->token_len > sizeof(msg->token))
     {
         return -EBADMSG;
     }
@@ -480,7 +479,7 @@ static ssize_t coap_msg_parse_ops(coap_msg_t *msg, char *buf, size_t len)
 
     while (1)
     {
-        if ((p[0] == -1) || (len == 0))
+        if (((p[0] & 0xff) == 0xff) || (len == 0))
         {
             break;
         }
@@ -514,7 +513,7 @@ static ssize_t coap_msg_parse_payload(coap_msg_t *msg, char *buf, size_t len)
     {
         return 0;
     }
-    if (p[0] != -1)
+    if ((p[0] & 0xff) != 0xff)
     {
         return -EBADMSG;
     }
