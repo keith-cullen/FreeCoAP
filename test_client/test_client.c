@@ -346,13 +346,13 @@ static test_result_t exchange(coap_client_t *client, test_client_msg_data_t *msg
     ret = coap_msg_set_type(req, msg_data->type);
     if (ret != 0)
     {
-        coap_log_error("Error: %s\n", strerror(-ret));
+        coap_log_error("%s\n", strerror(-ret));
         return FAIL;
     }
     ret = coap_msg_set_code(req, COAP_MSG_REQ, COAP_MSG_GET);
     if (ret != 0)
     {
-        coap_log_error("Error: %s\n", strerror(-ret));
+        coap_log_error("%s\n", strerror(-ret));
         return FAIL;
     }
     if (msg_data->uri_path_opt)
@@ -360,7 +360,7 @@ static test_result_t exchange(coap_client_t *client, test_client_msg_data_t *msg
         ret = coap_msg_add_op(req, COAP_MSG_OP_URI_PATH_NUM, strlen(msg_data->uri_path_opt), msg_data->uri_path_opt);
         if (ret != 0)
         {
-            coap_log_error("Error: %s\n", strerror(-ret));
+            coap_log_error("%s\n", strerror(-ret));
             return FAIL;
         }
     }
@@ -369,14 +369,14 @@ static test_result_t exchange(coap_client_t *client, test_client_msg_data_t *msg
         ret = coap_msg_set_payload(req, msg_data->payload, msg_data->payload_len);
         if (ret != 0)
         {
-            coap_log_error("Error: %s\n", strerror(-ret));
+            coap_log_error("%s\n", strerror(-ret));
             return FAIL;
         }
     }
     ret = coap_client_exchange(client, req, resp);
     if (ret != 0)
     {
-        coap_log_error("Error: %s\n", strerror(-ret));
+        coap_log_error("%s\n", strerror(-ret));
         return FAIL;
     }
 
@@ -420,7 +420,7 @@ static test_result_t test_exchange_func(test_data_t data)
 #endif
     if (ret != 0)
     {
-        coap_log_error("Error: %s\n", strerror(-ret));
+        coap_log_error("%s\n", strerror(-ret));
         return FAIL;
     }
 
