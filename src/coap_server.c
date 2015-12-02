@@ -935,6 +935,72 @@ static int coap_server_trans_reject(coap_server_trans_t *trans, coap_msg_t *msg)
 }
 
 /**
+ *  @brief Reject a request message containing a bad option
+ *
+ *  @param[in,out] trans Pointer to a transaction structure
+ *  @param[in] msg Pointer to a message structure
+ *  @param[in] op_num Option number of the bad option
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+int coap_server_trans_reject_bad_option(coap_server_trans_t *trans, coap_msg_t *msg, unsigned op_num)
+{
+    coap_msg_t rej = {0};
+    char payload[COAP_SERVER_DIAG_PAYLOAD_LEN] = {0};
+    ssize_t num = 0;
+    int ret = 0;
+
+    if (coap_msg_get_type(msg) == COAP_MSG_NON)
+    {
+        return coap_server_trans_reject_non(trans, msg);
+    }
+    /* confirmable request containing a bad option */
+    /* send a piggy-backed response containing 4.02 Bad Option */
+    coap_msg_create(&rej);
+    ret = coap_msg_set_type(&rej, COAP_MSG_ACK);
+    if (ret != 0)
+    {
+        coap_msg_destroy(&rej);
+        return ret;
+    }
+    ret = coap_msg_set_code(&rej, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_OPTION);
+    if (ret != 0)
+    {
+        coap_msg_destroy(&rej);
+        return ret;
+    }
+    ret = coap_msg_set_msg_id(&rej, coap_msg_get_msg_id(msg));
+    if (ret != 0)
+    {
+        coap_msg_destroy(&rej);
+        return ret;
+    }
+    ret = coap_msg_set_token(&rej, coap_msg_get_token(msg), coap_msg_get_token_len(msg));
+    if (ret != 0)
+    {
+        coap_msg_destroy(&rej);
+        return ret;
+    }
+    snprintf(payload, sizeof(payload), "Bad option number: %u", op_num);
+    ret = coap_msg_set_payload(&rej, payload, strlen(payload));
+    if (ret != 0)
+    {
+        coap_msg_destroy(&rej);
+        return ret;
+    }
+    num = coap_server_trans_send(trans, &rej);
+    if (num < 0)
+    {
+        coap_msg_destroy(&rej);
+        return num;
+    }
+    coap_msg_destroy(&rej);
+    return 0;
+}
+
+/**
  *  @brief Send an acknowledgement message to the client
  *
  *  @param[in,out] trans Pointer to a transaction structure
@@ -1320,6 +1386,27 @@ unsigned coap_server_get_next_msg_id(coap_server_t *server)
 }
 
 /**
+ *  @brief Check that all of the options in a message are acceptable
+ *
+ *  For a proxy, options are acceptable if they are safe to forward or recognized or both.
+ *  For a server, options are acceptable if they are elective or recognized or both.
+ *
+ *  @param[in] msg Pointer to message structure
+ *
+ *  @returns Operation status or bad option number
+ *  @retval 0 Success
+ *  @retval >0 Bad option number
+ */
+static unsigned coap_server_check_options(coap_msg_t *msg)
+{
+#ifdef COAP_PROXY
+    return coap_msg_check_unsafe_ops(msg);
+#else  /* !COAP_PROXY */
+    return coap_msg_check_critical_ops(msg);
+#endif  /* COAP_PROXY */
+}
+
+/**
  *  @brief Search for a transaction structure in a server structure that matches an endpoint
  *
  *  @param[in] server Pointer to a server structure
@@ -1579,6 +1666,7 @@ static int coap_server_exchange(coap_server_t *server)
     coap_msg_t recv_msg = {0};
     coap_msg_t send_msg = {0};
     socklen_t client_sin_len = 0;
+    unsigned op_num = 0;
     unsigned msg_id = 0;
     ssize_t num = 0;
     int resp_type = 0;
@@ -1619,8 +1707,8 @@ static int coap_server_exchange(coap_server_t *server)
     num = coap_server_trans_recv(trans, &recv_msg);
     if (num < 0)
     {
-        coap_server_trans_destroy(trans);
         coap_msg_destroy(&recv_msg);
+        coap_server_trans_destroy(trans);
         return num;
     }
 
@@ -1693,12 +1781,16 @@ static int coap_server_exchange(coap_server_t *server)
     {
         ret = coap_server_trans_reject(trans, &recv_msg);
         coap_msg_destroy(&recv_msg);
-        if (ret < 0)
-        {
-            coap_server_trans_destroy(trans);
-            return ret;
-        }
-        return 0;
+        coap_server_trans_destroy(trans);
+        return ret;
+    }
+    op_num = coap_server_check_options(&recv_msg);
+    if (op_num != 0)
+    {
+        ret = coap_server_trans_reject_bad_option(trans, &recv_msg, op_num);
+        coap_msg_destroy(&recv_msg);
+        coap_server_trans_destroy(trans);
+        return ret;
     }
 
     /* clear details of the previous request/response */
