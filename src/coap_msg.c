@@ -60,6 +60,30 @@ void coap_msg_gen_rand_str(char *buf, size_t len)
     }
 }
 
+int coap_msg_op_num_is_recognized(unsigned num)
+{
+    switch (num)
+    {
+    case COAP_MSG_IF_MATCH:
+    case COAP_MSG_URI_HOST:
+    case COAP_MSG_ETAG:
+    case COAP_MSG_IF_NONE_MATCH:
+    case COAP_MSG_URI_PORT:
+    case COAP_MSG_LOCATION_PATH:
+    case COAP_MSG_URI_PATH:
+    case COAP_MSG_CONTENT_FORMAT:
+    case COAP_MSG_MAX_AGE:
+    case COAP_MSG_URI_QUERY:
+    case COAP_MSG_ACCEPT:
+    case COAP_MSG_LOCATION_QUERY:
+    case COAP_MSG_PROXY_URI:
+    case COAP_MSG_PROXY_SCHEME:
+    case COAP_MSG_SIZE1:
+        return 1;
+    }
+    return 0;
+}
+
 /**
  *  @brief Allocate an option structure
  *
@@ -288,6 +312,44 @@ static int coap_msg_check(coap_msg_t *msg)
         }
     }
     return 0;
+}
+
+unsigned coap_msg_check_critical_ops(coap_msg_t *msg)
+{
+    coap_msg_op_t *op = NULL;
+    unsigned num = 0;
+
+    op = coap_msg_get_first_op(msg);
+    while (op != NULL)
+    {
+        num = coap_msg_op_get_num(op);
+        if ((coap_msg_op_num_is_critical(num))
+         && (!coap_msg_op_num_is_recognized(num)))
+        {
+            return num;  /* fail */
+        }
+        op = coap_msg_op_get_next(op);
+    }
+    return 0;  /* pass */
+}
+
+unsigned coap_msg_check_unsafe_ops(coap_msg_t *msg)
+{
+    coap_msg_op_t *op = NULL;
+    unsigned num = 0;
+
+    op = coap_msg_get_first_op(msg);
+    while (op != NULL)
+    {
+        num = coap_msg_op_get_num(op);
+        if ((coap_msg_op_num_is_unsafe(num))
+         && (!coap_msg_op_num_is_recognized(num)))
+        {
+            return num;  /* fail */
+        }
+        op = coap_msg_op_get_next(op);
+    }
+    return 0;  /* pass */
 }
 
 int coap_msg_parse_type_msg_id(char *buf, size_t len, unsigned *type, unsigned *msg_id)

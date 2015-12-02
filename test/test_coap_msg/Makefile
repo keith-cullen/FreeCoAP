@@ -1,6 +1,6 @@
-IDH=../include
-IDS=../src
-IDT=../test
+IDH=../../include
+IDS=../../src
+IDT=..
 
 CFLAGS = $(EXTRA_CFLAGS) \
          --sysroot=$(ROOTFS) \
@@ -10,20 +10,21 @@ CFLAGS = $(EXTRA_CFLAGS) \
 LDFLAGS = $(EXTRA_LDFLAGS) \
           --sysroot=$(ROOTFS)
 INCS = $(IDH)/coap_msg.h \
+       $(IDH)/coap_log.h \
        $(IDT)/test.h
-OBJS = test_msg.o \
+OBJS = test_coap_msg.o \
        coap_msg.o \
        coap_log.o \
        test.o
 LIBS = $(EXTRA_LIBS)
-PROG = test_msg
+PROG = test_coap_msg
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
 
-test_msg.o: test_msg.c $(INCS)
-	$(CC) $(CFLAGS) -c test_msg.c
+test_coap_msg.o: test_coap_msg.c $(INCS)
+	$(CC) $(CFLAGS) -c test_coap_msg.c
 
 coap_msg.o: $(IDS)/coap_msg.c $(INCS)
 	$(CC) $(CFLAGS) -c $(IDS)/coap_msg.c
