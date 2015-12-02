@@ -35,7 +35,7 @@
 #define COAP_MSG_H
 
 #include <stddef.h>
-#include <linux/types.h>
+#include <sys/types.h>
 
 #define COAP_MSG_VER                           0x01                             /**< CoAP version */
 #define COAP_MSG_MAX_TOKEN_LEN                 8                                /**< Maximum token length */
@@ -156,6 +156,29 @@ typedef enum
 coap_msg_server_err_t;
 
 /**
+ *  @brief Option number enumeration
+ */
+typedef enum
+{
+    COAP_MSG_IF_MATCH = 1,
+    COAP_MSG_URI_HOST = 3,
+    COAP_MSG_ETAG = 4,
+    COAP_MSG_IF_NONE_MATCH = 5,
+    COAP_MSG_URI_PORT = 7,
+    COAP_MSG_LOCATION_PATH = 8,
+    COAP_MSG_URI_PATH = 11,
+    COAP_MSG_CONTENT_FORMAT = 12,
+    COAP_MSG_MAX_AGE = 14,
+    COAP_MSG_URI_QUERY = 15,
+    COAP_MSG_ACCEPT = 17,
+    COAP_MSG_LOCATION_QUERY = 20,
+    COAP_MSG_PROXY_URI = 35,
+    COAP_MSG_PROXY_SCHEME = 39,
+    COAP_MSG_SIZE1 = 60
+}
+coap_msg_op_num_t;
+
+/**
  *  @brief Option structure
  */
 typedef struct coap_msg_op
@@ -196,6 +219,17 @@ typedef struct
 coap_msg_t;
 
 /**
+ *  @brief Check if option is recognized
+ *
+ *  @param[in] num Option number
+ *
+ *  @returns Operation status
+ *  @retval 1 Option is recognized
+ *  @retval 0 Option is not recognized
+ */
+int coap_msg_op_num_is_recognized(unsigned num);
+
+/**
  *  @brief Generate a random string of bytes
  *
  *  @param[out] buf Pointer to the buffer to store the random string
@@ -223,6 +257,28 @@ void coap_msg_destroy(coap_msg_t *msg);
  *  @param[in,out] msg Pointer to a message structure
  */
 void coap_msg_reset(coap_msg_t *msg);
+
+/**
+ *  @brief Check that all of the critical options in a message are recognized
+ *
+ *  @param[in] msg Pointer to message structure
+ *
+ *  @returns Operation status or bad option number
+ *  @retval 0 Success
+ *  @retval >0 Bad option number
+ */
+unsigned coap_msg_check_critical_ops(coap_msg_t *msg);
+
+/**
+ *  @brief Check that all of the unsafe options in a message are recognized
+ *
+ *  @param[in] msg Pointer to message structure
+ *
+ *  @returns Operation status or bad option number
+ *  @retval 0 Success
+ *  @retval >0 Bad option number
+ */
+unsigned coap_msg_check_unsafe_ops(coap_msg_t *msg);
 
 /**
  *  @brief Extract the type and message ID values from a message

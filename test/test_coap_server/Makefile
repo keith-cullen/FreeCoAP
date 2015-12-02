@@ -6,8 +6,8 @@ DTLS_LIBS = -lgmp \
             -lgnutls
 endif
 
-IDH = ../include
-IDS = ../src
+IDH = ../../include
+IDS = ../../src
 
 CFLAGS = $(EXTRA_CFLAGS) \
          --sysroot=$(ROOTFS) \
@@ -20,19 +20,19 @@ LDFLAGS = $(EXTRA_LDFLAGS) \
 INCS = $(IDH)/coap_server.h \
        $(IDH)/coap_msg.h \
        $(IDH)/coap_log.h
-OBJS = test_server.o \
+OBJS = test_coap_server.o \
        coap_server.o \
        coap_msg.o \
        coap_log.o
 LIBS += $(DTLS_LIBS)
-PROG = test_server
+PROG = test_coap_server
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
 
-test_server.o: test_server.c $(INCS)
-	$(CC) $(CFLAGS) -c test_server.c
+test_coap_server.o: test_coap_server.c $(INCS)
+	$(CC) $(CFLAGS) -c test_coap_server.c
 
 coap_server.o: $(IDS)/coap_server.c $(INCS)
 	$(CC) $(CFLAGS) -c $(IDS)/coap_server.c

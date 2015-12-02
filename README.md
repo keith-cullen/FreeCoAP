@@ -29,14 +29,14 @@ Build Instructions
 To build the message parser/formatter for the host machine
 ----------------------------------------------------------
 
-$ cd FreeCoAP/test_msg
+$ cd FreeCoAP/test/test_coap_msg
 
 $ ./build_host
 
 To build the message parser/formatter for Intel Quark
 -----------------------------------------------------
 
-$ cd FreeCoAP/test_msg
+$ cd FreeCoAP/test/test_coap_msg
 
 $ ./build_quark
 
@@ -45,21 +45,21 @@ $ ./build_quark
 To build the server test application for the host machine
 ---------------------------------------------------------
 
-$ cd FreeCoAP/test_server
+$ cd FreeCoAP/test/test_coap_server
 
 $ ./build_host
 
 To build the server test application with DTLS for the host machine
 -------------------------------------------------------------------
 
-$ cd FreeCoAP/test_server
+$ cd FreeCoAP/test/test_coap_server
 
 $ ./build_host dtls
 
 To build the server test application for Intel Quark
 ----------------------------------------------------
 
-$ cd FreeCoAP/test_server
+$ cd FreeCoAP/test/test_coap_server
 
 $ ./build_quark
 
@@ -68,7 +68,7 @@ $ ./build_quark
 To build the server test application with DTLS for Intel Quark
 --------------------------------------------------------------
 
-$ cd FreeCoAP/test_server
+$ cd FreeCoAP/test/test_coap_server
 
 $ ./build_quark dtls
 
@@ -77,21 +77,21 @@ $ ./build_quark dtls
 To build the client test application for the host machine
 ---------------------------------------------------------
 
-$ cd FreeCoAP/test_client
+$ cd FreeCoAP/test/test_coap_client
 
 $ ./build_host
 
 To build the client test application with DTLS for the host machine
 -------------------------------------------------------------------
 
-$ cd FreeCoAP/test_client
+$ cd FreeCoAP/test/test_coap_client
 
 $ ./build_host dtls
 
 To build the client test application for Intel Quark
 ----------------------------------------------------
 
-$ cd FreeCoAP/test_client
+$ cd FreeCoAP/test/test_coap_client
 
 $ ./build_quark
 
@@ -100,7 +100,7 @@ $ ./build_quark
 To build the client test application with DTLS for Intel Quark
 --------------------------------------------------------------
 
-$ cd FreeCoAP/test_client
+$ cd FreeCoAP/test/test_coap_client
 
 $ ./build_quark dtls
 
@@ -113,22 +113,22 @@ Test Instructions
 To test the message/parser formatter
 ------------------------------------
 
-$ cd FreeCoAP/test_msg
+$ cd FreeCoAP/test/test_coap_msg
 
-$ ./test_msg
+$ ./test_coap_msg
 
 To test the client and server test applications
 -----------------------------------------------
 
-$ cd FreeCoAP/test_server
+$ cd FreeCoAP/test/test_coap_server
 
-$ ./test_server
+$ ./test_coap_server
 
 (In a different terminal window)
 
-$ cd FreeCoAP/test_client
+$ cd FreeCoAP/test/test_coap_client
 
-$ ./test_client
+$ ./test_coap_client
 
 
 Validation History

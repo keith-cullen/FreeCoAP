@@ -26,7 +26,7 @@
  */
 
 /**
- *  @file coap_log.h
+ *  @file coap_log.c
  *
  *  @brief Source file for the FreeCoAP logging module
  */

@@ -134,7 +134,7 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
  */
 int server_handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
 {
-    char *payload = "Hello, Client!";
+    char *payload = "Hello Client!";
     int ret = 0;
 
     ret = coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
