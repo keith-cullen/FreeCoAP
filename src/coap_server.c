@@ -958,13 +958,21 @@ static int coap_server_trans_reject_reset(coap_server_trans_t *trans, coap_msg_t
 static int coap_server_trans_reject(coap_server_trans_t *trans, coap_msg_t *msg)
 {
     if (coap_msg_get_type(msg) == COAP_MSG_CON)
+    {
         return coap_server_trans_reject_con(trans, msg);
+    }
     else if (coap_msg_get_type(msg) == COAP_MSG_NON)
+    {
         return coap_server_trans_reject_non(trans, msg);
+    }
     else if (coap_msg_get_type(msg) == COAP_MSG_ACK)
+    {
         return coap_server_trans_reject_ack(trans, msg);
+    }
     else if (coap_msg_get_type(msg) == COAP_MSG_RST)
+    {
         return coap_server_trans_reject_reset(trans, msg);
+    }
     return 0;  /* should never arrive here */
 }
 
@@ -1051,6 +1059,9 @@ static int coap_server_trans_send_ack(coap_server_trans_t *trans, coap_msg_t *ms
     coap_msg_t ack = {0};
     ssize_t num = 0;
     int ret = 0;
+
+    /* for testing purposes */
+    /* sleep(4) */
 
     coap_log_info("Acknowledging confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     coap_msg_create(&ack);
@@ -1811,23 +1822,32 @@ static int coap_server_exchange(coap_server_t *server)
     }
 
     if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
+    {
         coap_log_info("Received confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    }
     else if (coap_msg_get_type(&recv_msg) == COAP_MSG_NON)
+    {
         coap_log_info("Received non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    }
     else if (coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
+    {
         coap_log_info("Received acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    }
     else if (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
+    {
         coap_log_info("Received reset message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    }
 
     /* check for a valid request */
     if ((coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
      || (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
      || (coap_msg_get_code_class(&recv_msg) != COAP_MSG_REQ))
     {
-        ret = coap_server_trans_reject(trans, &recv_msg);
+        coap_log_error("Received invalid message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        coap_server_trans_reject(trans, &recv_msg);
         coap_msg_destroy(&recv_msg);
         coap_server_trans_destroy(trans);
-        return ret;
+        return -EBADMSG;
     }
     op_num = coap_server_check_options(&recv_msg);
     if (op_num != 0)
@@ -1847,9 +1867,13 @@ static int coap_server_exchange(coap_server_t *server)
     {
         resp_type = coap_server_get_resp_type(server, &recv_msg);
         if (resp_type == COAP_SERVER_SEPARATE)
+        {
             coap_log_info("Request URI path requires a separate response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        }
         else
+        {
             coap_log_info("Request URI path requires a piggy-backed response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        }
     }
 
     /* send an acknowledgement if necessary */

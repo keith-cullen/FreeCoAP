@@ -603,16 +603,14 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
 }
 
 /**
- *  @brief Send a request to the server and receive the response
+ *  @brief Populate a request message with details from a test request message structure
  *
- *  @param[in,out] client Pointer to a client structure
  *  @param[in] test_req Pointer to a test request message structure
  *  @param[out] req Pointer to a request message structure
- *  @param[out] resp Pointer to a response message structure
  *
  *  @returns Test result
  */
-static test_result_t exchange(coap_client_t *client, test_coap_client_msg_t *test_req, coap_msg_t *req, coap_msg_t *resp)
+static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *req)
 {
     unsigned i = 0;
     int ret = 0;
@@ -646,6 +644,29 @@ static test_result_t exchange(coap_client_t *client, test_coap_client_msg_t *tes
             coap_log_error("%s\n", strerror(-ret));
             return FAIL;
         }
+    }
+    return PASS;
+}
+
+/**
+ *  @brief Send a request to the server and receive the response
+ *
+ *  @param[in,out] client Pointer to a client structure
+ *  @param[in] test_req Pointer to a test request message structure
+ *  @param[out] req Pointer to a request message structure
+ *  @param[out] resp Pointer to a response message structure
+ *
+ *  @returns Test result
+ */
+static test_result_t exchange(coap_client_t *client, test_coap_client_msg_t *test_req, coap_msg_t *req, coap_msg_t *resp)
+{
+    test_result_t result = PASS;
+    int ret = 0;
+
+    result = populate_req(test_req, req);
+    if (result != PASS)
+    {
+        return result;
     }
     ret = coap_client_exchange(client, req, resp);
     if (ret != 0)
@@ -795,7 +816,6 @@ static test_result_t test_exchange_func(test_data_t data)
 
     return result;
 }
-
 
 /**
  *  @brief Show usage
