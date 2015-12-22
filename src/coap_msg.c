@@ -601,7 +601,7 @@ ssize_t coap_msg_parse(coap_msg_t *msg, char *buf, size_t len)
     ssize_t num = 0;
     char *p = buf;
 
-    coap_msg_destroy(msg);
+    coap_msg_reset(msg);
     num = coap_msg_parse_hdr(msg, p, len);
     if (num < 0)
     {

@@ -710,12 +710,12 @@ static ssize_t coap_client_recv(coap_client_t *client, coap_msg_t *msg)
     }
 #endif
     ret = coap_msg_parse(msg, buf, num);
-    if (ret == -EBADMSG)
-    {
-        coap_client_handle_format_error(client, buf, num);
-    }
     if (ret < 0)
     {
+        if (ret == -EBADMSG)
+        {
+            coap_client_handle_format_error(client, buf, num);
+        }
         return ret;
     }
     coap_log_debug("Received from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
@@ -821,13 +821,21 @@ static int coap_client_reject_reset(coap_client_t *client, coap_msg_t *msg)
 static int coap_client_reject(coap_client_t *client, coap_msg_t *msg)
 {
     if (coap_msg_get_type(msg) == COAP_MSG_CON)
+    {
         return coap_client_reject_con(client, msg);
+    }
     else if (coap_msg_get_type(msg) == COAP_MSG_NON)
+    {
         return coap_client_reject_non(client, msg);
+    }
     else if (coap_msg_get_type(msg) == COAP_MSG_ACK)
+    {
         return coap_client_reject_ack(client, msg);
+    }
     else if (coap_msg_get_type(msg) == COAP_MSG_RST)
+    {
         return coap_client_reject_reset(client, msg);
+    }
     return 0;  /* should never arrive here */
 }
 
@@ -846,6 +854,9 @@ static int coap_client_send_ack(coap_client_t *client, coap_msg_t *msg)
     coap_msg_t ack = {0};
     int num = 0;
     int ret = 0;
+
+    /* for testing purposes */
+    /* sleep(4) */
 
     coap_log_info("Acknowledging confirmable message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
     coap_msg_create(&ack);
@@ -1037,6 +1048,10 @@ static unsigned coap_client_check_options(coap_msg_t *msg)
 /**
  *  @brief Handle a received piggy-backed response message
  *
+ *  An acknowledgement has been received that contains
+ *  the same token as the request. Check the response
+ *  contained within it.
+ *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] resp Pointer to the response message
  *
@@ -1051,7 +1066,7 @@ static int coap_client_handle_piggybacked_response(coap_client_t *client, coap_m
     op_num = coap_client_check_options(resp);
     if (op_num != 0)
     {
-        coap_log_info("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
+        coap_log_error("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
         coap_client_reject(client, resp);
         return -EBADMSG;
     }
@@ -1061,6 +1076,10 @@ static int coap_client_handle_piggybacked_response(coap_client_t *client, coap_m
 
 /**
  *  @brief Handle a received separate response message
+ *
+ *  A separate response has been received that contains
+ *  the same token as the request. Check the response
+ *  and send an acknowledgement if necessary.
  *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] resp Pointer to the response message
@@ -1073,25 +1092,31 @@ static int coap_client_handle_sep_response(coap_client_t *client, coap_msg_t *re
 {
     unsigned op_num = 0;
 
-    op_num = coap_client_check_options(resp);
-    if (op_num != 0)
+    if (coap_msg_get_type(resp) == COAP_MSG_CON)
     {
-        coap_log_info("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
+        coap_log_info("Received confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+        op_num = coap_client_check_options(resp);
+        if (op_num != 0)
+        {
+            coap_log_error("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
+            coap_client_reject(client, resp);
+            return -EBADMSG;
+        }
+        return coap_client_send_ack(client, resp);
     }
-    else
+    else if (coap_msg_get_type(resp) == COAP_MSG_NON)
     {
-        if (coap_msg_get_type(resp) == COAP_MSG_CON)
+        coap_log_info("Received non-confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+        op_num = coap_client_check_options(resp);
+        if (op_num != 0)
         {
-            coap_log_info("Received confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
-            return coap_client_send_ack(client, resp);
+            coap_log_error("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
+            coap_client_reject(client, resp);
+            return -EBADMSG;
         }
-        else if (coap_msg_get_type(resp) == COAP_MSG_NON)
-        {
-            coap_log_info("Received non-confirmable response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
-            return 0;
-        }
-        coap_log_error("Received invalid response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+        return 0;
     }
+    coap_log_error("Received invalid response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
     coap_client_reject(client, resp);
     return -EBADMSG;
 }
@@ -1099,9 +1124,8 @@ static int coap_client_handle_sep_response(coap_client_t *client, coap_msg_t *re
 /**
  *  @brief Handle a separate response to a confirmable request
  *
- *  The request has already been sent to the server.
- *  An acknowledgement has been received.
- *  Receive the response and send an acknowledgement back to the server.
+ *  An acknowledgement has been received. Receive the
+ *  response and send an acknowledgement back to the server.
  *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] req Pointer to the request message
@@ -1131,19 +1155,35 @@ static int coap_client_exchange_sep(coap_client_t *client, coap_msg_t *req, coap
         {
             return num;
         }
+        if (coap_msg_get_msg_id(resp) == coap_msg_get_msg_id(req))
+        {
+            if (coap_msg_get_type(resp) == COAP_MSG_ACK)
+            {
+                /* message deduplication */
+                coap_log_info("Received duplicate acknowledgement from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+                continue;
+            }
+            else if (coap_msg_get_type(resp) == COAP_MSG_RST)
+            {
+                coap_log_error("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+                return -ECONNRESET;
+            }
+            coap_log_error("Received invalid message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+            coap_client_reject(client, resp);
+            return -EBADMSG;
+        }
         if (coap_client_match_token(req, resp))
         {
              return coap_client_handle_sep_response(client, resp);
         }
         /* message deduplication */
-        /* we might have received a duplicate message received previously from the same server */
+        /* we might have received a duplicate message that was already received from the same server */
         /* reject the message and continue listening */
         ret = coap_client_reject(client, resp);
         if (ret < 0 )
         {
             return ret;
         }
-        coap_msg_reset(resp);
     }
     return 0;
 }
@@ -1151,7 +1191,7 @@ static int coap_client_exchange_sep(coap_client_t *client, coap_msg_t *req, coap
 /**
  *  @brief Handle the response to a confirmable request
  *
- *  The request has already been sent to the server.
+ *  A confirmable request has been sent to the server.
  *  Receive the acknowledgement and response and send
  *  an acknowledgement back to the server.
  *
@@ -1192,8 +1232,7 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
                 if (coap_msg_is_empty(resp))
                 {
                     /* received ack message, wait for separate response message */
-                    coap_log_info("Received acknowledgement from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
-                    coap_msg_reset(resp);
+                    coap_log_info("Received duplicate acknowledgement from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
                     return coap_client_exchange_sep(client, req, resp);
                 }
                 else if (coap_client_match_token(req, resp))
@@ -1203,15 +1242,17 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
             }
             else if (coap_msg_get_type(resp) == COAP_MSG_RST)
             {
-                coap_log_info("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+                coap_log_error("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
                 return -ECONNRESET;
             }
+            coap_log_error("Received invalid message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
             coap_client_reject(client, resp);
             return -EBADMSG;
         }
         else if (coap_client_match_token(req, resp))
         {
-            /* as the underlying datagram transport may not be sequence-preserving,
+            /* RFC7252
+             * as the underlying datagram transport may not be sequence-preserving,
              * the Confirmable message carrying the response may actually arrive
              * before or after the Acknowledgement message for the request; for
              * the purposes of terminating the retransmission sequence, this also
@@ -1220,14 +1261,13 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
              return coap_client_handle_sep_response(client, resp);
         }
         /* message deduplication */
-        /* we might have received a duplicate message received previously from the same server */
+        /* we might have received a duplicate message that was already received from the same server */
         /* reject the message and continue listening */
         ret = coap_client_reject(client, resp);
         if (ret < 0 )
         {
             return ret;
         }
-        coap_msg_reset(resp);
     }
     return 0;
 }
@@ -1235,7 +1275,7 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
 /**
  *  @brief Handle the response to a non-confirmable request
  *
- *  The request has already been sent to the server.
+ *  A non-confirmable request has been sent to the server.
  *  Receive the response.
  *
  *  @param[in,out] client Pointer to a client structure
@@ -1267,25 +1307,32 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
         }
         if (coap_msg_get_msg_id(resp) == coap_msg_get_msg_id(req))
         {
-            if (coap_msg_get_type(resp) == COAP_MSG_RST)
+            if (coap_msg_get_type(resp) == COAP_MSG_ACK)
             {
-                coap_log_info("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+                coap_log_error("Received acknowledgement for non-confirmable request from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+                return -EBADMSG;
+            }
+            else if (coap_msg_get_type(resp) == COAP_MSG_RST)
+            {
+                coap_log_error("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
                 return -ECONNRESET;
             }
+            coap_log_error("Received invalid message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+            coap_client_reject(client, resp);
+            return -EBADMSG;
         }
         if (coap_client_match_token(req, resp))
         {
              return coap_client_handle_sep_response(client, resp);
         }
         /* message deduplication */
-        /* we might have received a duplicate message received previously from the same server */
+        /* we might have received a duplicate message that was already received from the same server */
         /* reject the message and continue listening */
         ret = coap_client_reject(client, resp);
         if (ret < 0 )
         {
             return ret;
         }
-        coap_msg_reset(resp);
     }
     return 0;
 }
@@ -1318,7 +1365,7 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     /* generate the token */
     coap_msg_gen_rand_str(token, sizeof(token));
     ret = coap_msg_set_token(req, token, sizeof(token));
-    if (ret != 0)
+    if (ret < 0)
     {
         return ret;
     }
