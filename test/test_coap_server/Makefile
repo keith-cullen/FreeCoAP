@@ -6,20 +6,20 @@ DTLS_LIBS = -lgmp \
             -lgnutls
 endif
 
-IDH = ../../include
-IDS = ../../src
+I1 = ../../lib/include
+S1 = ../../lib/src
 
 CFLAGS = $(EXTRA_CFLAGS) \
          --sysroot=$(ROOTFS) \
          -Wall \
-         -I $(IDH)
+         -I $(I1)
 CFLAGS += $(DTLS_CFLAGS)
 LDFLAGS = $(EXTRA_LDFLAGS) \
           --sysroot=$(ROOTFS) \
           -L$(ROOTFS)/usr/local/lib
-INCS = $(IDH)/coap_server.h \
-       $(IDH)/coap_msg.h \
-       $(IDH)/coap_log.h
+INCS = $(I1)/coap_server.h \
+       $(I1)/coap_msg.h \
+       $(I1)/coap_log.h
 OBJS = test_coap_server.o \
        coap_server.o \
        coap_msg.o \
@@ -34,17 +34,17 @@ $(PROG): $(OBJS)
 test_coap_server.o: test_coap_server.c $(INCS)
 	$(CC) $(CFLAGS) -c test_coap_server.c
 
-coap_server.o: $(IDS)/coap_server.c $(INCS)
-	$(CC) $(CFLAGS) -c $(IDS)/coap_server.c
+coap_server.o: $(S1)/coap_server.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S1)/coap_server.c
 
-coap_server_dtls.o: $(IDS)/coap_server_dtls.c $(INCS)
-	$(CC) $(CFLAGS) -c $(IDS)/coap_server_dtls.c
+coap_server_dtls.o: $(S1)/coap_server_dtls.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S1)/coap_server_dtls.c
 
-coap_msg.o: $(IDS)/coap_msg.c $(INCS)
-	$(CC) $(CFLAGS) -c $(IDS)/coap_msg.c
+coap_msg.o: $(S1)/coap_msg.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S1)/coap_msg.c
 
-coap_log.o: $(IDS)/coap_log.c $(INCS)
-	$(CC) $(CFLAGS) -c $(IDS)/coap_log.c
+coap_log.o: $(S1)/coap_log.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S1)/coap_log.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)
