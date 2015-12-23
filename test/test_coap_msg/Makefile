@@ -1,17 +1,17 @@
-IDH=../../include
-IDS=../../src
-IDT=..
+I1=../../lib/include
+S1=../../lib/src
+T1=..
 
 CFLAGS = $(EXTRA_CFLAGS) \
          --sysroot=$(ROOTFS) \
          -Wall \
-         -I$(IDH) \
-         -I$(IDT)
+         -I$(I1) \
+         -I$(T1)
 LDFLAGS = $(EXTRA_LDFLAGS) \
           --sysroot=$(ROOTFS)
-INCS = $(IDH)/coap_msg.h \
-       $(IDH)/coap_log.h \
-       $(IDT)/test.h
+INCS = $(I1)/coap_msg.h \
+       $(I1)/coap_log.h \
+       $(T1)/test.h
 OBJS = test_coap_msg.o \
        coap_msg.o \
        coap_log.o \
@@ -26,14 +26,14 @@ $(PROG): $(OBJS)
 test_coap_msg.o: test_coap_msg.c $(INCS)
 	$(CC) $(CFLAGS) -c test_coap_msg.c
 
-coap_msg.o: $(IDS)/coap_msg.c $(INCS)
-	$(CC) $(CFLAGS) -c $(IDS)/coap_msg.c
+coap_msg.o: $(S1)/coap_msg.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S1)/coap_msg.c
 
-coap_log.o: $(IDS)/coap_log.c $(INCS)
-	$(CC) $(CFLAGS) -c $(IDS)/coap_log.c
+coap_log.o: $(S1)/coap_log.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S1)/coap_log.c
 
-test.o: $(IDT)/test.c $(INCS)
-	$(CC) $(CFLAGS) -c $(IDT)/test.c
+test.o: $(T1)/test.c $(INCS)
+	$(CC) $(CFLAGS) -c $(T1)/test.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)
