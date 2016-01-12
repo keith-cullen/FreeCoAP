@@ -31,6 +31,7 @@
  *  @brief Source file for the FreeCoAP server test application
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -154,6 +155,13 @@ int server_handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
     return 0;
 }
 
+/**
+ *  @brief Main function for the CoAP server test application
+ *
+ *  @returns Operation status
+ *  @retval EXIT_SUCCESS Success
+ *  @retval EXIT_FAILURE Error
+ */
 int main()
 {
     coap_server_t server = {0};
@@ -169,22 +177,22 @@ int main()
     if (ret < 0)
     {
         coap_log_error("%s\n", strerror(-ret));
-        return -1;
+        return EXIT_FAILURE;
     }
     ret = coap_server_add_sep_resp_uri_path(&server, SEP_URI_PATH);
     if (ret < 0)
     {
         coap_log_error("%s\n", strerror(-ret));
         coap_server_destroy(&server);
-        return -1;
+        return EXIT_FAILURE;
     }
     ret = coap_server_run(&server);
     if (ret < 0)
     {
         coap_log_error("%s\n", strerror(-ret));
         coap_server_destroy(&server);
-        return -1;
+        return EXIT_FAILURE;
     }
     coap_server_destroy(&server);
-    return 0;
+    return EXIT_SUCCESS;
 }
