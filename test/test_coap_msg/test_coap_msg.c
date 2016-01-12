@@ -31,6 +31,7 @@
  *  @brief Source file for the FreeCoAP message parser/formatter unit tests
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -3703,6 +3704,13 @@ static test_result_t test_check_unsafe_ops_func(test_data_t data)
     return result;
 }
 
+/**
+ *  @brief Main function for the FreeCoAP message/parser unit tests
+ *
+ *  @returns Operation status
+ *  @retval EXIT_SUCCESS Success
+ *  @retval EXIT_FAILURE Error
+ */
 int main(void)
 {
     test_t tests[] = {{test_parse_func,              &test1_data},
@@ -3798,5 +3806,5 @@ int main(void)
     coap_log_set_level(COAP_LOG_ERROR);
     num_pass = test_run(tests, num_tests);
 
-    return num_pass == num_tests ? 0 : 1;
+    return num_pass == num_tests ? EXIT_SUCCESS : EXIT_FAILURE;
 }
