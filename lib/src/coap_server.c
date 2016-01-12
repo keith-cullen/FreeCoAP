@@ -877,7 +877,7 @@ static int coap_server_trans_reject_con(coap_server_trans_t *trans, coap_msg_t *
     ssize_t num = 0;
     int ret = 0;
 
-    coap_log_info("Rejecting confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Rejecting confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     coap_msg_create(&rej);
     ret = coap_msg_set_type(&rej, COAP_MSG_RST);
     if (ret < 0)
@@ -1821,6 +1821,17 @@ static int coap_server_exchange(coap_server_t *server)
         }
     }
 
+    /* check for a valid request */
+    if ((coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
+     || (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
+     || (coap_msg_get_code_class(&recv_msg) != COAP_MSG_REQ))
+    {
+        coap_server_trans_reject(trans, &recv_msg);
+        coap_msg_destroy(&recv_msg);
+        coap_server_trans_destroy(trans);
+        return -EBADMSG;
+    }
+
     if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
     {
         coap_log_info("Received confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
@@ -1829,26 +1840,8 @@ static int coap_server_exchange(coap_server_t *server)
     {
         coap_log_info("Received non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     }
-    else if (coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
-    {
-        coap_log_info("Received acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-    }
-    else if (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
-    {
-        coap_log_info("Received reset message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-    }
 
-    /* check for a valid request */
-    if ((coap_msg_get_type(&recv_msg) == COAP_MSG_ACK)
-     || (coap_msg_get_type(&recv_msg) == COAP_MSG_RST)
-     || (coap_msg_get_code_class(&recv_msg) != COAP_MSG_REQ))
-    {
-        coap_log_error("Received invalid message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-        coap_server_trans_reject(trans, &recv_msg);
-        coap_msg_destroy(&recv_msg);
-        coap_server_trans_destroy(trans);
-        return -EBADMSG;
-    }
+    /* check options */
     op_num = coap_server_check_options(&recv_msg);
     if (op_num != 0)
     {

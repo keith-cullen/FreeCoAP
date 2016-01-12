@@ -42,9 +42,9 @@
 
 #define HOST             "::1"                                                  /**< Host address of the server */
 #define PORT             12436                                                  /**< UDP port number of the server */
-#define KEY_FILE_NAME    "client_privkey.pem"                                   /**< DTLS key file name */
-#define CERT_FILE_NAME   "client_cert.pem"                                      /**< DTLS certificate file name */
 #define TRUST_FILE_NAME  "root_server_cert.pem"                                 /**< DTLS trust file name */
+#define CERT_FILE_NAME   "client_cert.pem"                                      /**< DTLS certificate file name */
+#define KEY_FILE_NAME    "client_privkey.pem"                                   /**< DTLS key file name */
 #define CRL_FILE_NAME    ""                                                     /**< DTLS certificate revocation list file name */
 #define SEP_URI_PATH     "separate"                                             /**< URI path option value to trigger a separate response from the server */
 
@@ -818,15 +818,25 @@ static test_result_t test_exchange_func(test_data_t data)
 }
 
 /**
- *  @brief Show usage
+ *  @brief Helper function to list command line options
  */
 static void usage(void)
 {
-    coap_log_error("Usage: client <options> test-num\n");
+    coap_log_error("Usage: test_coap_client <options> test-num\n");
     coap_log_error("Options:");
     coap_log_error("    -l log-level - set the log level (0 to 4)\n");
 }
 
+/**
+ *  @brief Main function for the FreeCoAP client test application
+ *
+ *  @param[in] argc Number of command line arguments
+ *  @param[in] argv Array of pointers to command line arguments
+ *
+ *  @returns Operation status
+ *  @retval EXIT_SUCCESS Success
+ *  @retval EXIT_FAILURE Error
+ */
 int main(int argc, char **argv)
 {
     const char *opts = ":hl:";
@@ -850,16 +860,16 @@ int main(int argc, char **argv)
         {
         case 'h':
             usage();
-            return 0;
+            return EXIT_SUCCESS;
         case 'l':
             log_level = atoi(optarg);
             break;
         case ':':
             coap_log_error("Option '%c' requires an argument\n", optopt);
-            return -1;
+            return EXIT_FAILURE;
         case '?':
             coap_log_error("Unknown option '%c'\n", optopt);
-            return -1;
+            return EXIT_FAILURE;
         default:
             usage();
         }
@@ -907,5 +917,5 @@ int main(int argc, char **argv)
         num_pass = test_run(tests, num_tests);
     }
 
-    return num_pass == num_tests ? 0 : 1;
+    return num_pass == num_tests ? EXIT_SUCCESS : EXIT_FAILURE;
 }

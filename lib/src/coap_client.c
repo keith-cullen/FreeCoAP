@@ -913,7 +913,7 @@ static int coap_client_handle_ack_timeout(coap_client_t *client, coap_msg_t *msg
     }
     else if (ret == -ETIMEDOUT)
     {
-        coap_log_debug("Stopped retransmiting to address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
+        coap_log_debug("Stopped retransmitting to address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
         coap_log_info("No acknowledgement received from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
     }
     return ret;
@@ -1066,7 +1066,7 @@ static int coap_client_handle_piggybacked_response(coap_client_t *client, coap_m
     op_num = coap_client_check_options(resp);
     if (op_num != 0)
     {
-        coap_log_error("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
+        coap_log_info("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
         coap_client_reject(client, resp);
         return -EBADMSG;
     }
@@ -1098,7 +1098,7 @@ static int coap_client_handle_sep_response(coap_client_t *client, coap_msg_t *re
         op_num = coap_client_check_options(resp);
         if (op_num != 0)
         {
-            coap_log_error("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
+            coap_log_info("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
             coap_client_reject(client, resp);
             return -EBADMSG;
         }
@@ -1110,13 +1110,12 @@ static int coap_client_handle_sep_response(coap_client_t *client, coap_msg_t *re
         op_num = coap_client_check_options(resp);
         if (op_num != 0)
         {
-            coap_log_error("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
+            coap_log_info("Found bad option number %u in message from address %s and port %u", op_num, client->server_addr, ntohs(client->server_sin.sin6_port));
             coap_client_reject(client, resp);
             return -EBADMSG;
         }
         return 0;
     }
-    coap_log_error("Received invalid response from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
     coap_client_reject(client, resp);
     return -EBADMSG;
 }
@@ -1165,10 +1164,8 @@ static int coap_client_exchange_sep(coap_client_t *client, coap_msg_t *req, coap
             }
             else if (coap_msg_get_type(resp) == COAP_MSG_RST)
             {
-                coap_log_error("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
                 return -ECONNRESET;
             }
-            coap_log_error("Received invalid message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
             coap_client_reject(client, resp);
             return -EBADMSG;
         }
@@ -1242,10 +1239,8 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
             }
             else if (coap_msg_get_type(resp) == COAP_MSG_RST)
             {
-                coap_log_error("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
                 return -ECONNRESET;
             }
-            coap_log_error("Received invalid message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
             coap_client_reject(client, resp);
             return -EBADMSG;
         }
@@ -1307,17 +1302,10 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
         }
         if (coap_msg_get_msg_id(resp) == coap_msg_get_msg_id(req))
         {
-            if (coap_msg_get_type(resp) == COAP_MSG_ACK)
+            if (coap_msg_get_type(resp) == COAP_MSG_RST)
             {
-                coap_log_error("Received acknowledgement for non-confirmable request from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
-                return -EBADMSG;
-            }
-            else if (coap_msg_get_type(resp) == COAP_MSG_RST)
-            {
-                coap_log_error("Received reset from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
                 return -ECONNRESET;
             }
-            coap_log_error("Received invalid message from address %s and port %u", client->server_addr, ntohs(client->server_sin.sin6_port));
             coap_client_reject(client, resp);
             return -EBADMSG;
         }
