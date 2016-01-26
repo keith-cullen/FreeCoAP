@@ -40,8 +40,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
-#include <sys/select.h>
+#include <netdb.h>
+#include <sys/socket.h>
 #include <sys/timerfd.h>
+#include <sys/select.h>
 #include <linux/types.h>
 #include "coap_server.h"
 #include "coap_log.h"
@@ -987,7 +989,7 @@ static int coap_server_trans_reject(coap_server_trans_t *trans, coap_msg_t *msg)
  *  @retval 0 Success
  *  @retval <0 Error
  */
-int coap_server_trans_reject_bad_option(coap_server_trans_t *trans, coap_msg_t *msg, unsigned op_num)
+static int coap_server_trans_reject_bad_option(coap_server_trans_t *trans, coap_msg_t *msg, unsigned op_num)
 {
     coap_msg_t rej = {0};
     char payload[COAP_SERVER_DIAG_PAYLOAD_LEN] = {0};
@@ -1295,7 +1297,7 @@ static void coap_server_dtls_destroy(coap_server_t *server)
 int coap_server_create(coap_server_t *server,
                        int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
                        const char *host,
-                       unsigned port,
+                       const char *port,
                        const char *key_file_name,
                        const char *cert_file_name,
                        const char *trust_file_name,
@@ -1304,28 +1306,68 @@ int coap_server_create(coap_server_t *server,
 int coap_server_create(coap_server_t *server,
                        int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
                        const char *host,
-                       unsigned port)
+                       const char *port)
 #endif
 {
-    struct sockaddr_in6 server_sin = {0};
     unsigned char msg_id[2] = {0};
-    const char *p = NULL;
-    socklen_t server_sin_len = 0;
-    char server_addr[COAP_SERVER_ADDR_BUF_LEN] = {0};
+    struct addrinfo hints = {0};
+    struct addrinfo *list = NULL;
+    struct addrinfo *node = NULL;
     int opt_val = 0;
     int flags = 0;
     int ret = 0;
 
-    if ((server == NULL) || (host == NULL))
+    if ((server == NULL) || (host == NULL) || (port == NULL))
     {
         return -EINVAL;
     }
     memset(server, 0, sizeof(coap_server_t));
-    server->sd = socket(PF_INET6, SOCK_DGRAM, 0);
-    if (server->sd == -1)
+    /* resolve host and port */
+    hints.ai_flags = 0;
+    hints.ai_family = AF_INET6;      /* preferred socket domain */
+    hints.ai_socktype = SOCK_DGRAM;  /* preferred socket type */
+    hints.ai_protocol = 0;           /* preferred protocol (3rd argument to socket()) - 0 specifies that any protocol will do */
+    hints.ai_addrlen = 0;            /* must be 0 */
+    hints.ai_addr = NULL;            /* must be NULL */
+    hints.ai_canonname = NULL;       /* must be NULL */
+    hints.ai_next = NULL;            /* must be NULL */
+    ret = getaddrinfo(host, port, &hints, &list);
+    if (ret != 0)
+    {
+        return -EBUSY;
+    }
+    for (node = list; node != NULL; node = node->ai_next)
+    {
+        if ((node->ai_family == AF_INET6)
+         && (node->ai_socktype == SOCK_DGRAM))
+        {
+            server->sd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
+            if (server->sd == -1)
+            {
+                continue;
+            }
+            opt_val = 1;
+            ret = setsockopt(server->sd, SOL_SOCKET, SO_REUSEADDR, &opt_val, (socklen_t)sizeof(opt_val));
+            if (ret == -1)
+            {
+                close(server->sd);
+                freeaddrinfo(list);
+                return -EBUSY;
+            }
+            ret = bind(server->sd, node->ai_addr, node->ai_addrlen);
+            if (ret == -1)
+            {
+                close(server->sd);
+                continue;
+            }
+            break;
+        }
+    }
+    freeaddrinfo(list);
+    if (node == NULL)
     {
         memset(server, 0, sizeof(coap_server_t));
-        return -errno;
+        return -EBUSY;
     }
     flags = fcntl(server->sd, F_GETFL, 0);
     if (flags == -1)
@@ -1341,49 +1383,10 @@ int coap_server_create(coap_server_t *server,
         memset(server, 0, sizeof(coap_server_t));
         return -errno;
     }
-    opt_val = 1;
-    ret = setsockopt(server->sd, SOL_SOCKET, SO_REUSEADDR, &opt_val, (socklen_t)sizeof(opt_val));
-    if (ret == -1)
-    {
-        close(server->sd);
-        memset(server, 0, sizeof(coap_server_t));
-        return -errno;
-    }
-    server_sin.sin6_family = AF_INET6;
-    server_sin.sin6_port = htons(port);
-    ret = inet_pton(AF_INET6, host, &server_sin.sin6_addr);
-    if (ret == 0)
-    {
-        close(server->sd);
-        memset(server, 0, sizeof(coap_server_t));
-        return -EINVAL;
-    }
-    else if (ret == -1)
-    {
-        close(server->sd);
-        memset(server, 0, sizeof(coap_server_t));
-        return -errno;
-    }
-    server_sin_len = sizeof(server_sin);
-    ret = bind(server->sd, (struct sockaddr *)&server_sin, server_sin_len);
-    if (ret == -1)
-    {
-        close(server->sd);
-        memset(server, 0, sizeof(coap_server_t));
-        return -errno;
-    }
     coap_msg_gen_rand_str((char *)msg_id, sizeof(msg_id));
     server->msg_id = (((unsigned)msg_id[1]) << 8) | (unsigned)msg_id[0];
     coap_server_path_list_create(&server->sep_list);
     server->handle = handle;
-    p = inet_ntop(AF_INET6, &server_sin.sin6_addr, server_addr, sizeof(server_addr));
-    if (p == NULL)
-    {
-        coap_server_path_list_destroy(&server->sep_list);
-        close(server->sd);
-        memset(server, 0, sizeof(coap_server_t));
-        return -errno;
-    }
 #ifdef COAP_DTLS_EN
     ret = coap_server_dtls_create(server, key_file_name, cert_file_name, trust_file_name, crl_file_name);
     if (ret < 0)
@@ -1394,7 +1397,7 @@ int coap_server_create(coap_server_t *server,
         return ret;
     }
 #endif
-    coap_log_notice("Listening on address %s and port %d", server_addr, ntohs(server_sin.sin6_port));
+    coap_log_notice("Listening on address %s and port %s", host, port);
     return 0;
 }
 
