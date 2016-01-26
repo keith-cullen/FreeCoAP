@@ -153,8 +153,8 @@ Linux 3.12.28+ #709 PREEMPT Mon Sep 8 15:28:00 BST 2014 armv6l GNU/Linux
 
 GnuTLS 3.2.0
 
-Beagle Bone Black
------------------
+BeagleBone Black
+----------------
 Angstrom v2015.06
 
 Linux beaglebone 4.1.4 #1 SMP PREEMPT Tue Jan 5 09:33:15 GMT 2016 armv7l GNU/Linux
