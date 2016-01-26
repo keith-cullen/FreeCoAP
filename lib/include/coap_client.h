@@ -42,7 +42,8 @@
 #endif
 #include "coap_msg.h"
 
-#define COAP_CLIENT_ADDR_BUF_LEN  128                                           /**< Buffer length for host addresses */
+#define COAP_CLIENT_HOST_BUF_LEN  128                                           /**< Buffer length for host addresses */
+#define COAP_CLIENT_PORT_BUF_LEN  8                                             /**< Buffer length for port numbers */
 
 /**
  *  @brief Client structure
@@ -53,9 +54,10 @@ typedef struct
     int timer_fd;                                                               /**< Timer file descriptor */
     struct timespec timeout;                                                    /**< Timeout value */
     unsigned num_retrans;                                                       /**< Current number of retransmissions */
-    struct sockaddr_in6 server_sin;                                             /**< Ipv6 socket structture */
-    socklen_t server_sin_len;                                                   /**< Ipv6 socket structure length */
-    char server_addr[COAP_CLIENT_ADDR_BUF_LEN];                                 /**< String to hold the server address */
+    struct sockaddr_in6 server_sin;                                             /**< IPv6 socket structture */
+    socklen_t server_sin_len;                                                   /**< IPv6 socket structure length */
+    char server_host[COAP_CLIENT_HOST_BUF_LEN];                                 /**< String to hold the server host address */
+    char server_port[COAP_CLIENT_PORT_BUF_LEN];                                 /**< String to hold the server port number */
 #ifdef COAP_DTLS_EN
     gnutls_session_t session;                                                   /**< DTLS session */
     gnutls_certificate_credentials_t cred;                                      /**< DTLS credentials */
@@ -83,7 +85,7 @@ coap_client_t;
  */
 int coap_client_create(coap_client_t *client,
                        const char *host,
-                       unsigned port,
+                       const char *port,
                        const char *key_file_name,
                        const char *cert_file_name,
                        const char *trust_file_name,
@@ -104,7 +106,7 @@ int coap_client_create(coap_client_t *client,
  */
 int coap_client_create(coap_client_t *client,
                        const char *host,
-                       unsigned port);
+                       const char *port);
 
 #endif  /* COAP_DTLS_EN */
 

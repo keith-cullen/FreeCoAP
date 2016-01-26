@@ -3154,11 +3154,6 @@ test_coap_msg_data_t test49_data =
 /**
  *  @brief Print a CoAP message
  *
- *  @param[in] msg Pointer to a message structure
- */
-/**
- *  @brief Print a CoAP message
- *
  *  @param[in] str String to be printed before the message
  *  @param[in] msg Pointer to a message structure
  */
@@ -3220,6 +3215,12 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
     printf("payload_len: %zu\n", coap_msg_get_payload_len(msg));
 }
 
+/**
+ *  @brief Print buffer as an array of hexadecimal byte values
+ *
+ *  @param[in] buf Pointer to a buffer
+ *  @param[in] len Length of the buffer
+ */
 static void print_buf(char *buf, size_t len)
 {
 #ifdef DEBUG

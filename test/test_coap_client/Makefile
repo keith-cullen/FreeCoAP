@@ -13,7 +13,6 @@ T1 = ..
 CFLAGS = $(EXTRA_CFLAGS) \
          --sysroot=$(ROOTFS) \
          -Wall \
-         -g \
          -I$(I1) \
          -I$(T1)
 CFLAGS += $(DTLS_CFLAGS)

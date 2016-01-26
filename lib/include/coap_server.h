@@ -88,8 +88,8 @@ typedef struct coap_server_trans
     int timer_fd;                                                               /**< Timer file descriptor */
     struct timespec timeout;                                                    /**< Timeout value */
     unsigned num_retrans;                                                       /**< Current number of retransmissions */
-    struct sockaddr_in6 client_sin;                                             /**< Ipv6 socket structure */
-    socklen_t client_sin_len;                                                   /**< Ipv6 socket structure length */
+    struct sockaddr_in6 client_sin;                                             /**< IPv6 socket structure */
+    socklen_t client_sin_len;                                                   /**< IPv6 socket structure length */
     char client_addr[COAP_SERVER_ADDR_BUF_LEN];                                 /**< String to hold the client address */
     coap_msg_t req;                                                             /**< Last request message received for this transaction */
     coap_msg_t resp;                                                            /**< Last response message sent for this transaction */
@@ -139,7 +139,7 @@ coap_server_t;
 int coap_server_create(coap_server_t *server,
                        int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
                        const char *host,
-                       unsigned port,
+                       const char *port,
                        const char *key_file_name,
                        const char *cert_file_name,
                        const char *trust_file_name,
@@ -162,7 +162,7 @@ int coap_server_create(coap_server_t *server,
 int coap_server_create(coap_server_t *server,
                        int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
                        const char *host,
-                       unsigned port);
+                       const char *port);
 
 #endif  /* COAP_DTLS_EN */
 

@@ -41,7 +41,7 @@
 #include "test.h"
 
 #define HOST             "::1"                                                  /**< Host address of the server */
-#define PORT             12436                                                  /**< UDP port number of the server */
+#define PORT             "12436"                                                /**< UDP port number of the server */
 #define TRUST_FILE_NAME  "root_server_cert.pem"                                 /**< DTLS trust file name */
 #define CERT_FILE_NAME   "client_cert.pem"                                      /**< DTLS certificate file name */
 #define KEY_FILE_NAME    "client_privkey.pem"                                   /**< DTLS key file name */
@@ -81,7 +81,7 @@ typedef struct
 {
     const char *desc;                                                           /**< Test description */
     const char *host;                                                           /**< Server host address */
-    unsigned port;                                                              /**< Server UDP port */
+    const char *port;                                                           /**< Server UDP port */
     const char *key_file_name;                                                  /**< DTLS key file name */
     const char *cert_file_name;                                                 /**< DTLS certificate file name */
     const char *trust_file_name;                                                /**< DTLS trust file name */
