@@ -217,32 +217,33 @@ static int coap_msg_op_list_add(coap_msg_op_list_t *list, unsigned num, unsigned
     }
     if (list->first == NULL)
     {
+        /* empty list */
         list->first = op;
         list->last = op;
+        return 0;
     }
-    else
+    if (op->num < list->first->num)
     {
-        prev = list->first;
-        while (prev != NULL)
-        {
-            if (prev->num < op->num)
-            {
-                op->next = prev->next;
-                prev->next = op;
-                if (prev == list->last)
-                {
-                    list->last = op;
-                }
-                break;
-            }
-            prev = prev->next;
-        }
-        if (prev == NULL)
-        {
-            list->last->next = op;
-            list->last = op;
-        }
+        /* start of the list */
+        op->next = list->first;
+        list->first = op;
+        return 0;
     }
+    prev = list->first;
+    while (prev != list->last)
+    {
+        /* middle of the list */
+        if ((prev->num <= op->num) && (op->num < prev->next->num))
+        {
+            op->next = prev->next;
+            prev->next = op;
+            return 0;
+        }
+        prev = prev->next;
+    }
+    /* end of the list */
+    list->last->next = op;
+    list->last = op;
     return 0;
 }
 
