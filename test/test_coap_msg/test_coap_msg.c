@@ -3151,6 +3151,110 @@ test_coap_msg_data_t test49_data =
     .payload_len = 0
 };
 
+#define TEST50_BUF_LEN      (4 + 8 + 5 + 9 + 5 + 5 + 5 + 1 + 16)
+#define TEST50_TOKEN_LEN    8
+#define TEST50_OP1_LEN      4
+#define TEST50_OP2_LEN      8
+#define TEST50_OP3_LEN      4
+#define TEST50_OP4_LEN      4
+#define TEST50_OP5_LEN      4
+#define TEST50_NUM_OPS      5
+#define TEST50_PAYLOAD_LEN  16
+
+int test50_add_op_ret[TEST50_NUM_OPS] = {0, 0, 0, 0, 0};
+char test50_buf[TEST50_BUF_LEN] =
+{
+    /* header:         */ 0x58, 0x44, 0x12, 0x34,
+    /* token:          */ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+    /* option1:        */ 0x04, 0xa1, 0xa2, 0xa3, 0xa4,
+    /* option2:        */ 0x18, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8,
+    /* option3:        */ 0x04, 0xc1, 0xc2, 0xc3, 0xc4,
+    /* option4:        */ 0x14, 0xd1, 0xd2, 0xd3, 0xd4,
+    /* option5:        */ 0x14, 0xe1, 0xe2, 0xe3, 0xe4,
+    /* payload marker: */ 0xff,
+    /* payload:        */ 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf
+};
+char test50_token[TEST50_TOKEN_LEN] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+char test50_op1_val[TEST50_OP1_LEN] = {0xa1, 0xa2, 0xa3, 0xa4};
+char test50_op2_val[TEST50_OP2_LEN] = {0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8};
+char test50_op3_val[TEST50_OP3_LEN] = {0xc1, 0xc2, 0xc3, 0xc4};
+char test50_op4_val[TEST50_OP4_LEN] = {0xd1, 0xd2, 0xd3, 0xd4};
+char test50_op5_val[TEST50_OP5_LEN] = {0xe1, 0xe2, 0xe3, 0xe4};
+test_coap_msg_op_t test50_ops[TEST50_NUM_OPS] =
+{
+    [0] =
+    {
+        /* option 4 */
+        .num = 2,
+        .len = TEST50_OP4_LEN,
+        .val = test50_op4_val
+    },
+    [1] =
+    {
+        /* option 1 */
+        .num = 0,
+        .len = TEST50_OP1_LEN,
+        .val = test50_op1_val
+    },
+    [2] =
+    {
+        /* option 2 */
+        .num = 1,
+        .len = TEST50_OP2_LEN,
+        .val = test50_op2_val
+    },
+    [3] =
+    {
+        /* option 5 */
+        .num = 3,
+        .len = TEST50_OP5_LEN,
+        .val = test50_op5_val
+    },
+    [4] =
+    {
+        /* option 3 */
+        .num = 1,
+        .len = TEST50_OP3_LEN,
+        .val = test50_op3_val
+    }
+};
+char test50_payload[TEST50_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
+
+test_coap_msg_data_t test50_data =
+{
+    .parse_desc = NULL,
+    .format_desc = "test 88: format CoAP message with token, with options presented in the wrong order, with payload",
+    .copy_desc = NULL,
+    .recognize_desc = NULL,
+    .check_critical = NULL,
+    .check_unsafe = NULL,
+    .parse_ret = 0,
+    .set_type_ret = 0,
+    .set_code_ret = 0,
+    .set_msg_id_ret = 0,
+    .set_token_ret = 0,
+    .add_op_ret = test50_add_op_ret,
+    .set_payload_ret = 0,
+    .format_ret = TEST50_BUF_LEN,
+    .copy_ret = 0,
+    .recognize_ret = NULL,
+    .check_critical_ops_ret = 0,
+    .check_unsafe_ops_ret = 0,
+    .buf = test50_buf,
+    .buf_len = TEST50_BUF_LEN,
+    .ver = COAP_MSG_VER,
+    .type = COAP_MSG_NON,
+    .code_class = 0x2,
+    .code_detail = 0x4,
+    .msg_id = 0x1234,
+    .token = test50_token,
+    .token_len = TEST50_TOKEN_LEN,
+    .ops = test50_ops,
+    .num_ops = TEST50_NUM_OPS,
+    .payload = test50_payload,
+    .payload_len = TEST50_PAYLOAD_LEN
+};
+
 /**
  *  @brief Print a CoAP message
  *
@@ -3800,7 +3904,8 @@ int main(void)
                       {test_check_unsafe_ops_func,   &test46_data},
                       {test_check_unsafe_ops_func,   &test47_data},
                       {test_check_unsafe_ops_func,   &test48_data},
-                      {test_check_unsafe_ops_func,   &test49_data}};
+                      {test_check_unsafe_ops_func,   &test49_data},
+                      {test_format_func,             &test50_data}};
     unsigned num_tests = DIM(tests);
     unsigned num_pass = 0;
 
