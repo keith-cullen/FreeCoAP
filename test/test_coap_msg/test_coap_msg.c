@@ -3810,7 +3810,7 @@ static test_result_t test_check_unsafe_ops_func(test_data_t data)
 }
 
 /**
- *  @brief Main function for the FreeCoAP message/parser unit tests
+ *  @brief Main function for the FreeCoAP message parser/formatter unit tests
  *
  *  @returns Operation status
  *  @retval EXIT_SUCCESS Success

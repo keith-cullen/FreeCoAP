@@ -1,4 +1,4 @@
-ifeq ($(dtls),y)
+ifneq ($(dtls),n)
 DTLS_CFLAGS = -DCOAP_DTLS_EN
 DTLS_LIBS = -lgmp \
             -lhogweed \
@@ -10,15 +10,14 @@ I1 = ../../lib/include
 S1 = ../../lib/src
 T1 = ..
 
-CFLAGS = $(EXTRA_CFLAGS) \
-         --sysroot=$(ROOTFS) \
-         -Wall \
+CC = gcc
+CFLAGS = -Wall \
+         -g \
          -I$(I1) \
          -I$(T1)
 CFLAGS += $(DTLS_CFLAGS)
-LDFLAGS = $(EXTRA_LDFLAGS) \
-          --sysroot=$(ROOTFS) \
-          -L$(ROOTFS)/usr/local/lib
+LD = gcc
+LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
        $(I1)/coap_log.h \
