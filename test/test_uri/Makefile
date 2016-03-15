@@ -1,36 +1,34 @@
 I1=../../lib/include
 S1=../../lib/src
+I2=../../proxy/common/include
+S2=../../proxy/common/src
 T1=..
 
 CC = gcc
 CFLAGS = -Wall \
          -g \
          -I$(I1) \
+         -I$(I2) \
          -I$(T1)
 LD = gcc
 LDFLAGS =
-INCS = $(I1)/coap_msg.h \
-       $(I1)/coap_log.h \
+INCS = $(I2)/uri.h \
        $(T1)/test.h
-OBJS = test_coap_msg.o \
-       coap_msg.o \
-       coap_log.o \
+OBJS = test_uri.o \
+       uri.o \
        test.o
 LIBS = $(EXTRA_LIBS)
-PROG = test_coap_msg
+PROG = test_uri
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
 
-test_coap_msg.o: test_coap_msg.c $(INCS)
-	$(CC) $(CFLAGS) -c test_coap_msg.c
+test_uri.o: test_uri.c $(INCS)
+	$(CC) $(CFLAGS) -c test_uri.c
 
-coap_msg.o: $(S1)/coap_msg.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S1)/coap_msg.c
-
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S1)/coap_log.c
+uri.o: $(S2)/uri.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S2)/uri.c
 
 test.o: $(T1)/test.c $(INCS)
 	$(CC) $(CFLAGS) -c $(T1)/test.c

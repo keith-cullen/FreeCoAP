@@ -10,11 +10,15 @@ An implementation of the CoAP protocol for GNU/Linux consisting of:
 
 - a CoAP server library
 
-- unit test code for the message parser/formatter
+- a CoAP client test application
 
-- a client test application
+- a CoAP server test application
 
-- a server test application
+- a HTTP/CoAP proxy application
+
+- a HTTP client test application
+
+- more than 10,000 lines of unit test code
 
 Copyright (c) 2015 Keith Cullen
 
@@ -23,116 +27,100 @@ Released under a BSD style license.
 Tested on Intel Galileo, Raspberry Pi and BeagleBone Black.
 
 
-Build Instructions
-=================
-
-To build the message parser/formatter for the host machine
-----------------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_msg
-
-$ ./build_host
-
-To build the message parser/formatter for Intel Quark
------------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_msg
-
-$ ./build_quark
-
-(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
-
-To build the server test application for the host machine
----------------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_server
-
-$ ./build_host
-
-To build the server test application with DTLS for the host machine
--------------------------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_server
-
-$ ./build_host dtls
-
-To build the server test application for Intel Quark
-----------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_server
-
-$ ./build_quark
-
-(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
-
-To build the server test application with DTLS for Intel Quark
---------------------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_server
-
-$ ./build_quark dtls
-
-(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
-
-To build the client test application for the host machine
----------------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_client
-
-$ ./build_host
-
-To build the client test application with DTLS for the host machine
--------------------------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_client
-
-$ ./build_host dtls
-
-To build the client test application for Intel Quark
-----------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_client
-
-$ ./build_quark
-
-(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
-
-To build the client test application with DTLS for Intel Quark
---------------------------------------------------------------
-
-$ cd FreeCoAP/test/test_coap_client
-
-$ ./build_quark dtls
-
-(assumes that the Quark SDK has been installed in /opt/iot-devkit/1.7.2)
-
-
-Test Instructions
-=================
+Build and Test Instructions
+===========================
 
 To test the message/parser formatter
 ------------------------------------
 
 $ cd FreeCoAP/test/test_coap_msg
 
+$ make
+
 $ ./test_coap_msg
 
-To test the client and server test applications
------------------------------------------------
+To test the CoAP client and CoAP server test applications without DTLS
+-----------------------------------------------------------------------
 
 $ cd FreeCoAP/test/test_coap_server
 
+$ make dtls=n
+
 $ ./test_coap_server
 
-(In a different terminal window)
+(In a different terminal)
 
 $ cd FreeCoAP/test/test_coap_client
 
+$ make dtls=n
+
 $ ./test_coap_client
+
+To test the CoAP client and CoAP server test applications with DTLS
+-------------------------------------------------------------------
+
+$ cd FreeCoAP/test/test_coap_server
+
+$ make
+
+$ ./test_coap_server
+
+(In a different terminal)
+
+$ cd FreeCoAP/test/test_coap_client
+
+$ make
+
+$ ./test_coap_client
+
+To test the HTTP/CoAP proxy application with TLS and DTLS
+---------------------------------------------------------
+
+$ cd FreeCoAP/test/test_coap_server
+
+$ make
+
+$ ./test_coap_server
+
+(In a second terminal)
+
+$ cd FreeCoAP/test/test_proxy_http_coap
+
+$ make
+
+$ ./proxy
+
+(In a third terminal)
+
+$ cd FreeCoAP/test/test_http_client
+
+$ make
+
+$ ./test_http_client
 
 
 Validation History
 ==================
+
+v0.2
+----
+
+BeagleBone Black
+----------------
+Angstrom v2015.06
+
+Linux beaglebone 4.1.4 #1 SMP PREEMPT Tue Jan 5 09:33:15 GMT 2016 armv7l GNU/Linux
+
+GnuTLS 3.2.0
+
+HP Pavilion
+-----------
+Ubuntu 15.04
+
+Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.2.0
+
 
 v0.1
 ----

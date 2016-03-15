@@ -38,13 +38,15 @@
 #include "coap_server.h"
 #include "coap_log.h"
 
-#define HOST             "::1"                                                  /**< Host address to listen on */
-#define PORT             "12436"                                                /**< UDP port number to listen on */
-#define KEY_FILE_NAME    "server_privkey.pem"                                   /**< DTLS key file name */
-#define CERT_FILE_NAME   "server_cert.pem"                                      /**< DTLS certificate file name */
-#define TRUST_FILE_NAME  "root_client_cert.pem"                                 /**< DTLS trust file name */
-#define CRL_FILE_NAME    ""                                                     /**< DTLS certificate revocation list file name */
-#define SEP_URI_PATH     "/separate"                                            /**< URI path that requires a separate response */
+#define HOST                 "::1"                                              /**< Host address to listen on */
+#define PORT                 "12436"                                            /**< UDP port number to listen on */
+#define KEY_FILE_NAME        "server_privkey.pem"                               /**< DTLS key file name */
+#define CERT_FILE_NAME       "server_cert.pem"                                  /**< DTLS certificate file name */
+#define TRUST_FILE_NAME      "root_client_cert.pem"                             /**< DTLS trust file name */
+#define CRL_FILE_NAME        ""                                                 /**< DTLS certificate revocation list file name */
+#define SEP_URI_PATH         "/separate"                                        /**< URI path that requires a separate response */
+#define UNSAFE_URI_PATH      "unsafe"                                           /**< URI path that causes the server to include an unsafe option in the response */
+#define UNSAFE_URI_PATH_LEN  6                                                  /**< Length of the URI path that causes the server to include an unsafe option in the response */
 
 /**
  *  @brief Print a CoAP message
@@ -112,6 +114,45 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
 }
 
 /**
+ *  @brief Check for the unsafe indication in the request
+ *
+ *  Check the URI path option in the request message for
+ *  the value that instructs the server to include an unsafe
+ *  option in the response. This feature is used to test
+ *  the HTTP/CoAP proxy application.
+ *
+ *  @param[in] req Pointer to the request message
+ *  @param[in] resp Pointer to the response message
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+int server_handle_unsafe(coap_msg_t *req, coap_msg_t *resp)
+{
+    coap_msg_op_t *op = NULL;
+    unsigned num = 0;
+    char *val = NULL;
+
+    op = coap_msg_get_first_op(req);
+    while (op != NULL)
+    {
+        num = coap_msg_op_get_num(op);
+        if (num == COAP_MSG_URI_PATH)
+        {
+            val = coap_msg_op_get_val(op);
+            if (strncmp(val, UNSAFE_URI_PATH, UNSAFE_URI_PATH_LEN) == 0)
+            {
+                coap_log_info("Including unsafe option in the response");
+                return coap_msg_add_op(resp, 0x62, 5, "dummy");
+            }
+        }
+        op = coap_msg_op_get_next(op);
+    }
+    return 0;
+}
+
+/**
  *  @brief Callback function to handle requests and generate responses
  *
  *  The handler function is called to service a request
@@ -134,6 +175,12 @@ int server_handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
     int ret = 0;
 
     ret = coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
+    if (ret < 0)
+    {
+        coap_log_error("%s\n", strerror(-ret));
+        return ret;
+    }
+    ret = server_handle_unsafe(req, resp);
     if (ret < 0)
     {
         coap_log_error("%s\n", strerror(-ret));

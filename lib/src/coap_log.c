@@ -40,10 +40,10 @@ static coap_log_level_t coap_log_level = COAP_LOG_DEF_LEVEL;                    
 void coap_log_set_level(coap_log_level_t level)
 {
     switch (level) {
-    case COAP_LOG_WARN:
-    case COAP_LOG_NOTICE:
-    case COAP_LOG_INFO:
-    case COAP_LOG_DEBUG:
+    case COAP_LOG_WARN:                                                         /**< Warning log level */
+    case COAP_LOG_NOTICE:                                                       /**< Notice warning level */
+    case COAP_LOG_INFO:                                                         /**< Informational warning level */
+    case COAP_LOG_DEBUG:                                                        /**< Debug warning level */
         coap_log_level = level;
         break;
     default:
