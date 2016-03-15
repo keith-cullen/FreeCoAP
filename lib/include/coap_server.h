@@ -51,8 +51,8 @@
  */
 typedef enum
 {
-    COAP_SERVER_PIGGYBACKED = 0,
-    COAP_SERVER_SEPARATE = 1
+    COAP_SERVER_PIGGYBACKED = 0,                                                /**< Piggybacked response */
+    COAP_SERVER_SEPARATE = 1                                                    /**< Separate response */
 }
 coap_server_resp_t;
 

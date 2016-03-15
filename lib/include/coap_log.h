@@ -41,11 +41,11 @@
  */
 typedef enum
 {
-    COAP_LOG_ERROR = 0,                                                         /**< Highest severity level */
-    COAP_LOG_WARN = 1,
-    COAP_LOG_NOTICE = 2,
-    COAP_LOG_INFO = 3,
-    COAP_LOG_DEBUG = 4                                                          /**< Lowest severity level */
+    COAP_LOG_ERROR = 0,                                                         /**< Error log level */
+    COAP_LOG_WARN = 1,                                                          /**< Warning log level */
+    COAP_LOG_NOTICE = 2,                                                        /**< Notice log level */
+    COAP_LOG_INFO = 3,                                                          /**< Informational log level */
+    COAP_LOG_DEBUG = 4                                                          /**< Debug log level */
 }
 coap_log_level_t;
 
