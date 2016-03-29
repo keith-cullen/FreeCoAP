@@ -39,8 +39,6 @@
 
 #include <stdio.h>
 
-#define TLS_DEBUG(stmt)  /* stmt */
-
 #define TLS_CLIENT_CACHE_SIZE        50
 #define TLS_SERVER_CACHE_SIZE        50
 #define TLS_MAX_SESSION_ID_SIZE      32
@@ -356,8 +354,6 @@ int tls_client_cache_set(char *addr, gnutls_datum_t data)
     int found = 0;
     int i = 0;
 
-    TLS_DEBUG(printf("%s() %s\n", __func__, addr));
-
     if (!_tls_client_cache_init)
         return -1;
     if (data.size > TLS_MAX_SESSION_DATA_SIZE)
@@ -389,8 +385,6 @@ gnutls_datum_t tls_client_cache_get(char *addr)
 {
     gnutls_datum_t res = {0};
     int i = 0;
-
-    TLS_DEBUG(printf("%s() %s\n", __func__, addr));
 
     res.data = NULL;
     res.size = 0;
@@ -434,8 +428,6 @@ void tls_server_cache_deinit()
 
 int tls_server_cache_set(void *buf, gnutls_datum_t key, gnutls_datum_t data)
 {
-    TLS_DEBUG(printf("%s()\n", __func__));
-
     if (!_tls_server_cache_init)
         return -1;
     if (key.size > TLS_MAX_SESSION_ID_SIZE)
@@ -459,8 +451,6 @@ gnutls_datum_t tls_server_cache_get(void *buf, gnutls_datum_t key)
 {
     gnutls_datum_t res = {0};
     int i = 0;
-
-    TLS_DEBUG(printf("%s()\n", __func__));
 
     res.data = NULL;
     res.size = 0;
@@ -487,8 +477,6 @@ gnutls_datum_t tls_server_cache_get(void *buf, gnutls_datum_t key)
 int tls_server_cache_delete(void *buf, gnutls_datum_t key)
 {
     int i = 0;
-
-    TLS_DEBUG(printf("%s()\n", __func__));
 
     if (!_tls_server_cache_init)
         return -1;
