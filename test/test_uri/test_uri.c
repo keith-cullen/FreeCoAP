@@ -1490,6 +1490,130 @@ test_uri_data_t test45_data =
     .buf_len          = 256
 };
 
+test_uri_data_t test46_data =
+{
+    .desc             = "test46: parse complete URI with IPv4 address",
+    .uri              = "http://user@10.10.10.10:8080/path?name=value#my-fragment",
+    .exp_scheme       = "http",
+    .exp_userinfo     = "user",
+    .exp_host         = "10.10.10.10",
+    .exp_port         = "8080",
+    .exp_path         = "/path",
+    .exp_query        = "name=value",
+    .exp_fragment     = "my-fragment",
+    .set_scheme       = NULL,
+    .set_userinfo     = NULL,
+    .set_host         = NULL,
+    .set_port         = NULL,
+    .set_path         = NULL,
+    .set_query        = NULL,
+    .set_fragment     = NULL,
+    .ret_parse        = 0,
+    .ret_copy         = 0,
+    .ret_set_scheme   = 0,
+    .ret_set_userinfo = 0,
+    .ret_set_host     = 0,
+    .ret_set_port     = 0,
+    .ret_set_path     = 0,
+    .ret_set_query    = 0,
+    .ret_set_fragment = 0,
+    .ret_generate     = 0,
+    .buf_len          = 256
+};
+
+test_uri_data_t test47_data =
+{
+    .desc             = "test47: parse complete URI with IPv6 address",
+    .uri              = "http://user@[::1]:8080/path?name=value#my-fragment",
+    .exp_scheme       = "http",
+    .exp_userinfo     = "user",
+    .exp_host         = "::1",
+    .exp_port         = "8080",
+    .exp_path         = "/path",
+    .exp_query        = "name=value",
+    .exp_fragment     = "my-fragment",
+    .set_scheme       = NULL,
+    .set_userinfo     = NULL,
+    .set_host         = NULL,
+    .set_port         = NULL,
+    .set_path         = NULL,
+    .set_query        = NULL,
+    .set_fragment     = NULL,
+    .ret_parse        = 0,
+    .ret_copy         = 0,
+    .ret_set_scheme   = 0,
+    .ret_set_userinfo = 0,
+    .ret_set_host     = 0,
+    .ret_set_port     = 0,
+    .ret_set_path     = 0,
+    .ret_set_query    = 0,
+    .ret_set_fragment = 0,
+    .ret_generate     = 0,
+    .buf_len          = 256
+};
+
+test_uri_data_t test48_data =
+{
+    .desc             = "test48: set and generate complete URI with IPv4 address",
+    .uri              = "http://user@10.10.10.10:8080/path?name=value#my-fragment",
+    .exp_scheme       = "http",
+    .exp_userinfo     = "user",
+    .exp_host         = "10.10.10.10",
+    .exp_port         = "8080",
+    .exp_path         = "/path",
+    .exp_query        = "name=value",
+    .exp_fragment     = "my-fragment",
+    .set_scheme       = "http",
+    .set_userinfo     = "user",
+    .set_host         = "10.10.10.10",
+    .set_port         = "8080",
+    .set_path         = "/path",
+    .set_query        = "name=value",
+    .set_fragment     = "my-fragment",
+    .ret_parse        = 0,
+    .ret_copy         = 0,
+    .ret_set_scheme   = 0,
+    .ret_set_userinfo = 0,
+    .ret_set_host     = 0,
+    .ret_set_port     = 0,
+    .ret_set_path     = 0,
+    .ret_set_query    = 0,
+    .ret_set_fragment = 0,
+    .ret_generate     = 56,
+    .buf_len          = 256,
+};
+
+test_uri_data_t test49_data =
+{
+    .desc             = "test49: set and generate complete URI with IPv6 address",
+    .uri              = "http://user@[::1]:8080/path?name=value#my-fragment",
+    .exp_scheme       = "http",
+    .exp_userinfo     = "user",
+    .exp_host         = "::1",
+    .exp_port         = "8080",
+    .exp_path         = "/path",
+    .exp_query        = "name=value",
+    .exp_fragment     = "my-fragment",
+    .set_scheme       = "http",
+    .set_userinfo     = "user",
+    .set_host         = "::1",
+    .set_port         = "8080",
+    .set_path         = "/path",
+    .set_query        = "name=value",
+    .set_fragment     = "my-fragment",
+    .ret_parse        = 0,
+    .ret_copy         = 0,
+    .ret_set_scheme   = 0,
+    .ret_set_userinfo = 0,
+    .ret_set_host     = 0,
+    .ret_set_port     = 0,
+    .ret_set_path     = 0,
+    .ret_set_query    = 0,
+    .ret_set_fragment = 0,
+    .ret_generate     = 50,
+    .buf_len          = 256,
+};
+
 /**
  *  @brief Check a field in a URI structure
  *
@@ -1723,7 +1847,11 @@ int main()
                       {test_set_gen_func, &test42_data},
                       {test_set_gen_func, &test43_data},
                       {test_set_gen_func, &test44_data},
-                      {test_copy_func, &test45_data}};
+                      {test_copy_func, &test45_data},
+                      {test_parse_func, &test46_data},
+                      {test_parse_func, &test47_data},
+                      {test_set_gen_func, &test48_data},
+                      {test_set_gen_func, &test49_data}};
     unsigned num_tests = DIM(tests);
     unsigned num_pass = 0;
 

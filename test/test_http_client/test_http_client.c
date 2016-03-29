@@ -79,7 +79,7 @@ const char test1_body[] = "Hello Client!";
 test_http_client_data_t test1_data =
 {
     .desc = "test 1: Send GET request",
-    .req_str = "GET coaps://ip6-localhost:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test1_start,
     .num_headers = TEST1_NUM_HEADERS,
     .name = test1_name,
@@ -92,7 +92,7 @@ const char *test2_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "501", "Not Implement
 test_http_client_data_t test2_data =
 {
     .desc = "test 2: Send a request with an unsupported method",
-    .req_str = "CONNECT coaps://ip6-localhost:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "CONNECT coaps://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test2_start,
     .num_headers = 0,
     .name = NULL,
@@ -105,7 +105,7 @@ const char *test3_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "400", "Bad Request"}
 test_http_client_data_t test3_data =
 {
     .desc = "test 3: Send a request with an unsupported scheme in the request-URI",
-    .req_str = "GET dummy://ip6-localhost:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET dummy://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test3_start,
     .num_headers = 0,
     .name = NULL,
@@ -118,7 +118,7 @@ const char *test4_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "406", "Not Acceptabl
 test_http_client_data_t test4_data =
 {
     .desc = "test 4: Send a request with an unsupported Accept header value",
-    .req_str = "GET coaps://ip6-localhost:12436/resource HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://[::1]:12436/resource HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test4_start,
     .num_headers = 0,
     .name = NULL,
@@ -131,7 +131,7 @@ const char *test5_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "502", "Bad Gateway"}
 test_http_client_data_t test5_data =
 {
     .desc = "test 5: Send a request that will invoke a response from the CoAP server with an unsafe option",
-    .req_str = "GET coaps://ip6-localhost:12436/unsafe HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://[::1]:12436/unsafe HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test5_start,
     .num_headers = 0,
     .name = NULL,
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
     const char *opts = ":hl:";
     unsigned num_tests = 0;
     unsigned num_pass = 0;
-    int log_level = COAP_LOG_INFO;
+    int log_level = COAP_LOG_DEBUG;
     int test_num = 0;
     int ret = 0;
     int c = 0;

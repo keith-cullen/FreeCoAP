@@ -13,12 +13,14 @@ LDFLAGS =
 INCS = $(I2)/tls6sock.h \
        $(I2)/sock.h \
        $(I2)/tls.h \
-       $(I2)/util.h
+       $(I2)/util.h \
+       $(I1)/coap_log.h
 OBJS = test_tls6server.o \
        tls6sock.o \
        sock.o \
        tls.o \
-       util.o
+       util.o \
+       coap_log.o
 LIBS = -lgnutls \
        -lnettle \
        -lhogweed \
@@ -43,6 +45,9 @@ tls.o: $(S2)/tls.c $(INCS)
 
 util.o: $(S2)/util.c $(INCS)
 	$(CC) $(CFLAGS) -c $(S2)/util.c
+
+coap_log.o: $(S1)/coap_log.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S1)/coap_log.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)

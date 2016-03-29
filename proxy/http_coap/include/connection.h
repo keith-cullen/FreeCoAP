@@ -54,8 +54,8 @@ typedef struct
 connection_t;
 
 int connection_init(void);
+void *connection_thread_func(void *data);
 connection_t *connection_new(tls6sock_t *sock, unsigned listener_index, unsigned con_index, param_t *param);
 void connection_delete(connection_t *con);
-void *connection_thread_func(void *data);
 
 #endif

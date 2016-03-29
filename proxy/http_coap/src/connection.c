@@ -119,10 +119,10 @@ int connection_init(void)
     return stats_init();
 }
 
-/*  return: { CON_RET_CLOSED, socket closed
- *          { CON_RET_TIMEDOUT,    timeout
- *          { 0,                   success
- *          {-1,                   error
+/*  return: { CON_RET_CLOSED,   socket closed remotely
+ *          { CON_RET_TIMEDOUT, timeout
+ *          { 0,                success
+ *          {<0,                error
  */
 static int connection_recv(connection_t *con, http_msg_t *msg)
 {
@@ -151,7 +151,7 @@ static int connection_recv(connection_t *con, http_msg_t *msg)
         {
             coap_log_error("[%u] <%u> %s Call to select returned: -1, errno: %d (%s)",
                        con->listener_index, con->con_index, con->addr, errno, strerror(errno));
-            return -1;
+            return -errno;
         }
         num = tls6sock_read(con->sock, data_buf_get_next(&con->recv_buf), data_buf_get_space(&con->recv_buf));
         if (num < 0)
@@ -191,13 +191,13 @@ static int connection_recv(connection_t *con, http_msg_t *msg)
                 {
                     coap_log_error("[%u] <%u> %s Request message too long",
                                con->listener_index, con->con_index, con->addr);
-                    return -1;
+                    return ret;
                 }
                 else if (ret == -ENOMEM)
                 {
                     coap_log_error("[%u] <%u> %s Out of memory",
                                con->listener_index, con->con_index, con->addr);
-                    return -1;
+                    return ret;
                 }
             }
         }
@@ -205,14 +205,15 @@ static int connection_recv(connection_t *con, http_msg_t *msg)
         {
             coap_log_error("[%u] <%u> %s Failed to parse request message: %s",
                        con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-            return -1;
+            return num;
         }
     }
     return 0;
 }
 
-/*  return: { 0, success
- *          {-1, error
+/*  return: { CON_RET_CLOSED, socket closed remotely
+ *          { 0,              success
+ *          {<0,              error
  */
 static int connection_send(connection_t *con, http_msg_t *msg)
 {
@@ -234,13 +235,13 @@ static int connection_send(connection_t *con, http_msg_t *msg)
         {
             coap_log_error("[%u] <%u> %s Response message too long",
                        con->listener_index, con->con_index, con->addr);
-            return -1;
+            return ret;
         }
         else if (ret == -ENOMEM)
         {
             coap_log_error("[%u] <%u> %s Out of memory",
                        con->listener_index, con->con_index, con->addr);
-            return -1;
+            return ret;
         }
     }
     num = tls6sock_write_full(con->sock, data_buf_get_data(&con->send_buf), len);
@@ -254,7 +255,7 @@ static int connection_send(connection_t *con, http_msg_t *msg)
     {
         coap_log_error("[%u] <%u> %s Socket connection closed remotely",
                    con->listener_index, con->con_index, con->addr);
-        return -1;
+        return CON_RET_CLOSED;
     }
     coap_log_debug("[%u] <%u> %s Sent: %s %s %s",
                    con->listener_index, con->con_index, con->addr,
@@ -265,7 +266,7 @@ static int connection_send(connection_t *con, http_msg_t *msg)
 }
 
 /*  return: { 0, success
- *          {-1, error
+ *          {<0, error
  */
 static int connection_gen_error_resp(connection_t *con, http_msg_t *msg, unsigned code)
 {
@@ -280,13 +281,13 @@ static int connection_gen_error_resp(connection_t *con, http_msg_t *msg, unsigne
     {
         coap_log_error("[%u] <%u> %s Failed to set response message start line: %s",
                    con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return -1;
+        return ret;
     }
     return 0;
 }
 
 /*  return: { 0, success
- *          {-1, error
+ *          {<0, error
  */
 static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_msg_t *resp_msg)
 {
@@ -297,15 +298,27 @@ static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_
     uri_t uri = {0};
     int ret = 0;
 
+    coap_msg_create(&coap_req_msg);
+    ret = cross_req_http_to_coap(&coap_req_msg, req_msg, &code);
+    if (ret < 0)
+    {
+        coap_log_error("[%u] <%u> %s Failed to convert HTTP message to CoAP message: %s",
+                   con->listener_index, con->con_index, con->addr, strerror(-ret));
+        coap_msg_destroy(&coap_req_msg);
+        return connection_gen_error_resp(con, resp_msg, code);
+    }
+
     uri_create(&uri);
     ret = uri_parse(&uri, http_msg_get_start(req_msg, 1));
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to parse request URI: %s",
                    con->listener_index, con->con_index, con->addr, strerror(-ret));
+        uri_destroy(&uri);
+        coap_msg_destroy(&coap_req_msg);
         return ret;
     }
-    coap_log_info("[%u] <%u> %s Connecting to CoAP server host: %s, port: %s",
+    coap_log_info("[%u] <%u> %s Connecting to CoAP server host %s and port %s",
                   con->listener_index, con->con_index, con->addr,
                   uri_get_host(&uri), uri_get_port(&uri));
     /* each HTTP request from the same HTTP server could target a different CoAP server */
@@ -323,36 +336,27 @@ static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_
     {
         coap_log_error("[%u] <%u> %s Failed to initialise CoAP client: %s",
                    con->listener_index, con->con_index, con->addr, strerror(-ret));
-        return ret;
-    }
-    coap_msg_create(&coap_req_msg);
-    ret = cross_req_http_to_coap(&coap_req_msg, req_msg, &code);
-    if (ret < 0)
-    {
-        coap_log_error("[%u] <%u> %s Failed to convert HTTP message to CoAP message: %s",
-                   con->listener_index, con->con_index, con->addr, strerror(-ret));
         coap_msg_destroy(&coap_req_msg);
-        coap_client_destroy(&coap_client);
-        return connection_gen_error_resp(con, resp_msg, code);
+        return ret;
     }
     coap_msg_create(&coap_resp_msg);
     ret = coap_client_exchange(&coap_client, &coap_req_msg, &coap_resp_msg);
-    coap_msg_destroy(&coap_req_msg);
     coap_client_destroy(&coap_client);
+    coap_msg_destroy(&coap_req_msg);
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s CoAP client exchange failed: %s",
                    con->listener_index, con->con_index, con->addr, strerror(-ret));
-        switch (-ret)
+        switch (ret)
         {
-        case ETIMEDOUT:
+        case -ETIMEDOUT:
             /* If the proxy services the request by interacting with a third party
              * (such as the CoAP origin server) and is unable to obtain a result within
              * a reasonable time frame, a 504 (Gateway Timeout) response is returned.
              */
             ret = connection_gen_error_resp(con, resp_msg, 504);
             break;
-        case EBADMSG:
+        case -EBADMSG:
             /* If a result can be obtained but is not understood, a 502 (Bad Gateway)
              * response is returned.
              */
@@ -383,7 +387,7 @@ static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_
  *  without the proxy <--> COAP server side of the connection
  *
  *  return: { 0, success
- *          {-1, error
+ *          {<0, error
  */
 static int connection_process_simple(connection_t *con, http_msg_t *req_msg, http_msg_t *resp_msg)
 {
@@ -397,7 +401,7 @@ static int connection_process_simple(connection_t *con, http_msg_t *req_msg, htt
     {
         coap_log_error("[%u] <%u> %s Failed to set response message start line: %s",
                    con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return -1;
+        return ret;
     }
     len = strlen(body);
     snprintf(int_buf, sizeof(int_buf), "%zd", len);
@@ -406,28 +410,29 @@ static int connection_process_simple(connection_t *con, http_msg_t *req_msg, htt
     {
         coap_log_error("[%u] <%u> %s Failed to set response message header: %s",
                    con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return -1;
+        return ret;
     }
     ret = http_msg_set_header(resp_msg, "Content-Type", "application/text");
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to set response message header: %s",
                    con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return -1;
+        return ret;
     }
     ret = http_msg_set_body(resp_msg, body, len);
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to set response message body: %s",
                    con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return -1;
+        return ret;
     }
     return 0;
 }
 
-/*  return: { 1, timeout
- *          { 0, success
- *          {-1, error
+/*  return: { CON_RET_CLOSED,   socket closed remotely
+ *          { CON_RET_TIMEDOUT, timeout
+ *          { 0,                success
+ *          {<0,                error
  */
 static int __connection_exchange(connection_t *con, http_msg_t *req_msg, http_msg_t *resp_msg)
 {
@@ -449,7 +454,7 @@ static int __connection_exchange(connection_t *con, http_msg_t *req_msg, http_ms
 
     /* send response */
     ret = connection_send(con, resp_msg);
-    if (ret < 0)
+    if (ret != 0)  /* this must be if (ret != 0) and not if (ret < 0) */
     {
         return ret;
     }
@@ -457,9 +462,10 @@ static int __connection_exchange(connection_t *con, http_msg_t *req_msg, http_ms
     return 0;
 }
 
-/*  return: { 1, timeout
- *          { 0, success
- *          {-1, error
+/*  return: { CON_RET_CLOSED,   socket closed remotely
+ *          { CON_RET_TIMEDOUT, timeout
+ *          { 0,                success
+ *          {<0,                error
  */
 static int connection_exchange(connection_t *con)
 {
@@ -491,7 +497,7 @@ static int connection_exchange(connection_t *con)
                    con->listener_index, con->con_index, con->addr);
         stats_ok_trans();
     }
-    else if (status == -1)
+    else if (status < 0)
     {
         coap_log_notice("[%u] <%u> %s Transaction failed",
                    con->listener_index, con->con_index, con->addr);
@@ -518,7 +524,7 @@ void *connection_thread_func(void *data)
     {
         status = connection_exchange(con);
     }
-    if (status == -1)
+    if (status < 0)
     {
         coap_log_notice("[%u] <%u> %s Connection failed",
                    con->listener_index, con->con_index, con->addr);

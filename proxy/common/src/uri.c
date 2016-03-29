@@ -90,7 +90,7 @@ static inline int uri_is_allowed(char c)
 }
 
 /**
- *  @breif Convert a hexadecimal ASCII character to an integer value
+ *  @brief Convert a hexadecimal ASCII character to an integer value
  *
  *  @param[in] c ASCII character
  *
@@ -109,7 +109,7 @@ static inline int uri_hex_to_int(char h)
 }
 
 /**
- *  @breif Convert two hexadecimal ASCII characters to an integer value
+ *  @brief Convert two hexadecimal ASCII characters to an integer value
  *
  *  @param[in] str String containing two ASCII characters
  *
@@ -136,7 +136,7 @@ static inline int uri_2_hex_to_int(const char *str)
 }
 
 /**
- *  @breif Percent-encode an octet
+ *  @brief Percent-encode an octet
  *
  *  param[out] str String to hold the result (must contain space for 3 characters, e.g. "%20")
  *  param[in] val Octet
@@ -152,7 +152,7 @@ static void uri_encode_octet(char *str, char val)
 }
 
 /**
- *  @breif Percent-decode an octet
+ *  @brief Percent-decode an octet
  *
  *  param[in,out] str Double pointer to a string
  *
@@ -277,6 +277,50 @@ static ssize_t uri_decode_str(char *dest, const char *src, size_t dest_str_len, 
         dest_str_len++;
     }
     return dest_str_len;
+}
+
+/**
+ *  @brief Locate the port field in a URI
+ *
+ *  IPv6 addresses contain ':' characters. The ':' character
+ *  is also used to mark the start of the port field. So for
+ *  this reason, IPv6 addresses are enclosed within '[' and ']'.
+ *  This function finds the first occurrence of the ':' character,
+ *  in the string, str, that is not enclosed within '[' and ']'.
+ *  This marks the start of the port field.
+ *
+ *  @param[in] str Source string
+ *
+ *  @returns Pointer to the location of the port field or NULL
+ */
+static char *uri_find_port(char *str)
+{
+    char *p = str;
+    int in = 0;
+
+    while (*p != '\0')
+    {
+        if (!in)
+        {
+            if (*p == '[')
+            {
+                in = 1;
+            }
+        }
+        else
+        {
+            if (*p == ']')
+            {
+                in = 0;
+            }
+        }
+        if ((!in) && (*p == ':'))
+        {
+            return p;
+        }
+        p++;
+    }
+    return NULL;
 }
 
 void uri_create(uri_t *uri)
@@ -411,27 +455,31 @@ static int uri_parse_hier_part(uri_t *uri, char **q)
         }
 
         /* check for port and path */
-        port = strchr(p, ':');
+        port = uri_find_port(p);
         if (port != NULL)
         {
             *port++ = '\0';
             path = strchr(port, '/');
-            if (path != NULL)
-            {
-                *path++ = '\0';
-            }
         }
         else
         {
             path = strchr(p, '/');
-            if (path != NULL)
-            {
-                *path++ = '\0';
-            }
+        }
+        if (path != NULL)
+        {
+            *path++ = '\0';
         }
 
         /* parse host */
         len = strlen(p) + 1;
+        r = p + len - 2;
+        if ((len > 2) && (*p == '[') && (*r == ']'))
+        {
+            /* strip enclosing '[' and ']' from IPv6 address */
+            p++;
+            *r = '\0';
+            len -= 2;
+        }
         if (len > 1)
         {
             uri->host = calloc(len, 1);
@@ -981,7 +1029,17 @@ size_t uri_generate(uri_t *uri, char *buf, size_t len)
     }
     if (uri->host != NULL)
     {
-        num = uri_encode_str(buf, uri->host, num, len, ":[]");
+        if (strchr(uri->host, ':') != NULL)
+        {
+            /* enclose IPv6 address in '[' and ']' */
+            num = uri_copy_str(buf, "[", num, len);
+            num = uri_encode_str(buf, uri->host, num, len, ":");
+            num = uri_copy_str(buf, "]", num, len);
+        }
+        else
+        {
+            num = uri_encode_str(buf, uri->host, num, len, "");
+        }
     }
     if (uri->port != NULL)
     {
