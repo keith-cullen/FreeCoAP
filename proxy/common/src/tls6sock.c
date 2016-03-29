@@ -39,10 +39,7 @@
 #include <netdb.h>
 #include <gnutls/x509.h>
 #include "tls6sock.h"
-
-#include <stdio.h>
-
-#define TLS6SOCK_DEBUG(stmt)  stmt
+#include "coap_log.h"
 
 static int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout, void *cred);
 static int tls6sock_handshake(tls6sock_t *s);
@@ -312,45 +309,45 @@ int tls6sock_verify_peer_cert(tls6sock_t *s, const char *common_name)
     ret = gnutls_certificate_verify_peers2(s->session, &status);
     if (ret != GNUTLS_E_SUCCESS)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "The peer certificate was not verified\n"));
+        coap_log_error("The peer certificate was not verified");
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
     if (status & GNUTLS_CERT_INVALID)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "The peer certificate is not trusted\n"));
+        coap_log_error("The peer certificate is not trusted");
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
     if (status & GNUTLS_CERT_SIGNER_NOT_FOUND)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "No issuer found for the peer certificate\n"));
+        coap_log_error("No issuer found for the peer certificate");
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
     if (status & GNUTLS_CERT_SIGNER_NOT_CA)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "The issuer for the peer certificate is not a certificate authority\n"));
+        coap_log_error("The issuer for the peer certificate is not a certificate authority");
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
     if (status & GNUTLS_CERT_REVOKED)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "The peer certificate has been revoked\n"));
+        coap_log_error("The peer certificate has been revoked");
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
     cert_type = gnutls_certificate_type_get(s->session);
     if (cert_type != GNUTLS_CRT_X509)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "The peer certificate is not an X509 certificate\n"));
+        coap_log_error("The peer certificate is not an X509 certificate");
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
     ret = gnutls_x509_crt_init(&cert);
     if (ret != GNUTLS_E_SUCCESS)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "Error: Unable to initialise gnutls_x509_crt_t object\n"));
+        coap_log_error("Unable to initialise gnutls_x509_crt_t object");
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
     cert_list = gnutls_certificate_get_peers(s->session, &cert_list_size);
     if (cert_list == NULL)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "No peer certificate found\n"));
+        coap_log_error("No peer certificate found");
         gnutls_x509_crt_deinit(cert);
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
@@ -358,7 +355,7 @@ int tls6sock_verify_peer_cert(tls6sock_t *s, const char *common_name)
     ret = gnutls_x509_crt_import(cert, &cert_list[0], GNUTLS_X509_FMT_DER);
     if (ret != GNUTLS_E_SUCCESS)
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "Unable to parse certificate\n"));
+        coap_log_error("Unable to parse certificate");
         gnutls_x509_crt_deinit(cert);
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
@@ -366,14 +363,14 @@ int tls6sock_verify_peer_cert(tls6sock_t *s, const char *common_name)
     expiration_time = gnutls_x509_crt_get_expiration_time(cert);
     if ((expiration_time == -1) || (expiration_time < current_time))
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "The peer certificate has expired\n"));
+        coap_log_error("The peer certificate has expired");
         gnutls_x509_crt_deinit(cert);
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
     activation_time = gnutls_x509_crt_get_activation_time(cert);
     if ((activation_time == -1) || (activation_time > current_time))
     {
-        TLS6SOCK_DEBUG(fprintf(stderr, "The peer certificate is not yet activated\n"));
+        coap_log_error("The peer certificate is not yet activated");
         gnutls_x509_crt_deinit(cert);
         return SOCK_PEER_CERT_VERIFY_ERROR;
     }
@@ -382,12 +379,12 @@ int tls6sock_verify_peer_cert(tls6sock_t *s, const char *common_name)
         ret = gnutls_x509_crt_check_hostname(cert, common_name);
         if (ret == 0)
         {
-            TLS6SOCK_DEBUG(fprintf(stderr, "The peer certificate's owner does not match: '%s'\n", common_name));
+            coap_log_error("The peer certificate's owner does not match: '%s'", common_name);
             gnutls_x509_crt_deinit(cert);
             return SOCK_PEER_CERT_VERIFY_ERROR;
         }
     }
-    TLS6SOCK_DEBUG(printf("Peer certificate validated\n"));
+    coap_log_info("Peer certificate validated");
     gnutls_x509_crt_deinit(cert);
     return SOCK_OK;
 }

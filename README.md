@@ -129,7 +129,7 @@ Intel Galileo Gen1
 ------------------
 Quark BSP 1.2
 
-Linux 3.14.28-ltsi-yocto-standard #1 Tue Oct 20 01:46:36 IST 2015 GNU/Linux
+Linux quark 3.14.28-ltsi-yocto-standard #1 Tue Oct 20 01:46:36 IST 2015 i586 GNU/Linux
 
 GnuTLS 3.3.5
 

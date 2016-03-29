@@ -32,15 +32,14 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <signal.h>
 #include <time.h>
 #include <unistd.h>
 #include "tls6sock.h"
 #include "tls.h"
 #include "sock.h"
+#include "coap_log.h"
 
-#define IO
 #define REHANDSHAKE
 #define TRUST_FILE_NAME  "root_client_cert.pem"
 #define CERT_FILE_NAME   "server_cert.pem"
@@ -77,7 +76,7 @@ static int server()
         return ret;
     }
 
-    printf("...ready\n");
+    coap_log_notice("Ready");
 
     ret = tls6ssock_accept(&ss, &s);
     if (ret != SOCK_OK)
@@ -86,14 +85,12 @@ static int server()
         return ret;
     }
 
-    printf("accept\n");
-    if (tls6sock_is_resumed(&s))
-        printf("session resumed\n");
-    else
-        printf("session not resumed\n");
     tls6sock_get_addr_string(&s, addr_str, sizeof(addr_str));
-    printf("addr: %s\n", addr_str);
-    printf("port: %d\n", tls6sock_get_port(&s));
+    coap_log_info("Accepted connection from address %s and port %d", addr_str, tls6sock_get_port(&s));
+    if (tls6sock_is_resumed(&s))
+        coap_log_debug("Session resumed");
+    else
+        coap_log_debug("Session not resumed");
 
     ret = tls6sock_read_full(&s, in_buf, BUF_SIZE);
     if (ret <= 0)
@@ -102,13 +99,7 @@ static int server()
         tls6ssock_close(&ss);
         return ret;
     }
-
-#ifdef IO
-    printf("in_buf[] =");
-    for (i = 0; i < BUF_SIZE; i++)
-        printf(" %d", in_buf[i]);
-    printf("\n");
-#endif
+    coap_log_debug("Received %d bytes", ret);
 
 #ifdef REHANDSHAKE
     /* re-handshake */
@@ -126,13 +117,6 @@ static int server()
         out_buf[i] = -in_buf[i];
     }
 
-#ifdef IO
-    printf("out_buf[] =");
-    for (i = 0; i < BUF_SIZE; i++)
-        printf(" %d", out_buf[i]);
-    printf("\n");
-#endif
-
     ret = tls6sock_write_full(&s, out_buf, BUF_SIZE);
     if (ret <= 0)
     {
@@ -140,6 +124,7 @@ static int server()
         tls6ssock_close(&ss);
         return ret < 0 ? ret : SOCK_WRITE_ERROR;
     }
+    coap_log_debug("Sent %d bytes", ret);
 
     tls6sock_close(&s);
     tls6ssock_close(&ss);
@@ -156,10 +141,12 @@ int main()
     /* initialise signal handling */
     set_signal();
 
+    coap_log_set_level(COAP_LOG_DEBUG);
+
     ret = tls_init();
     if (ret != SOCK_OK)
     {
-        fprintf(stderr, "Error: %s\n", sock_strerror(ret));
+        coap_log_error("%s", sock_strerror(ret));
         return EXIT_FAILURE;
     }
 
@@ -167,7 +154,7 @@ int main()
     if (ret != SOCK_OK)
     {
         tls_deinit();
-        fprintf(stderr, "Error: %s\n", sock_strerror(ret));
+        coap_log_error("%s", sock_strerror(ret));
         return EXIT_FAILURE;
     }
 
@@ -180,11 +167,11 @@ int main()
         {
             tls_server_deinit();
             tls_deinit();
-            fprintf(stderr, "Error: %s\n", sock_strerror(ret));
+            coap_log_error("%s", sock_strerror(ret));
             return EXIT_FAILURE;
         }
-        printf("Result: %s\n", sock_strerror(ret));
-        printf("Time: %d sec\n", (int)(end - start));
+        coap_log_info("Result: %s", sock_strerror(ret));
+        coap_log_debug("Time: %d sec", (int)(end - start));
     }
 
     tls_server_deinit();

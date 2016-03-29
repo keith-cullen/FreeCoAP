@@ -209,7 +209,7 @@ int main()
     coap_server_t server = {0};
     int ret = 0;
 
-    coap_log_set_level(COAP_LOG_INFO);
+    coap_log_set_level(COAP_LOG_DEBUG);
 
 #ifdef COAP_DTLS_EN
     ret = coap_server_create(&server, server_handle, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);

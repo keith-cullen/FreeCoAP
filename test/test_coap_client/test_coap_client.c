@@ -842,7 +842,7 @@ int main(int argc, char **argv)
     const char *opts = ":hl:";
     unsigned num_tests = 0;
     unsigned num_pass = 0;
-    int log_level = COAP_LOG_ERROR;
+    int log_level = COAP_LOG_DEBUG;
     int test_num = 0;
     int c = 0;
     test_t tests[] = {{test_exchange_func, &test1_data},
