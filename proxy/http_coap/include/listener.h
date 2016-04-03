@@ -35,6 +35,7 @@
 #define LISTENER_H
 
 #include "tls6sock.h"
+#include "tls.h"
 #include "thread.h"
 #include "param.h"
 
@@ -47,7 +48,7 @@ typedef struct
 }
 listener_t;
 
-listener_t *listener_new(unsigned index, param_t *param, int timeout, int backlog);
+listener_t *listener_new(unsigned index, tls_server_t *server, param_t *param, int timeout, int backlog);
 void listener_delete(listener_t *listener);
 int listener_run(listener_t *listener);
 

@@ -95,7 +95,7 @@ static void *listener_thread_func(void *data)
 }
 
 
-listener_t *listener_new(unsigned index, param_t *param, int timeout, int backlog)
+listener_t *listener_new(unsigned index, tls_server_t *server, param_t *param, int timeout, int backlog)
 {
     listener_t *listener = NULL;
     int ret = 0;
@@ -118,7 +118,7 @@ listener_t *listener_new(unsigned index, param_t *param, int timeout, int backlo
         return NULL;
     }
 
-    ret = tls6ssock_open(&listener->ssock, param_get_port(param), timeout, backlog);
+    ret = tls6ssock_open(&listener->ssock, server, param_get_port(param), timeout, backlog);
     if (ret != SOCK_OK)
     {
         coap_log_error(sock_strerror(ret));

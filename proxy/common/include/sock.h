@@ -66,7 +66,8 @@
 #define SOCK_TLS_CACHE_ERROR                -29
 #define SOCK_PEER_CERT_VERIFY_ERROR         -30
 #define SOCK_CLOSE_ERROR                    -31
-#define SOCK_NUM_ERRORS                      32
+#define SOCK_LOCK_ERROR                     -32
+#define SOCK_NUM_ERRORS                      33
 
 const char *sock_strerror(int error);
 
