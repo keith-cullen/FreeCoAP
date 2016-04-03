@@ -47,9 +47,9 @@
 #define SERVER_COMMON_NAME  "dummy/server"                                      /**< Expected common name in the proxy's certificate */
 #define HOST                "::1"                                               /**< Host address of the proxy */
 #define PORT                "12437"                                             /**< TCP port number of the proxy */
-#define TRUST_FILE_NAME     "root_server_cert.pem"                              /**< TLS trust file name */
-#define CERT_FILE_NAME      "client_cert.pem"                                   /**< TLS certificate file name */
-#define KEY_FILE_NAME       "client_privkey.pem"                                /**< TLS key file name */
+#define TRUST_FILE_NAME     "../../certs/root_server_cert.pem"                  /**< TLS trust file name */
+#define CERT_FILE_NAME      "../../certs/client_cert.pem"                       /**< TLS certificate file name */
+#define KEY_FILE_NAME       "../../certs/client_privkey.pem"                    /**< TLS key file name */
 #define CRL_FILE_NAME       ""                                                  /**< TLS certificate revocation list file name */
 #define SOCKET_TIMEOUT      120                                                 /**< Timeout for TLS/IPv6 socket operations */
 #define RESP_BUF_LEN        1024                                                /**< Size of the buffer used to store responses */
@@ -138,6 +138,11 @@ test_http_client_data_t test5_data =
     .value = NULL,
     .body = NULL
 };
+
+/**
+ *  @brief TLS client context used by all tests
+ */
+tls_client_t client = {0};
 
 /**
  *  @brief Compare the start line in a HTTP message with expected values
@@ -265,7 +270,7 @@ static test_result_t test_exchange_func(test_data_t data)
 
     printf("%s\n", test_data->desc);
 
-    ret = tls6sock_open(&s, HOST, PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
+    ret = tls6sock_open(&s, &client, HOST, PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
     if (ret != SOCK_OK)
     {
         return FAIL;;
@@ -387,7 +392,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    ret = tls_client_init(TRUST_FILE_NAME, CERT_FILE_NAME, KEY_FILE_NAME);
+    ret = tls_client_create(&client, TRUST_FILE_NAME, CERT_FILE_NAME, KEY_FILE_NAME);
     if (ret != SOCK_OK)
     {
         coap_log_error("%s", sock_strerror(ret));
@@ -422,7 +427,7 @@ int main(int argc, char **argv)
         num_pass = test_run(tests, num_tests);
     }
 
-    tls_client_deinit();
+    tls_client_destroy(&client);
     tls_deinit();
 
     return num_pass == num_tests ? EXIT_SUCCESS : EXIT_FAILURE;

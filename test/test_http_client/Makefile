@@ -31,7 +31,8 @@ OBJS = test_http_client.o \
        util.o \
        coap_log.o \
        test.o
-LIBS = -lgnutls \
+LIBS = -lpthread \
+       -lgnutls \
        -lnettle \
        -lhogweed \
        -lgmp

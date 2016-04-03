@@ -40,9 +40,9 @@
 
 #define HOST                 "::1"                                              /**< Host address to listen on */
 #define PORT                 "12436"                                            /**< UDP port number to listen on */
-#define KEY_FILE_NAME        "server_privkey.pem"                               /**< DTLS key file name */
-#define CERT_FILE_NAME       "server_cert.pem"                                  /**< DTLS certificate file name */
-#define TRUST_FILE_NAME      "root_client_cert.pem"                             /**< DTLS trust file name */
+#define KEY_FILE_NAME        "../../certs/server_privkey.pem"                   /**< DTLS key file name */
+#define CERT_FILE_NAME       "../../certs/server_cert.pem"                      /**< DTLS certificate file name */
+#define TRUST_FILE_NAME      "../../certs/root_client_cert.pem"                 /**< DTLS trust file name */
 #define CRL_FILE_NAME        ""                                                 /**< DTLS certificate revocation list file name */
 #define SEP_URI_PATH         "/separate"                                        /**< URI path that requires a separate response */
 #define UNSAFE_URI_PATH      "unsafe"                                           /**< URI path that causes the server to include an unsafe option in the response */

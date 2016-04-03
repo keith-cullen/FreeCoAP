@@ -247,12 +247,14 @@ static int coap_client_dtls_create(coap_client_t *client,
     ret = gnutls_global_init();
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to initialise DTLS library");
         return -1;
     }
     ret = gnutls_certificate_allocate_credentials(&client->cred);
     if (ret != GNUTLS_E_SUCCESS)
     {
         gnutls_global_deinit();
+        coap_log_error("Failed to allocate DTLS credentials");
         return -1;
     }
     if ((trust_file_name != NULL) && (strlen(trust_file_name) != 0))
@@ -262,6 +264,7 @@ static int coap_client_dtls_create(coap_client_t *client,
         {
             gnutls_certificate_free_credentials(client->cred);
             gnutls_global_deinit();
+            coap_log_error("Failed to assign X.509 trust file to DTLS credentials");
             return -1;
         }
     }
@@ -272,6 +275,7 @@ static int coap_client_dtls_create(coap_client_t *client,
         {
             gnutls_certificate_free_credentials(client->cred);
             gnutls_global_deinit();
+            coap_log_error("Failed to assign X.509 certificate revocation list to DTLS credentials");
             return -1;
         }
     }
@@ -280,6 +284,7 @@ static int coap_client_dtls_create(coap_client_t *client,
     {
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
+        coap_log_error("Failed to assign X.509 key file to DTLS credentials");
         return -1;
     }
     ret = gnutls_priority_init(&client->priority, COAP_CLIENT_DTLS_PRIORITIES, NULL);
@@ -287,6 +292,7 @@ static int coap_client_dtls_create(coap_client_t *client,
     {
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
+        coap_log_error("Failed to initialise priorities for DTLS session");
         return -1;
     }
     ret = gnutls_init(&client->session, GNUTLS_CLIENT | GNUTLS_DATAGRAM | GNUTLS_NONBLOCK);
@@ -295,6 +301,7 @@ static int coap_client_dtls_create(coap_client_t *client,
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
+        coap_log_error("Failed to initialise DTLS session");
         return -1;
     }
     ret = gnutls_credentials_set(client->session, GNUTLS_CRD_CERTIFICATE, client->cred);
@@ -304,6 +311,7 @@ static int coap_client_dtls_create(coap_client_t *client,
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
+        coap_log_error("Failed to assign credentials to DTLS session");
         return -1;
     }
     ret = gnutls_priority_set(client->session, client->priority);
@@ -313,6 +321,7 @@ static int coap_client_dtls_create(coap_client_t *client,
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
+        coap_log_error("Failed to assign priorities to DTLS session");
         return -1;
     }
     gnutls_transport_set_ptr(client->session, client);
@@ -328,6 +337,7 @@ static int coap_client_dtls_create(coap_client_t *client,
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
+        coap_log_error("Failed to complete DTLS handshake");
         return ret;
     }
     return 0;

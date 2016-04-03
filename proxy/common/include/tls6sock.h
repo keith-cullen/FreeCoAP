@@ -64,6 +64,12 @@ typedef enum {TLS6SOCK_CLIENT = 0, TLS6SOCK_SERVER} tls6sock_type_t;
 typedef struct
 {
     tls6sock_type_t type;
+    union
+    {
+        tls_client_t *client;
+        tls_server_t *server;
+    }
+    u;
     int sd;
     int timeout;
     struct sockaddr_in6 sin;  /* remote address and port */
@@ -73,14 +79,15 @@ tls6sock_t;
 
 typedef struct
 {
+    tls_server_t *server;
     int sd;
     int timeout;
     struct sockaddr_in6 sin;  /* local address and port */
 }
 tls6ssock_t;
 
-int tls6sock_open_from_sockaddr_in6(tls6sock_t *s, const char *common_name, int timeout, struct sockaddr_in6 *sin);
-int tls6sock_open(tls6sock_t *s, const char *host, const char *port, const char *common_name, int timeout);
+int tls6sock_open_from_sockaddr_in6(tls6sock_t *s, tls_client_t *client, const char *common_name, int timeout, struct sockaddr_in6 *sin);
+int tls6sock_open(tls6sock_t *s, tls_client_t *client, const char *host, const char *port, const char *common_name, int timeout);
 void tls6sock_close(tls6sock_t *s);
 int tls6sock_rehandshake(tls6sock_t *s);
 void tls6sock_get_addr_string_(char *out, size_t out_len, struct in6_addr sin6_addr);
@@ -89,7 +96,7 @@ ssize_t tls6sock_read_full(tls6sock_t *s, void *buf, size_t len);
 ssize_t tls6sock_write(tls6sock_t *s, void *buf, size_t len);
 ssize_t tls6sock_write_full(tls6sock_t *s, void *buf, size_t len);
 
-int tls6ssock_open(tls6ssock_t *ss, const char *port, int timeout, int backlog);
+int tls6ssock_open(tls6ssock_t *ss, tls_server_t *server, const char *port, int timeout, int backlog);
 void tls6ssock_close(tls6ssock_t *ss);
 int tls6ssock_accept(tls6ssock_t *ss, tls6sock_t *s);
 

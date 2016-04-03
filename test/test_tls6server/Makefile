@@ -21,7 +21,8 @@ OBJS = test_tls6server.o \
        tls.o \
        util.o \
        coap_log.o
-LIBS = -lgnutls \
+LIBS = -lpthread \
+       -lgnutls \
        -lnettle \
        -lhogweed \
        -lgmp

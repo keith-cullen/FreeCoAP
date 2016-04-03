@@ -35,14 +35,14 @@
 #include <signal.h>
 #include <time.h>
 #include "tls6sock.h"
-#include "tls.h"
 #include "sock.h"
+#include "tls.h"
 #include "coap_log.h"
 
 #define SERVER_COMMON_NAME  "dummy/server"
-#define TRUST_FILE_NAME     "root_server_cert.pem"
-#define CERT_FILE_NAME      "client_cert.pem"
-#define KEY_FILE_NAME       "client_privkey.pem"
+#define TRUST_FILE_NAME     "../../certs/root_server_cert.pem"
+#define CERT_FILE_NAME      "../../certs/client_cert.pem"
+#define KEY_FILE_NAME       "../../certs/client_privkey.pem"
 #define HOST                "::1"
 #define PORT                "9999"
 #define BUF_SIZE            (1 << 4)
@@ -60,7 +60,7 @@ static void set_signal()
     sigaction(SIGPIPE, &sa, NULL);
 }
 
-static int client()
+static int client_run(tls_client_t *client)
 {
     tls6sock_t s = {0};
     char addr_str[INET6_ADDRSTRLEN] = {0};
@@ -69,7 +69,7 @@ static int client()
     int ret = 0;
     int i = 0;
 
-    ret = tls6sock_open(&s, HOST, PORT, SERVER_COMMON_NAME, TIMEOUT);
+    ret = tls6sock_open(&s, client, HOST, PORT, SERVER_COMMON_NAME, TIMEOUT);
     if (ret != SOCK_OK)
     {
         return ret;
@@ -109,6 +109,7 @@ static int client()
 
 int main()
 {
+    tls_client_t client = {0};
     time_t start = 0;
     time_t end = 0;
     int ret = 0;
@@ -126,7 +127,7 @@ int main()
         return EXIT_FAILURE;
     }
 
-    ret = tls_client_init(TRUST_FILE_NAME, CERT_FILE_NAME, KEY_FILE_NAME);
+    ret = tls_client_create(&client, TRUST_FILE_NAME, CERT_FILE_NAME, KEY_FILE_NAME);
     if (ret != SOCK_OK)
     {
         coap_log_error("%s", sock_strerror(ret));
@@ -137,12 +138,12 @@ int main()
     for (i = 0; i < NUM_ITER; i++)
     {
         start = time(NULL);
-        ret = client();
+        ret = client_run(&client);
         end = time(NULL);
         if (ret != SOCK_OK)
         {
             coap_log_error("%s", sock_strerror(ret));
-            tls_client_deinit();
+            tls_client_destroy(&client);
             tls_deinit();
             return EXIT_FAILURE;
         }
@@ -152,7 +153,7 @@ int main()
         sleep(DELAY);
     }
 
-    tls_client_deinit();
+    tls_client_destroy(&client);
     tls_deinit();
     return EXIT_SUCCESS;
 }

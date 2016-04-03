@@ -70,7 +70,9 @@ static const char *sock_error_str[] = {
     /* -29 */    "TLS cache error",
 
     /* -30 */    "peer certificate verification failed",
-    /* -31 */    "unable to close socket"
+    /* -31 */    "unable to close socket",
+
+    /* -32 */    "lock error"
 };
 
 const char *sock_strerror(int error)
