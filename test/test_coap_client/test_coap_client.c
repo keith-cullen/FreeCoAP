@@ -42,9 +42,9 @@
 
 #define HOST             "::1"                                                  /**< Host address of the server */
 #define PORT             "12436"                                                /**< UDP port number of the server */
-#define TRUST_FILE_NAME  "root_server_cert.pem"                                 /**< DTLS trust file name */
-#define CERT_FILE_NAME   "client_cert.pem"                                      /**< DTLS certificate file name */
-#define KEY_FILE_NAME    "client_privkey.pem"                                   /**< DTLS key file name */
+#define TRUST_FILE_NAME  "../../certs/root_server_cert.pem"                     /**< DTLS trust file name */
+#define CERT_FILE_NAME   "../../certs/client_cert.pem"                          /**< DTLS certificate file name */
+#define KEY_FILE_NAME    "../../certs/client_privkey.pem"                       /**< DTLS key file name */
 #define CRL_FILE_NAME    ""                                                     /**< DTLS certificate revocation list file name */
 #define SEP_URI_PATH     "separate"                                             /**< URI path option value to trigger a separate response from the server */
 

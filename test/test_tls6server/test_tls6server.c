@@ -36,14 +36,14 @@
 #include <time.h>
 #include <unistd.h>
 #include "tls6sock.h"
-#include "tls.h"
 #include "sock.h"
+#include "tls.h"
 #include "coap_log.h"
 
 #define REHANDSHAKE
-#define TRUST_FILE_NAME  "root_client_cert.pem"
-#define CERT_FILE_NAME   "server_cert.pem"
-#define KEY_FILE_NAME    "server_privkey.pem"
+#define TRUST_FILE_NAME  "../../certs/root_client_cert.pem"
+#define CERT_FILE_NAME   "../../certs/server_cert.pem"
+#define KEY_FILE_NAME    "../../certs/server_privkey.pem"
 #define PORT             "9999"
 #define BUF_SIZE         (1 << 4)
 #define TIMEOUT          30
@@ -60,7 +60,7 @@ static void set_signal()
     sigaction(SIGPIPE, &sa, NULL);
 }
 
-static int server()
+static int server_run(tls_server_t *server)
 {
     tls6ssock_t ss = {0};
     tls6sock_t s = {0};
@@ -70,7 +70,7 @@ static int server()
     int ret = 0;
     int i = 0;
 
-    ret = tls6ssock_open(&ss, PORT, TIMEOUT, BACKLOG);
+    ret = tls6ssock_open(&ss, server, PORT, TIMEOUT, BACKLOG);
     if (ret != SOCK_OK)
     {
         return ret;
@@ -133,6 +133,7 @@ static int server()
 
 int main()
 {
+    tls_server_t server = {0};
     time_t start = 0;
     time_t end = 0;
     int ret = 0;
@@ -150,7 +151,7 @@ int main()
         return EXIT_FAILURE;
     }
 
-    ret = tls_server_init(TRUST_FILE_NAME, CERT_FILE_NAME, KEY_FILE_NAME);
+    ret = tls_server_create(&server, TRUST_FILE_NAME, CERT_FILE_NAME, KEY_FILE_NAME);
     if (ret != SOCK_OK)
     {
         tls_deinit();
@@ -161,11 +162,11 @@ int main()
     for (i = 0; i < NUM_ITER; i++)
     {
         start = time(NULL);
-        ret = server();
+        ret = server_run(&server);
         end = time(NULL);
         if (ret != SOCK_OK)
         {
-            tls_server_deinit();
+            tls_server_destroy(&server);
             tls_deinit();
             coap_log_error("%s", sock_strerror(ret));
             return EXIT_FAILURE;
@@ -174,7 +175,7 @@ int main()
         coap_log_debug("Time: %d sec", (int)(end - start));
     }
 
-    tls_server_deinit();
+    tls_server_destroy(&server);
     tls_deinit();
     return EXIT_SUCCESS;
 }

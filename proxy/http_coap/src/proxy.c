@@ -93,6 +93,7 @@ int main(int argc, char **argv)
     struct sigaction sai = {{0}};
     const char *config_file_name = CONFIG_FILE_NAME;
     const char *short_opts = ":hc:";
+    tls_server_t server = {0};
     listener_t *listener = NULL;
     unsigned listener_index = 0;
     param_t param = {0};
@@ -180,9 +181,10 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    ret = tls_server_init(param_get_http_server_trust_file_name(&param),
-                          param_get_http_server_cert_file_name(&param),
-                          param_get_http_server_key_file_name(&param));
+    ret = tls_server_create(&server,
+                            param_get_http_server_trust_file_name(&param),
+                            param_get_http_server_cert_file_name(&param),
+                            param_get_http_server_key_file_name(&param));
     if (ret != SOCK_OK)
     {
         coap_log_error("Unable to initialise TLS server\n");
@@ -195,17 +197,20 @@ int main(int argc, char **argv)
     if (ret < 0)
     {
         coap_log_error("Unable to initialise connection module");
+        tls_server_destroy(&server);
+        tls_deinit();
         param_destroy(&param);
         return EXIT_FAILURE;
     }
 
     listener = listener_new(listener_index,
+                            &server,
                             &param,
                             SOCKET_TIMEOUT,
                             SOCKET_BACKLOG);
     if (listener == NULL)
     {
-        tls_server_deinit();
+        tls_server_destroy(&server);
         tls_deinit();
         param_destroy(&param);
         return EXIT_FAILURE;
@@ -215,7 +220,7 @@ int main(int argc, char **argv)
     if (ret < 0)
     {
         listener_delete(listener);
-        tls_server_deinit();
+        tls_server_destroy(&server);
         tls_deinit();
         param_destroy(&param);
         return EXIT_FAILURE;
@@ -236,7 +241,7 @@ int main(int argc, char **argv)
 
     coap_log_notice("Proxy stopped");
 
-    tls_server_deinit();
+    tls_server_destroy(&server);
     tls_deinit();
     param_destroy(&param);
 
