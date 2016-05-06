@@ -26,7 +26,7 @@
  */
 
 /**
- *  @file tls6sock.c
+ *  @file tls_sock.c
  *
  *  @brief Source file for the FreeCoAP TLS/IPv6 socket library
  */
@@ -38,12 +38,12 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <gnutls/x509.h>
-#include "tls6sock.h"
+#include "tls_sock.h"
 #include "coap_log.h"
 
-static int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout);
-static int tls6sock_handshake(tls6sock_t *s);
-static int tls6sock_verify_peer_cert(tls6sock_t *s, const char *common_name);
+static int tls_sock_open_(tls_sock_t *s, const char *common_name, int timeout);
+static int tls_sock_handshake(tls_sock_t *s);
+static int tls_sock_verify_peer_cert(tls_sock_t *s, const char *common_name);
 
 static int set_non_blocking(int sd)
 {
@@ -63,48 +63,48 @@ static int set_non_blocking(int sd)
     return 0;
 }
 
-int tls6sock_open_from_sockaddr_in6(tls6sock_t *s, tls_client_t *client, const char *common_name, int timeout, struct sockaddr_in6 *sin)
+int tls_sock_open_from_sockaddr_in(tls_sock_t *s, tls_client_t *client, const char *common_name, int timeout, sock_sockaddr_in_t *sin)
 {
     int ret = 0;
 
-    memset(s, 0, sizeof(tls6sock_t));
+    memset(s, 0, sizeof(tls_sock_t));
 
     if (timeout < 0)
     {
         return SOCK_ARG_ERROR;
     }
 
-    s->type = TLS6SOCK_CLIENT;
+    s->type = TLS_SOCK_CLIENT;
     s->u.client = client;
 
     /* open a socket */
-    s->sd = socket(PF_INET6, SOCK_STREAM, 0);
+    s->sd = socket(SOCK_PF_INET, SOCK_STREAM, 0);
     if (s->sd == -1)
     {
         return SOCK_OPEN_ERROR;
     }
 
-    memcpy(&s->sin, sin, sizeof(struct sockaddr_in6));
+    memcpy(&s->sin, sin, sizeof(sock_sockaddr_in_t));
 
     /* connect to server */
     ret = connect(s->sd, (struct sockaddr *)&s->sin, sizeof(s->sin));
-    if (ret != 0)
+    if (ret < 0)
     {
         close(s->sd);
         return SOCK_CONNECT_ERROR;
     }
 
-    return tls6sock_open_(s, common_name, timeout);
+    return tls_sock_open_(s, common_name, timeout);
 }
 
-int tls6sock_open(tls6sock_t *s, tls_client_t *client, const char *host, const char *port, const char *common_name, int timeout)
+int tls_sock_open(tls_sock_t *s, tls_client_t *client, const char *host, const char *port, const char *common_name, int timeout)
 {
     struct addrinfo hints = {0};
     struct addrinfo *list = NULL;
     struct addrinfo *node = NULL;
     int ret = 0;
 
-    memset(s, 0, sizeof(tls6sock_t));
+    memset(s, 0, sizeof(tls_sock_t));
 
     if (timeout < 0)
     {
@@ -114,7 +114,7 @@ int tls6sock_open(tls6sock_t *s, tls_client_t *client, const char *host, const c
     /* resolve host and port */
     /* (currently only checks the first value returned) */
     hints.ai_flags = 0;
-    hints.ai_family = AF_INET6;       /* preferred socket domain */
+    hints.ai_family = SOCK_AF_INET;   /* preferred socket domain */
     hints.ai_socktype = SOCK_STREAM;  /* preferred socket type */
     hints.ai_protocol = 0;            /* preferred protocol (3rd argument to socket()) - 0 specifies that any protocol will do */
     hints.ai_addrlen = 0;             /* must be 0 */
@@ -122,7 +122,7 @@ int tls6sock_open(tls6sock_t *s, tls_client_t *client, const char *host, const c
     hints.ai_canonname = NULL;        /* must be NULL */
     hints.ai_next = NULL;             /* must be NULL */
     ret = getaddrinfo(host, port, &hints, &list);
-    if (ret != 0)
+    if (ret < 0)
     {
         return SOCK_ADDR_ERROR;
     }
@@ -130,9 +130,9 @@ int tls6sock_open(tls6sock_t *s, tls_client_t *client, const char *host, const c
     node = list;
     while (node != NULL)
     {
-        if ((node->ai_family == AF_INET6) && (node->ai_socktype == SOCK_STREAM))
+        if ((node->ai_family == SOCK_AF_INET) && (node->ai_socktype == SOCK_STREAM))
         {
-            ret = tls6sock_open_from_sockaddr_in6(s, client, common_name, timeout, (struct sockaddr_in6 *)node->ai_addr);
+            ret = tls_sock_open_from_sockaddr_in(s, client, common_name, timeout, (sock_sockaddr_in_t *)node->ai_addr);
             if ((ret == SOCK_OK) || (ret != SOCK_CONNECT_ERROR))
             {
                 break;
@@ -144,10 +144,10 @@ int tls6sock_open(tls6sock_t *s, tls_client_t *client, const char *host, const c
     return ret;
 }
 
-int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
+int tls_sock_open_(tls_sock_t *s, const char *common_name, int timeout)
 {
     gnutls_datum_t data = {0};
-    char addr[INET6_ADDRSTRLEN] = {0};
+    char addr[SOCK_INET_ADDRSTRLEN] = {0};
     int ret = 0;
 
     /* initialise timeout value */
@@ -155,7 +155,7 @@ int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
 
     /* set non-blocking status */
     ret = set_non_blocking(s->sd);
-    if (ret != 0)
+    if (ret < 0)
     {
         close(s->sd);
         return SOCK_TLS_CONFIG_ERROR;
@@ -176,7 +176,7 @@ int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
         return SOCK_TLS_CONFIG_ERROR;
     }
 
-    if (s->type == TLS6SOCK_CLIENT)  /* attempt to resume cached client session */
+    if (s->type == TLS_SOCK_CLIENT)  /* attempt to resume cached client session */
     {
         ret = gnutls_credentials_set(s->session, GNUTLS_CRD_CERTIFICATE, tls_client_get_cred(s->u.client));
         if (ret != GNUTLS_E_SUCCESS)
@@ -186,7 +186,7 @@ int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
             return SOCK_TLS_CONFIG_ERROR;
         }
 
-        tls6sock_get_addr_string_(addr, sizeof(addr), s->sin.sin6_addr);
+        tls_sock_get_addr_string_(addr, sizeof(addr), s->sin.SOCK_SIN_ADDR);
         data = tls_client_get(s->u.client, addr);
         if (data.size != 0)
         {
@@ -199,7 +199,7 @@ int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
             }
         }
     }
-    else if (s->type == TLS6SOCK_SERVER)  /* initialise the server cache */
+    else if (s->type == TLS_SOCK_SERVER)  /* initialise the server cache */
     {
         ret = gnutls_credentials_set(s->session, GNUTLS_CRD_CERTIFICATE, tls_server_get_cred(s->u.server));
         if (ret != GNUTLS_E_SUCCESS)
@@ -220,10 +220,10 @@ int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
 #endif
     }
 
-    gnutls_transport_set_ptr(s->session, (gnutls_transport_ptr_t)(s->sd));
+    gnutls_transport_set_ptr(s->session, (gnutls_transport_ptr_t)(unsigned long)(s->sd));
 
     /* tls handshake */
-    ret = tls6sock_handshake(s);
+    ret = tls_sock_handshake(s);
     if (ret != SOCK_OK)
     {
         gnutls_deinit(s->session);
@@ -231,10 +231,10 @@ int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
         return ret;
     }
 
-    if (s->type == TLS6SOCK_CLIENT)
+    if (s->type == TLS_SOCK_CLIENT)
     {
         /* verify server's certificate */
-        ret = tls6sock_verify_peer_cert(s, common_name);
+        ret = tls_sock_verify_peer_cert(s, common_name);
         if (ret != SOCK_OK)
         {
             gnutls_deinit(s->session);
@@ -243,10 +243,10 @@ int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
         }
     }
 #ifdef TLS_CLIENT_AUTH
-    else if (s->type == TLS6SOCK_SERVER)
+    else if (s->type == TLS_SOCK_SERVER)
     {
         /* verify client's certificate */
-        ret = tls6sock_verify_peer_cert(s, common_name);
+        ret = tls_sock_verify_peer_cert(s, common_name);
         if (ret != SOCK_OK)
         {
             gnutls_deinit(s->session);
@@ -260,7 +260,7 @@ int tls6sock_open_(tls6sock_t *s, const char *common_name, int timeout)
 }
 
 /* must be able to handle a rehandshake */
-int tls6sock_handshake(tls6sock_t *s)
+int tls_sock_handshake(tls_sock_t *s)
 {
     struct timeval tv = {0};
     fd_set readfds = {{0}};
@@ -298,22 +298,24 @@ int tls6sock_handshake(tls6sock_t *s)
         if (ret == -1)
         {
             if (errno == EINTR)
+            {
                 return SOCK_INTR;
+            }
             return SOCK_TLS_HANDSHAKE_ERROR;
         }
     }
 }
 
-int tls6sock_verify_peer_cert(tls6sock_t *s, const char *common_name)
+int tls_sock_verify_peer_cert(tls_sock_t *s, const char *common_name)
 {
     gnutls_certificate_type_t cert_type = 0;
     const gnutls_datum_t *cert_list = NULL;
     gnutls_x509_crt_t cert = {0};
-    unsigned int status = 0;
-    unsigned int cert_list_size = 0;
-    time_t current_time = 0;
+    unsigned cert_list_size = 0;
+    unsigned status = 0;
     time_t expiration_time = 0;
     time_t activation_time = 0;
+    time_t current_time = 0;
     int ret = 0;
 
     ret = gnutls_certificate_verify_peers2(s->session, &status);
@@ -400,16 +402,16 @@ int tls6sock_verify_peer_cert(tls6sock_t *s, const char *common_name)
 }
 
 /* send and receive close notifiy */
-void tls6sock_close(tls6sock_t *s)
+void tls_sock_close(tls_sock_t *s)
 {
     struct timeval tv = {0};
     gnutls_datum_t datum = {0};
     fd_set readfds = {{0}};
-    char addr[INET6_ADDRSTRLEN] = {0};
+    char addr[SOCK_INET_ADDRSTRLEN] = {0};
     int success = 0;
     int ret = 0;
 
-    if (s->type == TLS6SOCK_CLIENT)
+    if (s->type == TLS_SOCK_CLIENT)
     {
         gnutls_session_get_data2(s->session, &datum);
     }
@@ -441,13 +443,13 @@ void tls6sock_close(tls6sock_t *s)
             break;
         }
     }
-    if (s->type == TLS6SOCK_CLIENT)
+    if (s->type == TLS_SOCK_CLIENT)
     {
         if (datum.size > 0)
         {
             if (success)  /* only cache session if both sides sent close notify alerts */
             {
-                tls6sock_get_addr_string_(addr, sizeof(addr), s->sin.sin6_addr);
+                tls_sock_get_addr_string_(addr, sizeof(addr), s->sin.SOCK_SIN_ADDR);
                 tls_client_set(s->u.client, addr, datum);
             }
             gnutls_free(datum.data);
@@ -456,22 +458,22 @@ void tls6sock_close(tls6sock_t *s)
     sleep(1);
     gnutls_deinit(s->session);
     close(s->sd);
-    memset(s, 0, sizeof(tls6sock_t));
+    memset(s, 0, sizeof(tls_sock_t));
 }
 
-int tls6sock_rehandshake(tls6sock_t *s)
+int tls_sock_rehandshake(tls_sock_t *s)
 {
     gnutls_alert_description_t alert = {0};
     int ret = 0;
 
-    if (s->type == TLS6SOCK_SERVER)
+    if (s->type == TLS_SOCK_SERVER)
     {
         /* if this funcion is called by a client it will return -50, 'The request is invalid.' */
         ret = gnutls_rehandshake(s->session);
         if (ret == GNUTLS_E_SUCCESS)
         {
             /* tls handshake */
-            ret = tls6sock_handshake(s);
+            ret = tls_sock_handshake(s);
             if (ret == SOCK_OK)
             {
                 return SOCK_OK;
@@ -494,16 +496,16 @@ int tls6sock_rehandshake(tls6sock_t *s)
     return SOCK_TLS_HANDSHAKE_ERROR;
 }
 
-void tls6sock_get_addr_string_(char *out, size_t out_len, struct in6_addr sin6_addr)
+void tls_sock_get_addr_string_(char *out, size_t out_len, sock_in_addr_t sin_addr)
 {
-    inet_ntop(AF_INET6, &sin6_addr, out, out_len);
+    inet_ntop(SOCK_AF_INET, &sin_addr, out, out_len);
 }
 
 /*  return { > 0, number of bytes read
  *         {   0, connection closed
  *         { < 0, error
  */
-ssize_t tls6sock_read(tls6sock_t *s, void *buf, size_t len)
+ssize_t tls_sock_read(tls_sock_t *s, void *buf, size_t len)
 {
     struct timeval tv = {0};
     fd_set readfds = {{0}};
@@ -536,7 +538,7 @@ ssize_t tls6sock_read(tls6sock_t *s, void *buf, size_t len)
 
             /* gnutls_alert_send(s->session, GNUTLS_E_WARNING_ALERT_RECEIVED, GNUTLS_A_NO_RENEGOTIATION); */
 
-            ret = tls6sock_handshake(s);
+            ret = tls_sock_handshake(s);
             if (ret != SOCK_OK)
             {
                 return ret;
@@ -560,7 +562,9 @@ ssize_t tls6sock_read(tls6sock_t *s, void *buf, size_t len)
         if (ret == -1)
         {
             if (errno == EINTR)
+            {
                 return SOCK_INTR;
+            }
             return SOCK_READ_ERROR;
         }
     }
@@ -570,14 +574,14 @@ ssize_t tls6sock_read(tls6sock_t *s, void *buf, size_t len)
  *         {   0, connection closed
  *         { < 0, error
  */
-ssize_t tls6sock_read_full(tls6sock_t *s, void *buf, size_t len)
+ssize_t tls_sock_read_full(tls_sock_t *s, void *buf, size_t len)
 {
     ssize_t num_bytes = 0;
     size_t total_bytes = 0;
 
     while (total_bytes < len)
     {
-        num_bytes = tls6sock_read(s, (char *)buf + total_bytes, len - total_bytes);
+        num_bytes = tls_sock_read(s, (char *)buf + total_bytes, len - total_bytes);
         if (num_bytes <= 0)
         {
             return num_bytes;
@@ -591,7 +595,7 @@ ssize_t tls6sock_read_full(tls6sock_t *s, void *buf, size_t len)
  *         {   0, connection closed
  *         { < 0, error
  */
-ssize_t tls6sock_write(tls6sock_t *s, void *buf, size_t len)
+ssize_t tls_sock_write(tls_sock_t *s, void *buf, size_t len)
 {
     struct timeval tv = {0};
     fd_set writefds = {{0}};
@@ -629,7 +633,9 @@ ssize_t tls6sock_write(tls6sock_t *s, void *buf, size_t len)
         if (ret == -1)
         {
             if (errno == EINTR)
+            {
                 return SOCK_INTR;
+            }
             return SOCK_WRITE_ERROR;
         }
     }
@@ -639,14 +645,14 @@ ssize_t tls6sock_write(tls6sock_t *s, void *buf, size_t len)
  *         {   0, connection closed
  *         { < 0, error
  */
-ssize_t tls6sock_write_full(tls6sock_t *s, void *buf, size_t len)
+ssize_t tls_sock_write_full(tls_sock_t *s, void *buf, size_t len)
 {
     ssize_t num_bytes = 0;
     size_t total_bytes = 0;
 
     while (total_bytes < len)
     {
-        num_bytes = tls6sock_write(s, (char *)buf + total_bytes, len - total_bytes);
+        num_bytes = tls_sock_write(s, (char *)buf + total_bytes, len - total_bytes);
         if (num_bytes <= 0)
         {
             return num_bytes;
@@ -656,12 +662,12 @@ ssize_t tls6sock_write_full(tls6sock_t *s, void *buf, size_t len)
     return total_bytes;
 }
 
-int tls6ssock_open(tls6ssock_t *ss, tls_server_t *server, const char *port, int timeout, int backlog)
+int tls_ssock_open(tls_ssock_t *ss, tls_server_t *server, const char *port, int timeout, int backlog)
 {
     int opt_val = 0;
     int ret = 0;
 
-    memset(ss, 0, sizeof(tls6ssock_t));
+    memset(ss, 0, sizeof(tls_ssock_t));
 
     if (timeout < 0)
     {
@@ -671,7 +677,7 @@ int tls6ssock_open(tls6ssock_t *ss, tls_server_t *server, const char *port, int 
     ss->server = server;
 
     /* open a socket */
-    ss->sd = socket(PF_INET6, SOCK_STREAM, 0);
+    ss->sd = socket(SOCK_PF_INET, SOCK_STREAM, 0);
     if (ss->sd == -1)
     {
         return SOCK_OPEN_ERROR;
@@ -680,7 +686,7 @@ int tls6ssock_open(tls6ssock_t *ss, tls_server_t *server, const char *port, int 
     /* allow bind to reuse the port */
     opt_val = 1;
     ret = setsockopt(ss->sd, SOL_SOCKET, SO_REUSEADDR, &opt_val, (socklen_t)sizeof(opt_val));
-    if (ret != 0)
+    if (ret < 0)
     {
         close(ss->sd);
         return SOCK_CONFIG_ERROR;
@@ -688,15 +694,13 @@ int tls6ssock_open(tls6ssock_t *ss, tls_server_t *server, const char *port, int 
 
     /* initialise the sin structure */
     memset(&ss->sin, 0, sizeof(ss->sin));
-    ss->sin.sin6_family = AF_INET6;
-    ss->sin.sin6_addr = in6addr_any;
-    ss->sin.sin6_port = htons((in_port_t)atoi(port));
-    ss->sin.sin6_flowinfo = 0;
-    ss->sin.sin6_scope_id = 0;
+    ss->sin.SOCK_SIN_FAMILY = SOCK_AF_INET;
+    ss->sin.SOCK_IN_ADDR = SOCK_INADDR_ANY;
+    ss->sin.SOCK_SIN_PORT = htons((in_port_t)atoi(port));
 
     /* bind to address */
     ret = bind(ss->sd, (struct sockaddr *)&ss->sin, (socklen_t)sizeof(ss->sin));
-    if (ret != 0)
+    if (ret < 0)
     {
         close(ss->sd);
         return SOCK_BIND_ERROR;
@@ -704,7 +708,7 @@ int tls6ssock_open(tls6ssock_t *ss, tls_server_t *server, const char *port, int 
 
     /* start listening */
     ret = listen(ss->sd, backlog);
-    if (ret != 0)
+    if (ret < 0)
     {
         close(ss->sd);
         return SOCK_LISTEN_ERROR;
@@ -715,7 +719,7 @@ int tls6ssock_open(tls6ssock_t *ss, tls_server_t *server, const char *port, int 
 
     /* set non-blocking status */
     ret = set_non_blocking(ss->sd);
-    if (ret != 0)
+    if (ret < 0)
     {
         close(ss->sd);
         return SOCK_CONFIG_ERROR;
@@ -724,20 +728,20 @@ int tls6ssock_open(tls6ssock_t *ss, tls_server_t *server, const char *port, int 
     return SOCK_OK;
 }
 
-void tls6ssock_close(tls6ssock_t *ss)
+void tls_ssock_close(tls_ssock_t *ss)
 {
     close(ss->sd);
-    memset(ss, 0, sizeof(tls6ssock_t));
+    memset(ss, 0, sizeof(tls_ssock_t));
 }
 
-int tls6ssock_accept(tls6ssock_t *ss, tls6sock_t *s)
+int tls_ssock_accept(tls_ssock_t *ss, tls_sock_t *s)
 {
     struct timeval tv = {0};
     socklen_t addrlen = 0;
     fd_set readfds = {{0}};
     int ret = 0;
 
-    memset(s, 0, sizeof(tls6sock_t));
+    memset(s, 0, sizeof(tls_sock_t));
     addrlen = (socklen_t)sizeof(s->sin);
 
     tv.tv_sec = ss->timeout;
@@ -752,9 +756,13 @@ int tls6ssock_accept(tls6ssock_t *ss, tls6sock_t *s)
         if (s->sd == -1)
         {
             if (errno == EINTR)
+            {
                 return SOCK_INTR;
+            }
             if (errno != EAGAIN)
+            {
                 return SOCK_ACCEPT_ERROR;
+            }
         }
         FD_ZERO(&readfds);
         FD_SET(ss->sd, &readfds);
@@ -766,12 +774,14 @@ int tls6ssock_accept(tls6ssock_t *ss, tls6sock_t *s)
         if (ret == -1)
         {
             if (errno == EINTR)
+            {
                 return SOCK_INTR;
+            }
             return SOCK_ACCEPT_ERROR;
         }
     }
 
-    s->type = TLS6SOCK_SERVER;
+    s->type = TLS_SOCK_SERVER;
     s->u.server = ss->server;
-    return tls6sock_open_(s, NULL, ss->timeout);  /* todo: find out if there is a way to get the client host name */
+    return tls_sock_open_(s, NULL, ss->timeout);
 }

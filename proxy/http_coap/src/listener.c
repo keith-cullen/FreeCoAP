@@ -43,7 +43,7 @@ static void *listener_thread_func(void *data)
 {
     listener_t *listener = (listener_t *)data;
     connection_t *con = NULL;
-    tls6sock_t *sock = NULL;
+    tls_sock_t *sock = NULL;
     unsigned con_index = 0;
     thread_t thread = {0};
     int ret = 0;
@@ -54,14 +54,14 @@ static void *listener_thread_func(void *data)
 
     while (go)
     {
-        sock = (tls6sock_t *)malloc(sizeof(tls6sock_t));
+        sock = (tls_sock_t *)malloc(sizeof(tls_sock_t));
         if (sock == NULL)
         {
             coap_log_error("Out of memory");
             break;
         }
 
-        ret = tls6ssock_accept(&listener->ssock, sock);
+        ret = tls_ssock_accept(&listener->ssock, sock);
         if (ret != SOCK_OK)
         {
             free(sock);
@@ -76,7 +76,7 @@ static void *listener_thread_func(void *data)
         if (con == NULL)
         {
             coap_log_error("Unable to create connection data");
-            tls6sock_close(sock);
+            tls_sock_close(sock);
             free(sock);
             break;
         }
@@ -118,7 +118,7 @@ listener_t *listener_new(unsigned index, tls_server_t *server, param_t *param, i
         return NULL;
     }
 
-    ret = tls6ssock_open(&listener->ssock, server, param_get_port(param), timeout, backlog);
+    ret = tls_ssock_open(&listener->ssock, server, param_get_port(param), timeout, backlog);
     if (ret != SOCK_OK)
     {
         coap_log_error(sock_strerror(ret));
@@ -132,7 +132,7 @@ listener_t *listener_new(unsigned index, tls_server_t *server, param_t *param, i
 
 void listener_delete(listener_t *listener)
 {
-    tls6ssock_close(&listener->ssock);
+    tls_ssock_close(&listener->ssock);
     thread_ctx_destroy(&listener->ctx);
     free(listener);
 }

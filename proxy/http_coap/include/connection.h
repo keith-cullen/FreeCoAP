@@ -36,7 +36,7 @@
 
 #include <netinet/in.h>
 #include "coap_client.h"
-#include "tls6sock.h"
+#include "tls_sock.h"
 #include "data_buf.h"
 #include "param.h"
 
@@ -45,8 +45,8 @@ typedef struct
     unsigned listener_index;
     unsigned con_index;
     unsigned num_exchanges;
-    char addr[INET6_ADDRSTRLEN];
-    tls6sock_t *sock;
+    char addr[SOCK_INET_ADDRSTRLEN];
+    tls_sock_t *sock;
     data_buf_t recv_buf;
     data_buf_t send_buf;
     param_t *param;
@@ -55,7 +55,7 @@ connection_t;
 
 int connection_init(void);
 void *connection_thread_func(void *data);
-connection_t *connection_new(tls6sock_t *sock, unsigned listener_index, unsigned con_index, param_t *param);
+connection_t *connection_new(tls_sock_t *sock, unsigned listener_index, unsigned con_index, param_t *param);
 void connection_delete(connection_t *con);
 
 #endif

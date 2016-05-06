@@ -31,14 +31,13 @@
  *  @brief Include file for the FreeCoAP TLS library
  */
 
+#ifndef TLS_H
+#define TLS_H
+
 #include <stddef.h>         /* size_t */
-#include <netinet/in.h>     /* INET6_ADDRSTRLEN */
 #include <gnutls/gnutls.h>
 #include "sock.h"           /* error codes */
 #include "lock.h"           /* lock_t */
-
-#ifndef TLS_H
-#define TLS_H
 
 #define TLS_CLIENT_MAX_SESSION_DATA_SIZE  2048
 #define TLS_CLIENT_CACHE_SIZE               50
@@ -107,7 +106,7 @@ tls_server_t;
 
 int tls_init(void);
 void tls_deinit(void);
-gnutls_priority_t tls_get_priority_cache();
+gnutls_priority_t tls_get_priority_cache(void);
 
 int tls_client_create(tls_client_t *client, const char *trust_file_name, const char *cert_file_name, const char *key_file_name);
 void tls_client_destroy(tls_client_t *client);

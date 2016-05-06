@@ -80,6 +80,8 @@ const char *sock_strerror(int error)
     int i = -error;
 
     if ((i < 0) || (i >= SOCK_NUM_ERRORS))
+    {
         return NULL;
+    }
     return sock_error_str[i];
 }

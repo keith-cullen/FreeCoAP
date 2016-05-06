@@ -70,7 +70,7 @@ void tls_deinit(void)
     }
 }
 
-gnutls_priority_t tls_get_priority_cache()
+gnutls_priority_t tls_get_priority_cache(void)
 {
     if (!_tls_init)
     {
@@ -104,12 +104,12 @@ static void tls_client_cache_destroy(tls_client_cache_t *cache)
 
 static int tls_client_cache_set(tls_client_cache_t *cache, char *addr, gnutls_datum_t data)
 {
+    unsigned i = 0;
     int found = 0;
-    int i = 0;
 
     if (data.size > TLS_CLIENT_MAX_SESSION_DATA_SIZE)
     {
-        return SOCK_ARG_ERROR;
+        return SOCK_TLS_CACHE_ERROR;
     }
 
     for (i = 0; i < cache->size; i++)
@@ -123,7 +123,7 @@ static int tls_client_cache_set(tls_client_cache_t *cache, char *addr, gnutls_da
     if (!found)
     {
         i = cache->index++;
-        cache->index %= TLS_CLIENT_CACHE_SIZE;
+        cache->index %= cache->size;
     }
 
     util_strncpy(cache->element[i].addr, addr, INET6_ADDRSTRLEN);
@@ -136,7 +136,7 @@ static int tls_client_cache_set(tls_client_cache_t *cache, char *addr, gnutls_da
 static gnutls_datum_t tls_client_cache_get(tls_client_cache_t *cache, char *addr)
 {
     gnutls_datum_t res = {0};
-    int i = 0;
+    unsigned i = 0;
 
     for (i = 0; i < cache->size; i++)
     {
@@ -144,7 +144,7 @@ static gnutls_datum_t tls_client_cache_get(tls_client_cache_t *cache, char *addr
         {
             res.data = cache->element[i].session_data;
             res.size = cache->element[i].session_data_size;
-            return res;
+            break;
         }
     }
     return res;
@@ -314,7 +314,7 @@ static int tls_server_cache_set(tls_server_cache_t *cache, gnutls_datum_t key, g
 {
     if ((key.size > TLS_SERVER_MAX_SESSION_ID_SIZE) || (data.size > TLS_SERVER_MAX_SESSION_DATA_SIZE))
     {
-        return SOCK_ARG_ERROR;
+        return SOCK_TLS_CACHE_ERROR;
     }
 
     memcpy(cache->element[cache->index].session_id, key.data, key.size);
@@ -324,7 +324,7 @@ static int tls_server_cache_set(tls_server_cache_t *cache, gnutls_datum_t key, g
     cache->element[cache->index].session_data_size = data.size;
 
     cache->index++;
-    cache->index %= TLS_SERVER_CACHE_SIZE;
+    cache->index %= cache->size;
 
     return SOCK_OK;
 }
@@ -332,7 +332,7 @@ static int tls_server_cache_set(tls_server_cache_t *cache, gnutls_datum_t key, g
 static gnutls_datum_t tls_server_cache_get(tls_server_cache_t *cache, gnutls_datum_t key)
 {
     gnutls_datum_t res = {NULL, 0};
-    int i = 0;
+    unsigned i = 0;
 
     res.data = NULL;
     res.size = 0;
@@ -344,12 +344,11 @@ static gnutls_datum_t tls_server_cache_get(tls_server_cache_t *cache, gnutls_dat
         {
             res.size = cache->element[i].session_data_size;
             res.data = (unsigned char *)gnutls_malloc(res.size);
-            if (res.data == NULL)
+            if (res.data != NULL)
             {
-                return res;
+                memcpy(res.data, cache->element[i].session_data, res.size);
             }
-            memcpy(res.data, cache->element[i].session_data, res.size);
-            return res;
+            break;
         }
     }
     return res;
@@ -357,15 +356,14 @@ static gnutls_datum_t tls_server_cache_get(tls_server_cache_t *cache, gnutls_dat
 
 static int tls_server_cache_delete(tls_server_cache_t *cache, gnutls_datum_t key)
 {
-    int i = 0;
+    unsigned i = 0;
 
     for (i = 0; i < cache->size; i++)
     {
         if ((key.size == cache->element[i].session_id_size)
          && (memcmp(key.data, cache->element[i].session_id, key.size) == 0))
         {
-            cache->element[i].session_id_size = 0;
-            cache->element[i].session_data_size = 0;
+            memset(&cache->element[i], 0, sizeof(tls_server_cache_element_t));
             return SOCK_OK;
         }
     }

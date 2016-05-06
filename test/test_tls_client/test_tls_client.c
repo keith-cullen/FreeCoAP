@@ -26,7 +26,7 @@
  */
 
 /**
- *  @file test_tls6client.c
+ *  @file test_tls_client.c
  *
  *  @brief Source file for the FreeCoAP TLS/IPv6 client test application
  */
@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <time.h>
-#include "tls6sock.h"
+#include "tls_sock.h"
 #include "sock.h"
 #include "tls.h"
 #include "coap_log.h"
@@ -43,7 +43,11 @@
 #define TRUST_FILE_NAME     "../../certs/root_server_cert.pem"
 #define CERT_FILE_NAME      "../../certs/client_cert.pem"
 #define KEY_FILE_NAME       "../../certs/client_privkey.pem"
+#ifdef SOCK_IP6
 #define HOST                "::1"
+#else
+#define HOST                "127.0.0.1"
+#endif
 #define PORT                "9999"
 #define BUF_SIZE            (1 << 4)
 #define TIMEOUT             30
@@ -51,7 +55,7 @@
 #define DELAY               2
 
 /* ignore broken pipe signal, i.e. don't terminate if server terminates */
-static void set_signal()
+static void set_signal(void)
 {
     struct sigaction sa = {{0}};
     sa.sa_handler = SIG_IGN;
@@ -62,22 +66,22 @@ static void set_signal()
 
 static int client_run(tls_client_t *client)
 {
-    tls6sock_t s = {0};
-    char addr_str[INET6_ADDRSTRLEN] = {0};
+    tls_sock_t s = {0};
+    char addr_str[SOCK_INET_ADDRSTRLEN] = {0};
     char out_buf[BUF_SIZE] = {0};
     char in_buf[BUF_SIZE] = {0};
     int ret = 0;
     int i = 0;
 
-    ret = tls6sock_open(&s, client, HOST, PORT, SERVER_COMMON_NAME, TIMEOUT);
+    ret = tls_sock_open(&s, client, HOST, PORT, SERVER_COMMON_NAME, TIMEOUT);
     if (ret != SOCK_OK)
     {
         return ret;
     }
 
-    tls6sock_get_addr_string(&s, addr_str, sizeof(addr_str));
-    coap_log_notice("Connected to address %s and port %d", addr_str, tls6sock_get_port(&s));
-    if (tls6sock_is_resumed(&s))
+    tls_sock_get_addr_string(&s, addr_str, sizeof(addr_str));
+    coap_log_notice("Connected to address %s and port %d", addr_str, tls_sock_get_port(&s));
+    if (tls_sock_is_resumed(&s))
         coap_log_debug("Session resumed");
     else
         coap_log_debug("Session not resumed");
@@ -87,27 +91,27 @@ static int client_run(tls_client_t *client)
         out_buf[i] = i;
     }
 
-    ret = tls6sock_write_full(&s, out_buf, BUF_SIZE);
+    ret = tls_sock_write_full(&s, out_buf, BUF_SIZE);
     if (ret <= 0)
     {
-        tls6sock_close(&s);
+        tls_sock_close(&s);
         return ret;
     }
     coap_log_debug("Sent %d bytes", ret);
 
-    ret = tls6sock_read_full(&s, in_buf, BUF_SIZE);
+    ret = tls_sock_read_full(&s, in_buf, BUF_SIZE);
     if (ret <= 0)
     {
-        tls6sock_close(&s);
+        tls_sock_close(&s);
         return ret;
     }
     coap_log_debug("Received %d bytes", ret);
 
-    tls6sock_close(&s);
+    tls_sock_close(&s);
     return SOCK_OK;
 }
 
-int main()
+int main(void)
 {
     tls_client_t client = {0};
     time_t start = 0;
