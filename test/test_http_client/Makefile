@@ -1,3 +1,7 @@
+ifeq ($(ip6),y)
+EXTRA_CFLAGS = -DSOCK_IP6
+endif
+
 I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
@@ -5,7 +9,8 @@ S2=../../proxy/common/src
 T1=..
 
 CC = gcc
-CFLAGS = -Wall \
+CFLAGS = $(EXTRA_CFLAGS) \
+         -Wall \
          -g \
          -I$(I1) \
          -I$(I2) \
@@ -17,7 +22,7 @@ LDFLAGS =
 INCS = $(I2)/http_msg.h \
        $(I2)/tls.h \
        $(I2)/sock.h \
-       $(I2)/tls6sock.h \
+       $(I2)/tls_sock.h \
        $(I2)/data_buf.h \
        $(I2)/util.h \
        $(I1)/coap_log.h \
@@ -26,7 +31,7 @@ OBJS = test_http_client.o \
        http_msg.o \
        tls.o \
        sock.o \
-       tls6sock.o \
+       tls_sock.o \
        data_buf.o \
        util.o \
        coap_log.o \
@@ -54,8 +59,8 @@ tls.o: $(S2)/tls.c $(INCS)
 sock.o: $(S2)/sock.c $(INCS)
 	$(CC) $(CFLAGS) -c $(S2)/sock.c
 
-tls6sock.o: $(S2)/tls6sock.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/tls6sock.c
+tls_sock.o: $(S2)/tls_sock.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S2)/tls_sock.c
 
 data_buf.o: $(S2)/data_buf.c $(INCS)
 	$(CC) $(CFLAGS) -c $(S2)/data_buf.c

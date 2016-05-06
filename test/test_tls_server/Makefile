@@ -1,23 +1,28 @@
+ifeq ($(ip6),y)
+EXTRA_CFLAGS = -DSOCK_IP6
+endif
+
 I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
 S2=../../proxy/common/src
 
 CC = gcc
-CFLAGS = -Wall \
+CFLAGS = $(EXTRA_CFLAGS) \
+         -Wall \
          -g \
          -I$(I1) \
          -I$(I2) \
          -DTLS_CLIENT_AUTH
 LD = gcc
 LDFLAGS =
-INCS = $(I2)/tls6sock.h \
+INCS = $(I2)/tls_sock.h \
        $(I2)/sock.h \
        $(I2)/tls.h \
        $(I2)/util.h \
        $(I1)/coap_log.h
-OBJS = test_tls6client.o \
-       tls6sock.o \
+OBJS = test_tls_server.o \
+       tls_sock.o \
        sock.o \
        tls.o \
        util.o \
@@ -27,17 +32,17 @@ LIBS = -lpthread \
        -lnettle \
        -lhogweed \
        -lgmp
-PROG = test_tls6client
+PROG = test_tls_server
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
 
-test_tls6client.o: test_tls6client.c $(INCS)
-	$(CC) $(CFLAGS) -c test_tls6client.c
+test_tls_server.o: test_tls_server.c $(INCS)
+	$(CC) $(CFLAGS) -c test_tls_server.c
 
-tls6sock.o: $(S2)/tls6sock.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/tls6sock.c
+tls_sock.o: $(S2)/tls_sock.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S2)/tls_sock.c
 
 sock.o: $(S2)/sock.c $(INCS)
 	$(CC) $(CFLAGS) -c $(S2)/sock.c

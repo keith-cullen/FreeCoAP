@@ -39,8 +39,8 @@ $ make
 
 $ ./test_coap_msg
 
-To test the CoAP client and CoAP server test applications without DTLS
------------------------------------------------------------------------
+To test the CoAP client and CoAP server test applications with CoAP/IPv6
+------------------------------------------------------------------------
 
 $ cd FreeCoAP/test/test_coap_server
 
@@ -56,8 +56,8 @@ $ make dtls=n
 
 $ ./test_coap_client
 
-To test the CoAP client and CoAP server test applications with DTLS
--------------------------------------------------------------------
+To test the CoAP client and CoAP server test applications with CoAP/DTLS/IPv6
+-----------------------------------------------------------------------------
 
 $ cd FreeCoAP/test/test_coap_server
 
@@ -73,8 +73,8 @@ $ make
 
 $ ./test_coap_client
 
-To test the HTTP/CoAP proxy application with TLS and DTLS
----------------------------------------------------------
+To test the HTTP/CoAP proxy application with HTTP/TLS/IPv4 and CoAP/DTLS/IPv6
+-----------------------------------------------------------------------------
 
 $ cd FreeCoAP/test/test_coap_server
 
@@ -95,6 +95,31 @@ $ ./proxy
 $ cd FreeCoAP/test/test_http_client
 
 $ make
+
+$ ./test_http_client
+
+To test the HTTP/CoAP proxy application with HTTP/TLS/IPv6 and CoAP/DTLS/IPv6
+-----------------------------------------------------------------------------
+
+$ cd FreeCoAP/test/test_coap_server
+
+$ make
+
+$ ./test_coap_server
+
+(In a second terminal)
+
+$ cd FreeCoAP/test/test_proxy_http_coap
+
+$ make ip6=y
+
+$ ./proxy
+
+(In a third terminal)
+
+$ cd FreeCoAP/test/test_http_client
+
+$ make ip6=y
 
 $ ./test_http_client
 

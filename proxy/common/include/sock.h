@@ -34,6 +34,9 @@
 #ifndef SOCK_H
 #define SOCK_H
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #define SOCK_OK                               0
 #define SOCK_INTR                            -1
 #define SOCK_TIMEOUT                         -2
@@ -68,6 +71,34 @@
 #define SOCK_CLOSE_ERROR                    -31
 #define SOCK_LOCK_ERROR                     -32
 #define SOCK_NUM_ERRORS                      33
+
+#ifdef SOCK_IP6
+
+#define SOCK_SIN_FAMILY       sin6_family
+#define SOCK_SIN_ADDR         sin6_addr
+#define SOCK_IN_ADDR          sin6_addr
+#define SOCK_SIN_PORT         sin6_port
+#define SOCK_PF_INET          PF_INET6
+#define SOCK_AF_INET          AF_INET6
+#define SOCK_INET_ADDRSTRLEN  INET6_ADDRSTRLEN
+#define SOCK_INADDR_ANY       in6addr_any
+#define sock_in_addr_t        struct in6_addr
+typedef struct sockaddr_in6   sock_sockaddr_in_t;
+
+#else  /* SOCK_IP4 */
+
+#define SOCK_SIN_FAMILY       sin_family
+#define SOCK_SIN_ADDR         sin_addr
+#define SOCK_IN_ADDR          sin_addr.s_addr
+#define SOCK_SIN_PORT         sin_port
+#define SOCK_PF_INET          PF_INET
+#define SOCK_AF_INET          AF_INET
+#define SOCK_INET_ADDRSTRLEN  INET_ADDRSTRLEN
+#define SOCK_INADDR_ANY       htonl(INADDR_ANY)
+typedef struct sockaddr_in    sock_sockaddr_in_t;
+typedef struct in_addr        sock_in_addr_t;
+
+#endif  /* SOCK_IP6 */
 
 const char *sock_strerror(int error);
 

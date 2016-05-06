@@ -132,9 +132,9 @@ static int connection_recv(connection_t *con, http_msg_t *msg)
     int ret = 0;
     int sd = 0;
 
-    tv.tv_sec = tls6sock_get_timeout(con->sock);
+    tv.tv_sec = tls_sock_get_timeout(con->sock);
     tv.tv_usec = 0;
-    sd = tls6sock_get_sd(con->sock);
+    sd = tls_sock_get_sd(con->sock);
     while (1)
     {
         FD_ZERO(&readfds);
@@ -153,7 +153,7 @@ static int connection_recv(connection_t *con, http_msg_t *msg)
                        con->listener_index, con->con_index, con->addr, errno, strerror(errno));
             return -errno;
         }
-        num = tls6sock_read(con->sock, data_buf_get_next(&con->recv_buf), data_buf_get_space(&con->recv_buf));
+        num = tls_sock_read(con->sock, data_buf_get_next(&con->recv_buf), data_buf_get_space(&con->recv_buf));
         if (num < 0)
         {
             coap_log_error("[%u] <%u> %s Failed to read from socket: %s",
@@ -244,7 +244,7 @@ static int connection_send(connection_t *con, http_msg_t *msg)
             return ret;
         }
     }
-    num = tls6sock_write_full(con->sock, data_buf_get_data(&con->send_buf), len);
+    num = tls_sock_write_full(con->sock, data_buf_get_data(&con->send_buf), len);
     if (num < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to write to socket: %s",
@@ -541,7 +541,7 @@ void *connection_thread_func(void *data)
     return NULL;
 }
 
-connection_t *connection_new(tls6sock_t *sock, unsigned listener_index, unsigned con_index, param_t *param)
+connection_t *connection_new(tls_sock_t *sock, unsigned listener_index, unsigned con_index, param_t *param)
 {
     connection_t *con = NULL;
     int ret = 0;
@@ -554,7 +554,7 @@ connection_t *connection_new(tls6sock_t *sock, unsigned listener_index, unsigned
     }
     con->listener_index = listener_index;
     con->con_index = con_index;
-    tls6sock_get_addr_string(sock, con->addr, sizeof(con->addr));
+    tls_sock_get_addr_string(sock, con->addr, sizeof(con->addr));
     con->sock = sock;
     ret = data_buf_create(&con->recv_buf, CONNECTION_DATA_BUF_SIZE, CONNECTION_DATA_BUF_MAX_SIZE);
     if (ret == -EINVAL)
@@ -596,7 +596,7 @@ void connection_delete(connection_t *con)
 {
     data_buf_destroy(&con->send_buf);
     data_buf_destroy(&con->recv_buf);
-    tls6sock_close(con->sock);
+    tls_sock_close(con->sock);
     free(con->sock);
     free(con);
 }
