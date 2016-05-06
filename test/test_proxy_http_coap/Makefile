@@ -1,3 +1,7 @@
+ifeq ($(ip6),y)
+EXTRA_CFLAGS = -DSOCK_IP6
+endif
+
 I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
@@ -6,7 +10,8 @@ I3=../../proxy/http_coap/include
 S3=../../proxy/http_coap/src
 
 CC = gcc
-CFLAGS = -Wall \
+CFLAGS = $(EXTRA_CFLAGS) \
+         -Wall \
          -g \
          -I$(I1) \
          -I$(I2) \
@@ -26,7 +31,7 @@ INCS = $(I1)/coap_client.h \
        $(I2)/cross.h \
        $(I2)/tls.h \
        $(I2)/sock.h \
-       $(I2)/tls6sock.h \
+       $(I2)/tls_sock.h \
        $(I2)/config.h \
        $(I2)/data_buf.h \
        $(I2)/util.h \
@@ -44,7 +49,7 @@ OBJS = proxy.o \
        cross.o \
        tls.o \
        sock.o \
-       tls6sock.o \
+       tls_sock.o \
        config.o \
        data_buf.o \
        util.o \
@@ -94,8 +99,8 @@ tls.o: $(S2)/tls.c $(INCS)
 sock.o: $(S2)/sock.c $(INCS)
 	$(CC) $(CFLAGS) -c $(S2)/sock.c
 
-tls6sock.o: $(S2)/tls6sock.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/tls6sock.c
+tls_sock.o: $(S2)/tls_sock.c $(INCS)
+	$(CC) $(CFLAGS) -c $(S2)/tls_sock.c
 
 config.o: $(S2)/config.c $(INCS)
 	$(CC) $(CFLAGS) -c $(S2)/config.c

@@ -34,7 +34,7 @@
 #ifndef LISTENER_H
 #define LISTENER_H
 
-#include "tls6sock.h"
+#include "tls_sock.h"
 #include "tls.h"
 #include "thread.h"
 #include "param.h"
@@ -44,7 +44,7 @@ typedef struct
     unsigned index;
     param_t *param;
     thread_ctx_t ctx;
-    tls6ssock_t ssock;
+    tls_ssock_t ssock;
 }
 listener_t;
 

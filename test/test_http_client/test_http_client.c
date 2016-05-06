@@ -38,14 +38,18 @@
 #include <getopt.h>
 #include <netinet/in.h>
 #include "http_msg.h"
-#include "tls6sock.h"
+#include "tls_sock.h"
 #include "tls.h"
 #include "sock.h"
 #include "coap_log.h"
 #include "test.h"
 
 #define SERVER_COMMON_NAME  "dummy/server"                                      /**< Expected common name in the proxy's certificate */
+#ifdef SOCK_IP6
 #define HOST                "::1"                                               /**< Host address of the proxy */
+#else
+#define HOST                "127.0.0.1"                                         /**< Host address of the proxy */
+#endif
 #define PORT                "12437"                                             /**< TCP port number of the proxy */
 #define TRUST_FILE_NAME     "../../certs/root_server_cert.pem"                  /**< TLS trust file name */
 #define CERT_FILE_NAME      "../../certs/client_cert.pem"                       /**< TLS certificate file name */
@@ -264,30 +268,30 @@ static test_result_t test_exchange_func(test_data_t data)
     test_http_client_data_t *test_data = (test_http_client_data_t *)data;
     test_result_t result = PASS;
     http_msg_t resp_msg = {{0}};
-    tls6sock_t s = {0};
+    tls_sock_t s = {0};
     char resp_buf[RESP_BUF_LEN] = {0};
     int ret = 0;
 
     printf("%s\n", test_data->desc);
 
-    ret = tls6sock_open(&s, &client, HOST, PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
+    ret = tls_sock_open(&s, &client, HOST, PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
     if (ret != SOCK_OK)
     {
         return FAIL;;
     }
 
-    ret = tls6sock_write_full(&s, test_data->req_str, strlen(test_data->req_str));
+    ret = tls_sock_write_full(&s, test_data->req_str, strlen(test_data->req_str));
     if (ret <= 0)
     {
-        tls6sock_close(&s);
+        tls_sock_close(&s);
         return FAIL;
     }
     coap_log_info("Sent: %s", test_data->req_str);
 
-    ret = tls6sock_read(&s, resp_buf, sizeof(resp_buf));
+    ret = tls_sock_read(&s, resp_buf, sizeof(resp_buf));
     if (ret <= 0)
     {
-        tls6sock_close(&s);
+        tls_sock_close(&s);
         return FAIL;
     }
     coap_log_info("Received: %s", resp_buf);
@@ -297,7 +301,7 @@ static test_result_t test_exchange_func(test_data_t data)
     if (ret <= 0)
     {
         http_msg_destroy(&resp_msg);
-        tls6sock_close(&s);
+        tls_sock_close(&s);
         return FAIL;
     }
 
@@ -317,7 +321,7 @@ static test_result_t test_exchange_func(test_data_t data)
     }
 
     http_msg_destroy(&resp_msg);
-    tls6sock_close(&s);
+    tls_sock_close(&s);
     return result;
 }
 
