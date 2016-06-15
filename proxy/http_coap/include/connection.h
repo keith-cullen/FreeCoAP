@@ -50,6 +50,10 @@ typedef struct
     data_buf_t recv_buf;
     data_buf_t send_buf;
     param_t *param;
+    int coap_client_active;
+    char *coap_client_host;
+    char *coap_client_port;
+    coap_client_t coap_client;
 }
 connection_t;
 

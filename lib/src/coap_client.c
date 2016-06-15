@@ -91,7 +91,7 @@ static int coap_client_dtls_listen_timeout(coap_client_t *client, unsigned ms)
         FD_ZERO(&read_fds);
         FD_SET(client->sd, &read_fds);
         ret = select(client->sd + 1, &read_fds, NULL, NULL, &tv);
-        if (ret == -1)
+        if (ret < 0)
         {
             return -errno;
         }
@@ -127,7 +127,7 @@ static ssize_t coap_client_dtls_pull_func(gnutls_transport_ptr_t data, void *buf
 
     client = (coap_client_t *)data;
     num = recv(client->sd, buf, len, 0);
-    if (num == -1)
+    if (num < 0)
     {
         gnutls_transport_set_errno(client->session, errno);
     }
@@ -397,7 +397,7 @@ int coap_client_create(coap_client_t *client,
     hints.ai_canonname = NULL;       /* must be NULL */
     hints.ai_next = NULL;            /* must be NULL */
     ret = getaddrinfo(host, port, &hints, &list);
-    if (ret != 0)
+    if (ret < 0)
     {
         return -EBUSY;
     }
@@ -407,12 +407,12 @@ int coap_client_create(coap_client_t *client,
          && (node->ai_socktype == SOCK_DGRAM))
         {
             client->sd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
-            if (client->sd == -1)
+            if (client->sd < 0)
             {
                 continue;
             }
             ret = connect(client->sd, node->ai_addr, node->ai_addrlen);
-            if (ret == -1)
+            if (ret < 0)
             {
                 close(client->sd);
                 continue;
@@ -429,14 +429,14 @@ int coap_client_create(coap_client_t *client,
         return -EBUSY;
     }
     flags = fcntl(client->sd, F_GETFL, 0);
-    if (flags == -1)
+    if (flags < 0)
     {
         close(client->sd);
         memset(client, 0, sizeof(coap_client_t));
         return -errno;
     }
     ret = fcntl(client->sd, F_SETFL, flags | O_NONBLOCK);
-    if (ret == -1)
+    if (ret < 0)
     {
         close(client->sd);
         memset(client, 0, sizeof(coap_client_t));
@@ -445,7 +445,7 @@ int coap_client_create(coap_client_t *client,
     strncpy(client->server_host, host, sizeof(client->server_host) - 1);
     strncpy(client->server_port, port, sizeof(client->server_port) - 1);
     client->timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
-    if (client->timer_fd == -1)
+    if (client->timer_fd < 0)
     {
         close(client->sd);
         memset(client, 0, sizeof(coap_client_t));
@@ -543,7 +543,7 @@ static int coap_client_start_timer(coap_client_t *client)
 
     its.it_value = client->timeout;
     ret = timerfd_settime(client->timer_fd, 0, &its, NULL);
-    if (ret == -1)
+    if (ret < 0)
     {
         return -errno;
     }
@@ -643,7 +643,7 @@ static ssize_t coap_client_send(coap_client_t *client, coap_msg_t *msg)
     }
 #else
     num = send(client->sd, buf, num, 0);
-    if (num == -1)
+    if (num < 0)
     {
         return -errno;
     }
@@ -720,7 +720,7 @@ static ssize_t coap_client_recv(coap_client_t *client, coap_msg_t *msg)
     }
 #else
     num = recv(client->sd, buf, sizeof(buf), 0);
-    if (num == -1)
+    if (num < 0)
     {
         return -errno;
     }
@@ -962,7 +962,7 @@ static int coap_client_listen_ack(coap_client_t *client, coap_msg_t *msg)
             max_fd = client->timer_fd;
         }
         ret = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
-        if (ret == -1)
+        if (ret < 0)
         {
             return -errno;
         }
@@ -1008,7 +1008,7 @@ static int coap_client_listen_resp(coap_client_t *client)
             max_fd = client->timer_fd;
         }
         ret = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
-        if (ret == -1)
+        if (ret < 0)
         {
             return -errno;
         }
