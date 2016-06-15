@@ -227,7 +227,7 @@ static int coap_server_trans_dtls_listen_timeout(coap_server_trans_t *trans, uns
         FD_ZERO(&read_fds);
         FD_SET(server->sd, &read_fds);
         ret = select(server->sd + 1, &read_fds, NULL, NULL, &tv);
-        if (ret == -1)
+        if (ret < 0)
         {
             return -errno;
         }
@@ -267,9 +267,8 @@ static ssize_t coap_server_trans_dtls_pull_func(gnutls_transport_ptr_t data, voi
     trans = (coap_server_trans_t *)data;
     server = trans->server;
     client_sin_len = sizeof(client_sin);
-    errno = 0;
     num = recvfrom(server->sd, buf, len, MSG_PEEK, (struct sockaddr *)&client_sin, &client_sin_len);  /* peek data */
-    if (num == -1)
+    if (num < 0)
     {
         return -1;
     }
@@ -319,7 +318,7 @@ static int coap_server_trans_dtls_pull_timeout_func(gnutls_transport_ptr_t data,
     }
     client_sin_len = sizeof(client_sin);
     num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)&client_sin, &client_sin_len);  /* peek data */
-    if (num == -1)
+    if (num < 0)
     {
         return -1;
     }
@@ -624,7 +623,7 @@ static int coap_server_trans_start_timer(coap_server_trans_t *trans)
 
     its.it_value = trans->timeout;
     ret = timerfd_settime(trans->timer_fd, 0, &its, NULL);
-    if (ret == -1)
+    if (ret < 0)
     {
         return -errno;
     }
@@ -646,7 +645,7 @@ static int coap_server_trans_stop_timer(coap_server_trans_t *trans)
     int ret = 0;
 
     ret = timerfd_settime(trans->timer_fd, 0, &its, NULL);
-    if (ret == -1)
+    if (ret < 0)
     {
         return -errno;
     }
@@ -750,7 +749,7 @@ static ssize_t coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *ms
 #else
     server = trans->server;
     num = sendto(server->sd, buf, num, 0, (struct sockaddr *)&trans->client_sin, trans->client_sin_len);
-    if (num == -1)
+    if (num < 0)
     {
         return -errno;
     }
@@ -836,7 +835,7 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
     server = trans->server;
     client_sin_len = sizeof(client_sin);
     num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)&client_sin, &client_sin_len);
-    if (num == -1)
+    if (num < 0)
     {
         return -errno;
     }
@@ -846,7 +845,7 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
         return -EAGAIN;
     }
     num = recvfrom(server->sd, buf, num, 0, (struct sockaddr *)&client_sin, &client_sin_len);
-    if (num == -1)
+    if (num < 0)
     {
         return -errno;
     }
@@ -1010,32 +1009,32 @@ static int coap_server_trans_reject_bad_option(coap_server_trans_t *trans, coap_
     coap_log_info("Sending 'Bad Option' response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     coap_msg_create(&rej);
     ret = coap_msg_set_type(&rej, COAP_MSG_ACK);
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_msg_destroy(&rej);
         return ret;
     }
     ret = coap_msg_set_code(&rej, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_OPTION);
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_msg_destroy(&rej);
         return ret;
     }
     ret = coap_msg_set_msg_id(&rej, coap_msg_get_msg_id(msg));
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_msg_destroy(&rej);
         return ret;
     }
     ret = coap_msg_set_token(&rej, coap_msg_get_token(msg), coap_msg_get_token_len(msg));
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_msg_destroy(&rej);
         return ret;
     }
     snprintf(payload, sizeof(payload), "Bad option number: %u", op_num);
     ret = coap_msg_set_payload(&rej, payload, strlen(payload));
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_msg_destroy(&rej);
         return ret;
@@ -1154,7 +1153,7 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
     trans->active = 1;
     coap_server_trans_touch(trans);
     trans->timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
-    if (trans->timer_fd == -1)
+    if (trans->timer_fd < 0)
     {
         memset(trans, 0, sizeof(coap_server_trans_t));
         return -errno;
@@ -1344,7 +1343,7 @@ int coap_server_create(coap_server_t *server,
     hints.ai_canonname = NULL;       /* must be NULL */
     hints.ai_next = NULL;            /* must be NULL */
     ret = getaddrinfo(host, port, &hints, &list);
-    if (ret != 0)
+    if (ret < 0)
     {
         return -EBUSY;
     }
@@ -1354,20 +1353,20 @@ int coap_server_create(coap_server_t *server,
          && (node->ai_socktype == SOCK_DGRAM))
         {
             server->sd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
-            if (server->sd == -1)
+            if (server->sd < 0)
             {
                 continue;
             }
             opt_val = 1;
             ret = setsockopt(server->sd, SOL_SOCKET, SO_REUSEADDR, &opt_val, (socklen_t)sizeof(opt_val));
-            if (ret == -1)
+            if (ret < 0)
             {
                 close(server->sd);
                 freeaddrinfo(list);
                 return -EBUSY;
             }
             ret = bind(server->sd, node->ai_addr, node->ai_addrlen);
-            if (ret == -1)
+            if (ret < 0)
             {
                 close(server->sd);
                 continue;
@@ -1382,14 +1381,14 @@ int coap_server_create(coap_server_t *server,
         return -EBUSY;
     }
     flags = fcntl(server->sd, F_GETFL, 0);
-    if (flags == -1)
+    if (flags < 0)
     {
         close(server->sd);
         memset(server, 0, sizeof(coap_server_t));
         return -errno;
     }
     ret = fcntl(server->sd, F_SETFL, flags | O_NONBLOCK);
-    if (ret == -1)
+    if (ret < 0)
     {
         close(server->sd);
         memset(server, 0, sizeof(coap_server_t));
@@ -1593,7 +1592,7 @@ static int coap_server_listen(coap_server_t *server)
             }
         }
         ret = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
-        if (ret == -1)
+        if (ret < 0)
         {
             return -errno;
         }
@@ -1638,7 +1637,7 @@ static int coap_server_accept(coap_server_t *server, struct sockaddr_in6 *client
 
     *client_sin_len = sizeof(struct sockaddr_in6);
     num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)client_sin, client_sin_len);
-    if (num == -1)
+    if (num < 0)
     {
         return -errno;
     }

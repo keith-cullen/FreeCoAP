@@ -95,8 +95,8 @@ typedef struct sockaddr_in6   sock_sockaddr_in_t;
 #define SOCK_AF_INET          AF_INET
 #define SOCK_INET_ADDRSTRLEN  INET_ADDRSTRLEN
 #define SOCK_INADDR_ANY       htonl(INADDR_ANY)
-typedef struct sockaddr_in    sock_sockaddr_in_t;
 typedef struct in_addr        sock_in_addr_t;
+typedef struct sockaddr_in    sock_sockaddr_in_t;
 
 #endif  /* SOCK_IP6 */
 
