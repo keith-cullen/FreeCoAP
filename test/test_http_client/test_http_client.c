@@ -91,25 +91,30 @@ test_http_client_data_t test1_data =
     .body = test1_body
 };
 
-const char *test2_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "501", "Not Implemented"};
+#define TEST2_NUM_HEADERS  1
+
+const char *test2_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
+const char *test2_name[TEST2_NUM_HEADERS] = {"Content-Length"};
+const char *test2_value[TEST2_NUM_HEADERS] = {"13"};
+const char test2_body[] = "Hello Client!";
 
 test_http_client_data_t test2_data =
 {
-    .desc = "test 2: Send a request with an unsupported method",
-    .req_str = "CONNECT coaps://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .desc = "test 2: Send double POST request",
+    .req_str = "POST coaps://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nRequest=Hello",
     .start = test2_start,
-    .num_headers = 0,
-    .name = NULL,
-    .value = NULL,
-    .body = NULL
+    .num_headers = TEST2_NUM_HEADERS,
+    .name = test2_name,
+    .value = test2_value,
+    .body = test2_body
 };
 
-const char *test3_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "400", "Bad Request"};
+const char *test3_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "501", "Not Implemented"};
 
 test_http_client_data_t test3_data =
 {
-    .desc = "test 3: Send a request with an unsupported scheme in the request-URI",
-    .req_str = "GET dummy://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .desc = "test 3: Send a request with an unsupported method",
+    .req_str = "CONNECT coaps://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test3_start,
     .num_headers = 0,
     .name = NULL,
@@ -117,12 +122,12 @@ test_http_client_data_t test3_data =
     .body = NULL
 };
 
-const char *test4_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "406", "Not Acceptable"};
+const char *test4_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "400", "Bad Request"};
 
 test_http_client_data_t test4_data =
 {
-    .desc = "test 4: Send a request with an unsupported Accept header value",
-    .req_str = "GET coaps://[::1]:12436/resource HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .desc = "test 4: Send a request with an unsupported scheme in the request-URI",
+    .req_str = "GET dummy://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test4_start,
     .num_headers = 0,
     .name = NULL,
@@ -130,13 +135,26 @@ test_http_client_data_t test4_data =
     .body = NULL
 };
 
-const char *test5_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "502", "Bad Gateway"};
+const char *test5_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "406", "Not Acceptable"};
 
 test_http_client_data_t test5_data =
 {
-    .desc = "test 5: Send a request that will invoke a response from the CoAP server with an unsafe option",
-    .req_str = "GET coaps://[::1]:12436/unsafe HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .desc = "test 5: Send a request with an unsupported Accept header value",
+    .req_str = "GET coaps://[::1]:12436/resource HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test5_start,
+    .num_headers = 0,
+    .name = NULL,
+    .value = NULL,
+    .body = NULL
+};
+
+const char *test6_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "502", "Bad Gateway"};
+
+test_http_client_data_t test6_data =
+{
+    .desc = "test 6: Send a request that will invoke a response from the CoAP server with an unsafe option",
+    .req_str = "GET coaps://[::1]:12436/unsafe HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .start = test6_start,
     .num_headers = 0,
     .name = NULL,
     .value = NULL,
@@ -277,7 +295,7 @@ static test_result_t test_exchange_func(test_data_t data)
     ret = tls_sock_open(&s, &client, HOST, PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
     if (ret != SOCK_OK)
     {
-        return FAIL;;
+        return FAIL;
     }
 
     ret = tls_sock_write_full(&s, test_data->req_str, strlen(test_data->req_str));
@@ -326,6 +344,80 @@ static test_result_t test_exchange_func(test_data_t data)
 }
 
 /**
+ *  @brief Test a double exchange with the proxy
+ *
+ *  @param[in] data Pointer to a HTTP client test data structure
+ *
+ *  @returns Test result
+ */
+static test_result_t test_double_exchange_func(test_data_t data)
+{
+    test_http_client_data_t *test_data = (test_http_client_data_t *)data;
+    test_result_t result = PASS;
+    http_msg_t resp_msg = {{0}};
+    tls_sock_t s = {0};
+    unsigned i = 0;
+    char resp_buf[RESP_BUF_LEN] = {0};
+    int ret = 0;
+
+    printf("%s\n", test_data->desc);
+
+    ret = tls_sock_open(&s, &client, HOST, PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
+    if (ret != SOCK_OK)
+    {
+        return FAIL;
+    }
+
+    for (i = 0; i < 2; i++)
+    {
+        ret = tls_sock_write_full(&s, test_data->req_str, strlen(test_data->req_str));
+        if (ret <= 0)
+        {
+            tls_sock_close(&s);
+            return FAIL;
+        }
+        coap_log_info("Sent: %s", test_data->req_str);
+
+        memset(resp_buf, 0, sizeof(resp_buf));
+        ret = tls_sock_read(&s, resp_buf, sizeof(resp_buf));
+        if (ret <= 0)
+        {
+            tls_sock_close(&s);
+            return FAIL;
+        }
+        coap_log_info("Received: %s", resp_buf);
+
+        http_msg_create(&resp_msg);
+        ret = http_msg_parse(&resp_msg, resp_buf, strlen(resp_buf));
+        if (ret <= 0)
+        {
+            http_msg_destroy(&resp_msg);
+            tls_sock_close(&s);
+            return FAIL;
+        }
+
+        if (check_start(test_data, &resp_msg) != PASS)
+        {
+            result = FAIL;
+        }
+
+        if (check_headers(test_data, &resp_msg) != PASS)
+        {
+            result = FAIL;
+        }
+
+        if (check_body(test_data, &resp_msg) != PASS)
+        {
+            result = FAIL;
+        }
+
+        http_msg_destroy(&resp_msg);
+    }
+    tls_sock_close(&s);
+    return result;
+}
+
+/**
  *  @brief Helper function to list command line options
  */
 static void usage(void)
@@ -354,11 +446,12 @@ int main(int argc, char **argv)
     int test_num = 0;
     int ret = 0;
     int c = 0;
-    test_t tests[] = {{test_exchange_func, &test1_data},
-                      {test_exchange_func, &test2_data},
-                      {test_exchange_func, &test3_data},
-                      {test_exchange_func, &test4_data},
-                      {test_exchange_func, &test5_data}};
+    test_t tests[] = {{test_exchange_func,        &test1_data},
+                      {test_double_exchange_func, &test2_data},
+                      {test_exchange_func,        &test3_data},
+                      {test_exchange_func,        &test4_data},
+                      {test_exchange_func,        &test5_data},
+                      {test_exchange_func,        &test6_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
@@ -426,8 +519,12 @@ int main(int argc, char **argv)
         num_tests = 1;
         num_pass = test_run(&tests[4], num_tests);
         break;
+    case 6:
+        num_tests = 1;
+        num_pass = test_run(&tests[5], num_tests);
+        break;
     default:
-        num_tests = 5;
+        num_tests = 6;
         num_pass = test_run(tests, num_tests);
     }
 
