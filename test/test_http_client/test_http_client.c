@@ -297,7 +297,6 @@ static test_result_t test_exchange_func(test_data_t data)
     {
         return FAIL;
     }
-
     ret = tls_sock_write_full(&s, test_data->req_str, strlen(test_data->req_str));
     if (ret <= 0)
     {
@@ -305,7 +304,6 @@ static test_result_t test_exchange_func(test_data_t data)
         return FAIL;
     }
     coap_log_info("Sent: %s", test_data->req_str);
-
     ret = tls_sock_read(&s, resp_buf, sizeof(resp_buf));
     if (ret <= 0)
     {
@@ -313,7 +311,6 @@ static test_result_t test_exchange_func(test_data_t data)
         return FAIL;
     }
     coap_log_info("Received: %s", resp_buf);
-
     http_msg_create(&resp_msg);
     ret = http_msg_parse(&resp_msg, resp_buf, strlen(resp_buf));
     if (ret <= 0)
@@ -322,22 +319,18 @@ static test_result_t test_exchange_func(test_data_t data)
         tls_sock_close(&s);
         return FAIL;
     }
-
     if (check_start(test_data, &resp_msg) != PASS)
     {
         result = FAIL;
     }
-
     if (check_headers(test_data, &resp_msg) != PASS)
     {
         result = FAIL;
     }
-
     if (check_body(test_data, &resp_msg) != PASS)
     {
         result = FAIL;
     }
-
     http_msg_destroy(&resp_msg);
     tls_sock_close(&s);
     return result;
@@ -367,7 +360,6 @@ static test_result_t test_double_exchange_func(test_data_t data)
     {
         return FAIL;
     }
-
     for (i = 0; i < 2; i++)
     {
         ret = tls_sock_write_full(&s, test_data->req_str, strlen(test_data->req_str));
@@ -377,7 +369,6 @@ static test_result_t test_double_exchange_func(test_data_t data)
             return FAIL;
         }
         coap_log_info("Sent: %s", test_data->req_str);
-
         memset(resp_buf, 0, sizeof(resp_buf));
         ret = tls_sock_read(&s, resp_buf, sizeof(resp_buf));
         if (ret <= 0)
@@ -386,7 +377,6 @@ static test_result_t test_double_exchange_func(test_data_t data)
             return FAIL;
         }
         coap_log_info("Received: %s", resp_buf);
-
         http_msg_create(&resp_msg);
         ret = http_msg_parse(&resp_msg, resp_buf, strlen(resp_buf));
         if (ret <= 0)
@@ -395,22 +385,18 @@ static test_result_t test_double_exchange_func(test_data_t data)
             tls_sock_close(&s);
             return FAIL;
         }
-
         if (check_start(test_data, &resp_msg) != PASS)
         {
             result = FAIL;
         }
-
         if (check_headers(test_data, &resp_msg) != PASS)
         {
             result = FAIL;
         }
-
         if (check_body(test_data, &resp_msg) != PASS)
         {
             result = FAIL;
         }
-
         http_msg_destroy(&resp_msg);
     }
     tls_sock_close(&s);
@@ -488,7 +474,6 @@ int main(int argc, char **argv)
         coap_log_error("%s", sock_strerror(ret));
         return EXIT_FAILURE;
     }
-
     ret = tls_client_create(&client, TRUST_FILE_NAME, CERT_FILE_NAME, KEY_FILE_NAME);
     if (ret != SOCK_OK)
     {

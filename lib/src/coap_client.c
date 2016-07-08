@@ -200,6 +200,10 @@ static ssize_t coap_client_dtls_push_func(gnutls_transport_ptr_t data, const voi
  */
 static int coap_client_dtls_handshake(coap_client_t *client)
 {
+    gnutls_cipher_algorithm_t cipher = 0;
+    gnutls_mac_algorithm_t mac = 0;
+    gnutls_kx_algorithm_t kx = 0;
+    const char *cipher_suite = NULL;
     int ret = 0;
     int i = 0;
 
@@ -208,6 +212,16 @@ static int coap_client_dtls_handshake(coap_client_t *client)
         ret = gnutls_handshake(client->session);
         if (ret == GNUTLS_E_SUCCESS)
         {
+            coap_log_info("Completed DTLS handshake");
+            /* determine which cipher suite was negotiated */
+            kx = gnutls_kx_get(client->session);
+            cipher = gnutls_cipher_get(client->session);
+            mac = gnutls_mac_get(client->session);
+            cipher_suite = gnutls_cipher_suite_get_name(kx, cipher, mac);
+            if (cipher_suite != NULL)
+                coap_log_info("Cipher suite is TLS_%s", cipher_suite);
+            else
+                coap_log_info("Cipher suite is unknown");
             return 0;  /* success */
         }
         if (ret != GNUTLS_E_AGAIN)
@@ -284,7 +298,7 @@ static int coap_client_dtls_create(coap_client_t *client,
     {
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to assign X.509 key file to DTLS credentials");
+        coap_log_error("Failed to assign X.509 certificate file and key file to DTLS credentials");
         return -1;
     }
     ret = gnutls_priority_init(&client->priority, COAP_CLIENT_DTLS_PRIORITIES, NULL);
@@ -871,9 +885,6 @@ static int coap_client_send_ack(coap_client_t *client, coap_msg_t *msg)
     int num = 0;
     int ret = 0;
 
-    /* for testing purposes */
-    /* sleep(4) */
-
     coap_log_info("Acknowledging confirmable message from host %s and port %s", client->server_host, client->server_port);
     coap_msg_create(&ack);
     ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
@@ -1245,7 +1256,7 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
                 if (coap_msg_is_empty(resp))
                 {
                     /* received ack message, wait for separate response message */
-                    coap_log_info("Received duplicate acknowledgement from host %s and port %s", client->server_host, client->server_port);
+                    coap_log_info("Received acknowledgement from host %s and port %s", client->server_host, client->server_port);
                     return coap_client_exchange_sep(client, req, resp);
                 }
                 else if (coap_client_match_token(req, resp))
@@ -1388,6 +1399,7 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     {
         return num;
     }
+
     if (coap_msg_get_type(req) == COAP_MSG_CON)
     {
         return coap_client_exchange_con(client, req, resp);

@@ -366,6 +366,10 @@ static ssize_t coap_server_trans_dtls_push_func(gnutls_transport_ptr_t data, con
  */
 static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
 {
+    gnutls_cipher_algorithm_t cipher = 0;
+    gnutls_mac_algorithm_t mac = 0;
+    gnutls_kx_algorithm_t kx = 0;
+    const char *cipher_suite = NULL;
     int ret = 0;
     int i = 0;
 
@@ -374,6 +378,16 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
         ret = gnutls_handshake(trans->session);
         if (ret == GNUTLS_E_SUCCESS)
         {
+            coap_log_info("Completed DTLS handshake");
+            /* determine which cipher suite was negotiated */
+            kx = gnutls_kx_get(trans->session);
+            cipher = gnutls_cipher_get(trans->session);
+            mac = gnutls_mac_get(trans->session);
+            cipher_suite = gnutls_cipher_suite_get_name(kx, cipher, mac);
+            if (cipher_suite != NULL)
+                coap_log_info("Cipher suite is TLS_%s", cipher_suite);
+            else
+                coap_log_info("Cipher suite is unknown");
             return 0;  /* success */
         }
         if (ret != GNUTLS_E_AGAIN)
@@ -1065,9 +1079,6 @@ static int coap_server_trans_send_ack(coap_server_trans_t *trans, coap_msg_t *ms
     ssize_t num = 0;
     int ret = 0;
 
-    /* for testing purposes */
-    /* sleep(4) */
-
     coap_log_info("Acknowledging confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
     coap_msg_create(&ack);
     ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
@@ -1252,7 +1263,7 @@ static int coap_server_dtls_create(coap_server_t *server,
     {
         gnutls_certificate_free_credentials(server->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to assign X.509 key file to DTLS credentials");
+        coap_log_error("Failed to assign X.509 certificate file and key file to DTLS credentials");
         return -1;
     }
     ret = gnutls_dh_params_init(&server->dh_params);
