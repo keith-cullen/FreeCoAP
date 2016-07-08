@@ -135,8 +135,8 @@ static int connection_coap_client_create(connection_t *con, uri_t *uri)
                             uri_get_host(uri),
                             uri_get_port(uri),
                             param_get_coap_client_key_file_name(con->param),
-                            param_get_coap_client_trust_file_name(con->param),
                             param_get_coap_client_cert_file_name(con->param),
+                            param_get_coap_client_trust_file_name(con->param),
                             NULL);
     if (ret < 0)
     {
@@ -368,7 +368,6 @@ static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_
         coap_msg_destroy(&coap_req_msg);
         return connection_gen_error_resp(con, resp_msg, code);
     }
-
     uri_create(&uri);
     ret = uri_parse(&uri, http_msg_get_start(req_msg, 1));
     if (ret < 0)
