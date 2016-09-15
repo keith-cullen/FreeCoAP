@@ -123,15 +123,9 @@ static int coap_client_dtls_listen_timeout(coap_client_t *client, unsigned ms)
 static ssize_t coap_client_dtls_pull_func(gnutls_transport_ptr_t data, void *buf, size_t len)
 {
     coap_client_t *client = NULL;
-    ssize_t num = 0;
 
     client = (coap_client_t *)data;
-    num = recv(client->sd, buf, len, 0);
-    if (num < 0)
-    {
-        gnutls_transport_set_errno(client->session, errno);
-    }
-    return num;
+    return recv(client->sd, buf, len, 0);
 }
 
 /**
@@ -209,7 +203,12 @@ static int coap_client_dtls_handshake(coap_client_t *client)
 
     for (i = 0; i < COAP_CLIENT_DTLS_TOTAL_TIMEOUT / COAP_CLIENT_DTLS_RETRANS_TIMEOUT; i++)
     {
+        errno = 0;
         ret = gnutls_handshake(client->session);
+        if (errno != 0)
+        {
+            return -errno;
+        }
         if (ret == GNUTLS_E_SUCCESS)
         {
             coap_log_info("Completed DTLS handshake");
@@ -646,7 +645,12 @@ static ssize_t coap_client_send(coap_client_t *client, coap_msg_t *msg)
         return num;
     }
 #ifdef COAP_DTLS_EN
+    errno = 0;
     num = gnutls_record_send(client->session, buf, num);
+    if (errno != 0)
+    {
+        return -errno;
+    }
     if (num < 0)
     {
         if (num == GNUTLS_E_AGAIN)
@@ -723,7 +727,12 @@ static ssize_t coap_client_recv(coap_client_t *client, coap_msg_t *msg)
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
 
 #ifdef COAP_DTLS_EN
+    errno = 0;
     num = gnutls_record_recv(client->session, buf, sizeof(buf));
+    if (errno != 0)
+    {
+        return -errno;
+    }
     if (num < 0)
     {
         if (num == GNUTLS_E_AGAIN)
