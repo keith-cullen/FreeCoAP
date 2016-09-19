@@ -20,7 +20,7 @@ An implementation of the CoAP protocol for GNU/Linux consisting of:
 
 - more than 10,000 lines of unit test code
 
-Copyright (c) 2015 Keith Cullen
+Copyright (c) 2015 - 2016 Keith Cullen
 
 Released under a BSD style license.
 
@@ -122,6 +122,19 @@ $ cd FreeCoAP/test/test_http_client
 $ make ip6=y
 
 $ ./test_http_client
+
+To generate X.509 certificates and keys
+---------------------------------------
+
+$ cd FreeCoAP/certs/gen_certs
+
+$ ./gen_certs.sh
+
+Follow the instructions.
+
+The new certificate and key files will be placed in the FreeCoAP/certs directory.
+
+The CoAP client, CoAP server, HTTP/CoAP proxy and the test applications will pick up the new certificates and keys automatically.
 
 
 Validation History
