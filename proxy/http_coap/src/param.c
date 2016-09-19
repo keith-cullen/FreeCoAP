@@ -168,9 +168,9 @@ static int param_parse(param_t *param, const char *file_name, config_t *config, 
 
     ret = param_parse_key_val(config,
                               "coap_client",
-                              "key_file",
-                              PARAM_DEF_COAP_CLIENT_KEY_FILE_NAME,
-                              &param->coap_client_key_file_name);
+                              "pub_key_file",
+                              PARAM_DEF_COAP_CLIENT_PUB_KEY_FILE_NAME,
+                              &param->coap_client_pub_key_file_name);
     if (ret != 0)
     {
         return ret;
@@ -178,19 +178,9 @@ static int param_parse(param_t *param, const char *file_name, config_t *config, 
 
     ret = param_parse_key_val(config,
                               "coap_client",
-                              "cert_file",
-                              PARAM_DEF_COAP_CLIENT_CERT_FILE_NAME,
-                              &param->coap_client_cert_file_name);
-    if (ret != 0)
-    {
-        return ret;
-    }
-
-    ret = param_parse_key_val(config,
-                              "coap_client",
-                              "trust_file",
-                              PARAM_DEF_COAP_CLIENT_TRUST_FILE_NAME,
-                              &param->coap_client_trust_file_name);
+                              "priv_key_file",
+                              PARAM_DEF_COAP_CLIENT_PRIV_KEY_FILE_NAME,
+                              &param->coap_client_priv_key_file_name);
     if (ret != 0)
     {
         return ret;
@@ -240,17 +230,13 @@ int param_create(param_t *param, const char *file_name)
 
 void param_destroy(param_t *param)
 {
-    if (param->coap_client_trust_file_name != NULL)
+    if (param->coap_client_priv_key_file_name != NULL)
     {
-        free(param->coap_client_trust_file_name);
+        free(param->coap_client_priv_key_file_name);
     }
-    if (param->coap_client_cert_file_name != NULL)
+    if (param->coap_client_pub_key_file_name != NULL)
     {
-        free(param->coap_client_cert_file_name);
-    }
-    if (param->coap_client_key_file_name != NULL)
-    {
-        free(param->coap_client_key_file_name);
+        free(param->coap_client_pub_key_file_name);
     }
     if (param->http_server_trust_file_name != NULL)
     {

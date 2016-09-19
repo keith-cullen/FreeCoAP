@@ -40,13 +40,12 @@
 #include "coap_log.h"
 #include "test.h"
 
-#define HOST             "::1"                                                  /**< Host address of the server */
-#define PORT             "12436"                                                /**< UDP port number of the server */
-#define TRUST_FILE_NAME  "../../certs/root_server_cert.pem"                     /**< DTLS trust file name */
-#define CERT_FILE_NAME   "../../certs/client_cert.pem"                          /**< DTLS certificate file name */
-#define KEY_FILE_NAME    "../../certs/client_privkey.pem"                       /**< DTLS key file name */
-#define CRL_FILE_NAME    ""                                                     /**< DTLS certificate revocation list file name */
-#define SEP_URI_PATH     "separate"                                             /**< URI path option value to trigger a separate response from the server */
+#define HOST                "::1"                                               /**< Host address of the server */
+#define PORT                "12436"                                             /**< UDP port number of the server */
+#define PUB_KEY_FILE_NAME   "../../raw_keys/client_pub_key.txt"                 /**< ECDSA public key file name */
+#define PRIV_KEY_FILE_NAME  "../../raw_keys/client_priv_key.txt"                /**< ECDSA private key file name */
+#define KEY_LEN             32                                                  /**< Length in bytes of the ECDSA keys*/
+#define SEP_URI_PATH        "separate"                                          /**< URI path option value to trigger a separate response from the server */
 
 /**
  *  @brief Message option test data structure
@@ -82,10 +81,6 @@ typedef struct
     const char *desc;                                                           /**< Test description */
     const char *host;                                                           /**< Server host address */
     const char *port;                                                           /**< Server UDP port */
-    const char *key_file_name;                                                  /**< DTLS key file name */
-    const char *cert_file_name;                                                 /**< DTLS certificate file name */
-    const char *trust_file_name;                                                /**< DTLS trust file name */
-    const char *crl_file_name;                                                  /**< DTLS certificate revocation list file name */
     test_coap_client_msg_t *test_req;                                           /**< Array of test request message structures */
     test_coap_client_msg_t *test_resp;                                          /**< Array of test response message structures */
     size_t num_msg;                                                             /**< Length of the arrays of test message structures */
@@ -138,10 +133,6 @@ test_coap_client_data_t test1_data =
     .desc = "test 1: send a confirmable request and expect a piggy-backed response",
     .host = HOST,
     .port = PORT,
-    .key_file_name = KEY_FILE_NAME,
-    .cert_file_name = CERT_FILE_NAME,
-    .trust_file_name = TRUST_FILE_NAME,
-    .crl_file_name = CRL_FILE_NAME,
     .test_req = test1_req,
     .test_resp = test1_resp,
     .num_msg = TEST1_NUM_MSG
@@ -193,10 +184,6 @@ test_coap_client_data_t test2_data =
     .desc = "test 2: send a confirmable request and expect a separate response",
     .host = HOST,
     .port = PORT,
-    .key_file_name = KEY_FILE_NAME,
-    .cert_file_name = CERT_FILE_NAME,
-    .trust_file_name = TRUST_FILE_NAME,
-    .crl_file_name = CRL_FILE_NAME,
     .test_req = test2_req,
     .test_resp = test2_resp,
     .num_msg = TEST2_NUM_MSG
@@ -248,10 +235,6 @@ test_coap_client_data_t test3_data =
     .desc = "test 3: send a non-confirmable request",
     .host = HOST,
     .port = PORT,
-    .key_file_name = KEY_FILE_NAME,
-    .cert_file_name = CERT_FILE_NAME,
-    .trust_file_name = TRUST_FILE_NAME,
-    .crl_file_name = CRL_FILE_NAME,
     .test_req = test3_req,
     .test_resp = test3_resp,
     .num_msg = TEST3_NUM_MSG
@@ -321,10 +304,6 @@ test_coap_client_data_t test4_data =
     .desc = "test 4: send two confirmable requests and expect piggy-backed responses",
     .host = HOST,
     .port = PORT,
-    .key_file_name = KEY_FILE_NAME,
-    .cert_file_name = CERT_FILE_NAME,
-    .trust_file_name = TRUST_FILE_NAME,
-    .crl_file_name = CRL_FILE_NAME,
     .test_req = test4_req,
     .test_resp = test4_resp,
     .num_msg = TEST4_NUM_MSG
@@ -394,10 +373,6 @@ test_coap_client_data_t test5_data =
     .desc = "test 5: send two confirmable requests and expect separate responses",
     .host = HOST,
     .port = PORT,
-    .key_file_name = KEY_FILE_NAME,
-    .cert_file_name = CERT_FILE_NAME,
-    .trust_file_name = TRUST_FILE_NAME,
-    .crl_file_name = CRL_FILE_NAME,
     .test_req = test5_req,
     .test_resp = test5_resp,
     .num_msg = TEST5_NUM_MSG
@@ -467,10 +442,6 @@ test_coap_client_data_t test6_data =
     .desc = "test 6: send two non-confirmable requests",
     .host = HOST,
     .port = PORT,
-    .key_file_name = KEY_FILE_NAME,
-    .cert_file_name = CERT_FILE_NAME,
-    .trust_file_name = TRUST_FILE_NAME,
-    .crl_file_name = CRL_FILE_NAME,
     .test_req = test6_req,
     .test_resp = test6_resp,
     .num_msg = TEST6_NUM_MSG
@@ -529,14 +500,102 @@ test_coap_client_data_t test7_data =
     .desc = "test 7: send a confirmable request and expect a bad option response",
     .host = HOST,
     .port = PORT,
-    .key_file_name = KEY_FILE_NAME,
-    .cert_file_name = CERT_FILE_NAME,
-    .trust_file_name = TRUST_FILE_NAME,
-    .crl_file_name = CRL_FILE_NAME,
     .test_req = test7_req,
     .test_resp = test7_resp,
     .num_msg = TEST7_NUM_MSG
 };
+
+#ifdef COAP_DTLS_EN
+
+static unsigned char ecdsa_priv_key[KEY_LEN] = {0};
+static unsigned char ecdsa_pub_key_x[KEY_LEN] = {0};
+static unsigned char ecdsa_pub_key_y[KEY_LEN] = {0};
+
+static int load_key_data(FILE *file, unsigned char *buf)
+{
+    unsigned val = 0;
+    char txt[3] = {0};
+    int num = 0;
+    int c = 0;
+    int i = 0;
+    int j = 0;
+
+    for (i = 0; i < KEY_LEN; i++)
+    {
+        for (j = 0; j < 2; j++)
+        {
+            c = fgetc(file);
+            if (c == EOF)
+            {
+                return -1;
+            }
+            txt[j] = (char)c;
+        }
+        num = sscanf(txt, "%02x", &val);
+        if (num != 1)
+        {
+            return -1;
+        }
+        buf[i] = (unsigned char)val;
+    }
+    return 0;
+}
+
+static int load_keys(const char *privkey, const char *pubkey)
+{
+    FILE *file = NULL;
+    int ret = 0;
+    int j = 0;
+    int c = 0;
+
+    file = fopen(privkey, "r");
+    if (file == NULL)
+    {
+        coap_log_error("failed to open file '%s'", privkey);
+        return -1;
+    }
+    ret = load_key_data(file, ecdsa_priv_key);
+    fclose(file);
+    if (ret < 0)
+    {
+        coap_log_error("failed to read file '%s'", privkey);
+        return -1;
+    }
+    file = fopen(pubkey, "r");
+    if (file == NULL)
+    {
+        coap_log_error("failed to open file '%s'", pubkey);
+        return -1;
+    }
+    /* skip the first byte */
+    for (j = 0; j < 2; j++)
+    {
+        c = fgetc(file);
+        if (c == EOF)
+        {
+            coap_log_error("failed to read file '%s'", pubkey);
+            fclose(file);
+            return -1;
+        }
+    }
+    ret = load_key_data(file, ecdsa_pub_key_x);
+    if (ret < 0)
+    {
+        coap_log_error("failed to read file '%s'", pubkey);
+        fclose(file);
+        return -1;
+    }
+    ret = load_key_data(file, ecdsa_pub_key_y);
+    fclose(file);
+    if (ret < 0)
+    {
+        coap_log_error("failed to read file '%s'", pubkey);
+        return -1;
+    }
+    return 0;
+}
+
+#endif
 
 /**
  *  @brief Print a CoAP message
@@ -618,13 +677,13 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
     ret = coap_msg_set_type(req, test_req->type);
     if (ret != 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
     ret = coap_msg_set_code(req, test_req->code_class, test_req->code_detail);
     if (ret != 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
     for (i = 0; i < test_req->num_ops; i++)
@@ -632,7 +691,7 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
         ret = coap_msg_add_op(req, test_req->ops[i].num, test_req->ops[i].len, test_req->ops[i].val);
         if (ret != 0)
         {
-            coap_log_error("%s\n", strerror(-ret));
+            coap_log_error("%s", strerror(-ret));
             return FAIL;
         }
     }
@@ -641,7 +700,7 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
         ret = coap_msg_set_payload(req, test_req->payload, test_req->payload_len);
         if (ret != 0)
         {
-            coap_log_error("%s\n", strerror(-ret));
+            coap_log_error("%s", strerror(-ret));
             return FAIL;
         }
     }
@@ -669,9 +728,9 @@ static test_result_t exchange(coap_client_t *client, test_coap_client_msg_t *tes
         return result;
     }
     ret = coap_client_exchange(client, req, resp);
-    if (ret != 0)
+    if (ret < 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
 
@@ -762,10 +821,9 @@ static test_result_t test_exchange_func(test_data_t data)
     ret = coap_client_create(&client,
                              test_data->host,
                              test_data->port,
-                             test_data->key_file_name,
-                             test_data->cert_file_name,
-                             test_data->trust_file_name,
-                             test_data->crl_file_name);
+                             ecdsa_priv_key,
+                             ecdsa_pub_key_x,
+                             ecdsa_pub_key_y);
 #else
     ret = coap_client_create(&client,
                              test_data->host,
@@ -773,7 +831,7 @@ static test_result_t test_exchange_func(test_data_t data)
 #endif
     if (ret != 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
 
@@ -822,9 +880,9 @@ static test_result_t test_exchange_func(test_data_t data)
  */
 static void usage(void)
 {
-    coap_log_error("Usage: test_coap_client <options> test-num\n");
+    coap_log_error("Usage: test_coap_client <options> test-num");
     coap_log_error("Options:");
-    coap_log_error("    -l log-level - set the log level (0 to 4)\n");
+    coap_log_error("    -l log-level - set the log level (0 to 4)");
 }
 
 /**
@@ -844,6 +902,9 @@ int main(int argc, char **argv)
     unsigned num_pass = 0;
     int log_level = COAP_LOG_DEBUG;
     int test_num = 0;
+#ifdef COAP_DTLS_EN
+    int ret = 0;
+#endif
     int c = 0;
     test_t tests[] = {{test_exchange_func, &test1_data},
                       {test_exchange_func, &test2_data},
@@ -865,10 +926,10 @@ int main(int argc, char **argv)
             log_level = atoi(optarg);
             break;
         case ':':
-            coap_log_error("Option '%c' requires an argument\n", optopt);
+            coap_log_error("Option '%c' requires an argument", optopt);
             return EXIT_FAILURE;
         case '?':
-            coap_log_error("Unknown option '%c'\n", optopt);
+            coap_log_error("Unknown option '%c'", optopt);
             return EXIT_FAILURE;
         default:
             usage();
@@ -881,6 +942,14 @@ int main(int argc, char **argv)
     }
 
     coap_log_set_level(log_level);
+
+#ifdef COAP_DTLS_EN
+    ret = load_keys(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME);
+    if (ret < 0)
+    {
+        return EXIT_FAILURE;
+    }
+#endif
 
     switch (test_num)
     {

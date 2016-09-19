@@ -408,9 +408,9 @@ static test_result_t test_double_exchange_func(test_data_t data)
  */
 static void usage(void)
 {
-    coap_log_error("Usage: test_http_client <options> test-num\n");
+    coap_log_error("Usage: test_http_client <options> test-num");
     coap_log_error("Options:");
-    coap_log_error("    -l log-level - set the log level (0 to 4)\n");
+    coap_log_error("    -l log-level - set the log level (0 to 4)");
 }
 
 /**
@@ -451,10 +451,10 @@ int main(int argc, char **argv)
             log_level = atoi(optarg);
             break;
         case ':':
-            coap_log_error("Option '%c' requires an argument\n", optopt);
+            coap_log_error("Option '%c' requires an argument", optopt);
             return EXIT_FAILURE;
         case '?':
-            coap_log_error("Unknown option '%c'\n", optopt);
+            coap_log_error("Unknown option '%c'", optopt);
             return EXIT_FAILURE;
         default:
             usage();

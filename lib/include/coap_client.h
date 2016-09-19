@@ -37,13 +37,31 @@
 #include <time.h>
 #include <netinet/in.h>
 #ifdef COAP_DTLS_EN
-#include <gnutls/gnutls.h>
-#include <gnutls/dtls.h>
+#include "tinydtls.h"
+#include "dtls.h"
 #endif
 #include "coap_msg.h"
 
 #define COAP_CLIENT_HOST_BUF_LEN  128                                           /**< Buffer length for host addresses */
 #define COAP_CLIENT_PORT_BUF_LEN  8                                             /**< Buffer length for port numbers */
+
+#ifdef COAP_DTLS_EN
+
+/**
+ *  @brief Client DTLS state enumeration
+ */
+typedef enum
+{
+    COAP_CLIENT_DTLS_UNCONNECTED = 0,                                           /**< DTLS session is not active */
+    COAP_CLIENT_DTLS_CONNECTED,                                                 /**< DTLS session is active */
+    COAP_CLIENT_DTLS_CLOSING,                                                   /**< DTLS session was closed by the server */
+    COAP_CLIENT_DTLS_ERROR                                                      /**< DTLS session has encountered an error */
+}
+coap_client_dtls_state_t;
+
+#define coap_client_dtls_get_state(client)  ((client)->state)                   /**< Get DTLS state */
+
+#endif
 
 /**
  *  @brief Client structure
@@ -59,9 +77,12 @@ typedef struct
     char server_host[COAP_CLIENT_HOST_BUF_LEN];                                 /**< String to hold the server host address */
     char server_port[COAP_CLIENT_PORT_BUF_LEN];                                 /**< String to hold the server port number */
 #ifdef COAP_DTLS_EN
-    gnutls_session_t session;                                                   /**< DTLS session */
-    gnutls_certificate_credentials_t cred;                                      /**< DTLS credentials */
-    gnutls_priority_t priority;                                                 /**< DTLS priorities */
+    coap_client_dtls_state_t state;                                             /**< Current state of the DTLS session */
+    dtls_context_t *ctx;                                                        /**< DTLS context */
+    session_t sess;                                                             /**< DTLS session */
+    dtls_ecdsa_key_t ecdsa_key;                                                 /**< ECDSA keys */
+    char *app_start;                                                            /**< Start of application data */
+    size_t app_len;                                                             /**< Length of application data */
 #endif
 }
 coap_client_t;
@@ -74,10 +95,9 @@ coap_client_t;
  *  @param[out] client Pointer to a client structure
  *  @param[in] host Pointer to a string containing the host address of the server
  *  @param[in] port Port number of the server
- *  @param[in] key_file_name String containing the DTLS key file name
- *  @param[in] cert_file_name String containing the DTLS certificate file name
- *  @param[in] trust_file_name String containing the DTLS trust file name
- *  @param[in] crls_file_name String containing the DTLS certificate revocation list file name
+ *  @param[in] ecdsa_priv_key Buffer containing the ECDSA private key
+ *  @param[in] ecdsa_pub_key_x Buffer containing the x component of the ECDSA public key
+ *  @param[in] ecdsa_pub_key_y Buffer containing the y component of the ECDSA public key
  *
  *  @returns Operation status
  *  @retval 0 Success
@@ -86,10 +106,9 @@ coap_client_t;
 int coap_client_create(coap_client_t *client,
                        const char *host,
                        const char *port,
-                       const char *key_file_name,
-                       const char *cert_file_name,
-                       const char *trust_file_name,
-                       const char *crl_file_name);
+                       const unsigned char *ecdsa_priv_key,
+                       const unsigned char *ecdsa_pub_key_x,
+                       const unsigned char *ecdsa_pub_key_y);
 
 #else  /* !COAP_DTLS_EN */
 
