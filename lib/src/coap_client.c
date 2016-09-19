@@ -53,8 +53,8 @@
 #ifdef COAP_DTLS_EN
 
 #define COAP_CLIENT_DTLS_MTU              COAP_MSG_MAX_BUF_LEN                  /**< Maximum transmission unit excluding the UDP and IPv6 headers */
-#define COAP_CLIENT_DTLS_RETRANS_TIMEOUT  1000                                  /**< Retransmission timeout (msec) for the DTLS handshake */
-#define COAP_CLIENT_DTLS_TOTAL_TIMEOUT    60000                                 /**< Total timeout (msec) for the DTLS handshake */
+#define COAP_CLIENT_DTLS_RETRANS_TIMEOUT  100                                   /**< Retransmission timeout (msec) for the DTLS handshake */
+#define COAP_CLIENT_DTLS_TOTAL_TIMEOUT    5000                                  /**< Total timeout (msec) for the DTLS handshake */
 #define COAP_CLIENT_DTLS_PRIORITIES       "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
                                                                                 /**< DTLS priorities */
 #endif
@@ -205,7 +205,7 @@ static int coap_client_dtls_handshake(coap_client_t *client)
     {
         errno = 0;
         ret = gnutls_handshake(client->session);
-        if (errno != 0)
+        if ((errno != 0) && (errno != EAGAIN))
         {
             return -errno;
         }
@@ -233,7 +233,7 @@ static int coap_client_dtls_handshake(coap_client_t *client)
             return ret;
         }
     }
-    return -1;
+    return -ETIMEDOUT;
 }
 
 /**

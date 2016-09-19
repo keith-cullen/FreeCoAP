@@ -54,8 +54,8 @@
 #ifdef COAP_DTLS_EN
 
 #define COAP_SERVER_DTLS_MTU              COAP_MSG_MAX_BUF_LEN                  /**< Maximum transmission unit excluding the UDP and IPv6 headers */
-#define COAP_SERVER_DTLS_RETRANS_TIMEOUT  1000                                  /**< Retransmission timeout (msec) for the DTLS handshake */
-#define COAP_SERVER_DTLS_TOTAL_TIMEOUT    60000                                 /**< Total timeout (msec) for the DTLS handshake */
+#define COAP_SERVER_DTLS_RETRANS_TIMEOUT  100                                   /**< Retransmission timeout (msec) for the DTLS handshake */
+#define COAP_SERVER_DTLS_TOTAL_TIMEOUT    5000                                  /**< Total timeout (msec) for the DTLS handshake */
 #define COAP_SERVER_DTLS_NUM_DH_BITS      1024                                  /**< DTLS Diffie-Hellman key size */
 #define COAP_SERVER_DTLS_PRIORITIES       "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
                                                                                 /**< DTLS priorities */
@@ -377,7 +377,7 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
     {
         errno = 0;
         ret = gnutls_handshake(trans->session);
-        if (errno != 0)
+        if ((errno != 0) && (errno != EAGAIN))
         {
             return -errno;
         }
@@ -405,7 +405,7 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
             return ret;
         }
     }
-    return -1;
+    return -ETIMEDOUT;
 }
 
 /**
@@ -456,7 +456,7 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
     {
         gnutls_deinit(trans->session);
         coap_log_error("Failed to complete DTLS handshake");
-        return -1;
+        return ret;
     }
     return 0;
 }
@@ -871,7 +871,7 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
     if ((client_sin_len != trans->client_sin_len)
      || (memcmp(&client_sin, &trans->client_sin, client_sin_len) != 0))
     {
-        return -EAGAIN;
+        return -EINVAL;
     }
     num = recvfrom(server->sd, buf, num, 0, (struct sockaddr *)&client_sin, &client_sin_len);
     if (num < 0)
@@ -2048,7 +2048,10 @@ int coap_server_run(coap_server_t *server)
         if (ret < 0)
         {
             coap_log_error("server exchange: %s", strerror(-ret));
-            return ret;
+            if (ret != -ETIMEDOUT)
+            {
+                return ret;
+            }
         }
     }
     return 0;
