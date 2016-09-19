@@ -40,13 +40,104 @@
 
 #define HOST                 "::1"                                              /**< Host address to listen on */
 #define PORT                 "12436"                                            /**< UDP port number to listen on */
-#define KEY_FILE_NAME        "../../certs/server_privkey.pem"                   /**< DTLS key file name */
-#define CERT_FILE_NAME       "../../certs/server_cert.pem"                      /**< DTLS certificate file name */
-#define TRUST_FILE_NAME      "../../certs/root_client_cert.pem"                 /**< DTLS trust file name */
-#define CRL_FILE_NAME        ""                                                 /**< DTLS certificate revocation list file name */
+#define PUB_KEY_FILE_NAME    "../../raw_keys/server_pub_key.txt"                /**< ECDSA public key file name */
+#define PRIV_KEY_FILE_NAME   "../../raw_keys/server_priv_key.txt"               /**< ECDSA private key file name */
 #define SEP_URI_PATH         "/separate"                                        /**< URI path that requires a separate response */
+#define KEY_LEN              32                                                 /**< Length in bytes of the ECDSA keys*/
 #define UNSAFE_URI_PATH      "unsafe"                                           /**< URI path that causes the server to include an unsafe option in the response */
 #define UNSAFE_URI_PATH_LEN  6                                                  /**< Length of the URI path that causes the server to include an unsafe option in the response */
+
+#ifdef COAP_DTLS_EN
+
+static unsigned char ecdsa_priv_key[KEY_LEN] = {0};
+static unsigned char ecdsa_pub_key_x[KEY_LEN] = {0};
+static unsigned char ecdsa_pub_key_y[KEY_LEN] = {0};
+
+static int load_key_data(FILE *file, unsigned char *buf)
+{
+    unsigned val = 0;
+    char txt[3] = {0};
+    int num = 0;
+    int c = 0;
+    int i = 0;
+    int j = 0;
+
+    for (i = 0; i < KEY_LEN; i++)
+    {
+        for (j = 0; j < 2; j++)
+        {
+            c = fgetc(file);
+            if (c == EOF)
+            {
+                return -1;
+            }
+            txt[j] = (char)c;
+        }
+        num = sscanf(txt, "%02x", &val);
+        if (num != 1)
+        {
+            return -1;
+        }
+        buf[i] = (unsigned char)val;
+    }
+    return 0;
+}
+
+static int load_keys(const char *privkey, const char *pubkey)
+{
+    FILE *file = NULL;
+    int ret = 0;
+    int j = 0;
+    int c = 0;
+
+    file = fopen(privkey, "r");
+    if (file == NULL)
+    {
+        coap_log_error("failed to open file '%s'", privkey);
+        return -1;
+    }
+    ret = load_key_data(file, ecdsa_priv_key);
+    fclose(file);
+    if (ret < 0)
+    {
+        coap_log_error("failed to read file '%s'", privkey);
+        return -1;
+    }
+    file = fopen(pubkey, "r");
+    if (file == NULL)
+    {
+        coap_log_error("failed to open file '%s'", pubkey);
+        return -1;
+    }
+    /* skip the first byte */
+    for (j = 0; j < 2; j++)
+    {
+        c = fgetc(file);
+        if (c == EOF)
+        {
+            coap_log_error("failed to read file '%s'", pubkey);
+            fclose(file);
+            return -1;
+        }
+    }
+    ret = load_key_data(file, ecdsa_pub_key_x);
+    if (ret < 0)
+    {
+        coap_log_error("failed to read file '%s'", pubkey);
+        fclose(file);
+        return -1;
+    }
+    ret = load_key_data(file, ecdsa_pub_key_y);
+    fclose(file);
+    if (ret < 0)
+    {
+        coap_log_error("failed to read file '%s'", pubkey);
+        return -1;
+    }
+    return 0;
+}
+
+#endif
 
 /**
  *  @brief Print a CoAP message
@@ -212,7 +303,15 @@ int main()
     coap_log_set_level(COAP_LOG_DEBUG);
 
 #ifdef COAP_DTLS_EN
-    ret = coap_server_create(&server, server_handle, HOST, PORT, KEY_FILE_NAME, CERT_FILE_NAME, TRUST_FILE_NAME, CRL_FILE_NAME);
+    ret = load_keys(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME);
+    if (ret < 0)
+    {
+        return EXIT_FAILURE;
+    }
+#endif
+
+#ifdef COAP_DTLS_EN
+    ret = coap_server_create(&server, server_handle, HOST, PORT, ecdsa_priv_key, ecdsa_pub_key_x, ecdsa_pub_key_y);
 #else
     ret = coap_server_create(&server, server_handle, HOST, PORT);
 #endif

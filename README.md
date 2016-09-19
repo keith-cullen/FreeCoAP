@@ -27,6 +27,26 @@ Released under a BSD style license.
 Tested on Intel Galileo, Raspberry Pi and BeagleBone Black.
 
 
+Branches
+========
+
+master
+------
+
+- DTLS for CoAP implemented using GnuTLS
+    - X.509 certificates (RFC 7252 section 9.1.3.3)
+- TLS for HTTP implemented using GnuTLS
+    - X.509 certificates (RFC 7252 section 9.1.3.3)
+
+tinydtls
+--------
+
+- DTLS for CoAP implemented using tinydtls
+    - raw public key certificates (RFC 7252 section 9.1.3.2)
+- TLS for HTTP implemented using GnuTLS
+    - X.509 certificates (RFC 7252 section 9.1.3.3)
+
+
 Build and Test Instructions
 ===========================
 
@@ -123,8 +143,13 @@ $ make ip6=y
 
 $ ./test_http_client
 
+
+Certificates and Keys
+=====================
+
 To generate X.509 certificates and keys
 ---------------------------------------
+(for master and tinydtls branches)
 
 $ cd FreeCoAP/certs/gen_certs
 
@@ -134,7 +159,19 @@ Follow the instructions.
 
 The new certificate and key files will be placed in the FreeCoAP/certs directory.
 
-The CoAP client, CoAP server, HTTP/CoAP proxy and the test applications will pick up the new certificates and keys automatically.
+The client, server and proxy applications will pick up the new certificates and keys automatically.
+
+To generate raw public/private keys
+-----------------------------------
+(for tinydtls branch)
+
+$ cd FreeCoAP/raw_keys
+
+$ ./gen_keys.sh
+
+The new key files will be placed in the FreeCoAP/raw_keys directory.
+
+The client, server and proxy applications will pick up the new keys automatically.
 
 
 Validation History

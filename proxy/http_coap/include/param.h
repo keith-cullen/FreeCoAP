@@ -36,23 +36,21 @@
 
 #include "coap_log.h"
 
-#define PARAM_DEF_PORT                                "4430"
-#define PARAM_DEF_MAX_LOG_LEVEL                       "debug"
-#define PARAM_DEF_HTTP_SERVER_TRUST_FILE_NAME         "http_server_trust.pem"   /**< TLS trust file name */
-#define PARAM_DEF_HTTP_SERVER_CERT_FILE_NAME          "http_server_cert.pem"    /**< TLS certificate file name*/
-#define PARAM_DEF_HTTP_SERVER_KEY_FILE_NAME           "http_server_privkey.pem" /**< TLS key file name */
-#define PARAM_DEF_COAP_CLIENT_TRUST_FILE_NAME         "coap_client_trust.pem"   /**< DTLS trust file name */
-#define PARAM_DEF_COAP_CLIENT_CERT_FILE_NAME          "coap_client_cert.pem"    /**< DTLS certificate file name */
-#define PARAM_DEF_COAP_CLIENT_KEY_FILE_NAME           "coap_client_privkey.pem" /**< DTLS key file name */
+#define PARAM_DEF_PORT                                  "4430"
+#define PARAM_DEF_MAX_LOG_LEVEL                          "debug"
+#define PARAM_DEF_HTTP_SERVER_TRUST_FILE_NAME            "http_server_trust.pem"   /**< TLS trust file name */
+#define PARAM_DEF_HTTP_SERVER_CERT_FILE_NAME             "http_server_cert.pem"    /**< TLS certificate file name*/
+#define PARAM_DEF_HTTP_SERVER_KEY_FILE_NAME              "http_server_privkey.pem" /**< TLS key file name */
+#define PARAM_DEF_COAP_CLIENT_PUB_KEY_FILE_NAME          "client_pub_key.txt"      /**< DTLS public key file name */
+#define PARAM_DEF_COAP_CLIENT_PRIV_KEY_FILE_NAME         "client_priv_key.txt"     /**< DTLS private key file name */
 
-#define param_get_port(param)                         ((param)->port)
-#define param_get_max_log_level(param)                ((param)->max_log_level)
-#define param_get_http_server_key_file_name(param)    ((param)->http_server_key_file_name)
-#define param_get_http_server_cert_file_name(param)   ((param)->http_server_cert_file_name)
-#define param_get_http_server_trust_file_name(param)  ((param)->http_server_trust_file_name)
-#define param_get_coap_client_key_file_name(param)    ((param)->coap_client_key_file_name)
-#define param_get_coap_client_cert_file_name(param)   ((param)->coap_client_cert_file_name)
-#define param_get_coap_client_trust_file_name(param)  ((param)->coap_client_trust_file_name)
+#define param_get_port(param)                            ((param)->port)
+#define param_get_max_log_level(param)                   ((param)->max_log_level)
+#define param_get_http_server_key_file_name(param)       ((param)->http_server_key_file_name)
+#define param_get_http_server_cert_file_name(param)      ((param)->http_server_cert_file_name)
+#define param_get_http_server_trust_file_name(param)     ((param)->http_server_trust_file_name)
+#define param_get_coap_client_pub_key_file_name(param)   ((param)->coap_client_pub_key_file_name)
+#define param_get_coap_client_priv_key_file_name(param)  ((param)->coap_client_priv_key_file_name)
 
 typedef struct
 {
@@ -61,9 +59,8 @@ typedef struct
     char *http_server_key_file_name;
     char *http_server_cert_file_name;
     char *http_server_trust_file_name;
-    char *coap_client_key_file_name;
-    char *coap_client_cert_file_name;
-    char *coap_client_trust_file_name;
+    char *coap_client_pub_key_file_name;
+    char *coap_client_priv_key_file_name;
 }
 param_t;
 

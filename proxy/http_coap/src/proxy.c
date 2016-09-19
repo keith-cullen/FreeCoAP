@@ -176,7 +176,7 @@ int main(int argc, char **argv)
     ret = tls_init();
     if (ret != SOCK_OK)
     {
-        coap_log_error("Unable to initialise TLS library\n");
+        coap_log_error("Unable to initialise TLS library");
         param_destroy(&param);
         return EXIT_FAILURE;
     }
@@ -187,13 +187,14 @@ int main(int argc, char **argv)
                             param_get_http_server_key_file_name(&param));
     if (ret != SOCK_OK)
     {
-        coap_log_error("Unable to initialise TLS server\n");
+        coap_log_error("Unable to initialise TLS server");
         tls_deinit();
         param_destroy(&param);
         return EXIT_FAILURE;
     }
 
-    ret = connection_init();
+    ret = connection_init(param_get_coap_client_priv_key_file_name(&param),
+                          param_get_coap_client_pub_key_file_name(&param));
     if (ret < 0)
     {
         coap_log_error("Unable to initialise connection module");
