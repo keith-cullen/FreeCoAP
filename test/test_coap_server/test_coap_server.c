@@ -177,19 +177,19 @@ int server_handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
     ret = coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
     if (ret < 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return ret;
     }
     ret = server_handle_unsafe(req, resp);
     if (ret < 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return ret;
     }
     ret = coap_msg_set_payload(resp, payload, strlen(payload));
     if (ret < 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return ret;
     }
     print_coap_msg("Received:", req);
@@ -218,20 +218,20 @@ int main()
 #endif
     if (ret < 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return EXIT_FAILURE;
     }
     ret = coap_server_add_sep_resp_uri_path(&server, SEP_URI_PATH);
     if (ret < 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         coap_server_destroy(&server);
         return EXIT_FAILURE;
     }
     ret = coap_server_run(&server);
     if (ret < 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         coap_server_destroy(&server);
         return EXIT_FAILURE;
     }
