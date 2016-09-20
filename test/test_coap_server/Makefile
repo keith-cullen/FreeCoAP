@@ -11,7 +11,6 @@ S1 = ../../lib/src
 
 CC = gcc
 CFLAGS = -Wall \
-         -g \
          -I $(I1)
 CFLAGS += $(DTLS_CFLAGS)
 LD = gcc
@@ -23,7 +22,7 @@ OBJS = test_coap_server.o \
        coap_server.o \
        coap_msg.o \
        coap_log.o
-LIBS += $(DTLS_LIBS)
+LIBS = $(DTLS_LIBS)
 PROG = test_coap_server
 RM = /bin/rm -f
 
