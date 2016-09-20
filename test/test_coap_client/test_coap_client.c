@@ -618,13 +618,13 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
     ret = coap_msg_set_type(req, test_req->type);
     if (ret != 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
     ret = coap_msg_set_code(req, test_req->code_class, test_req->code_detail);
     if (ret != 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
     for (i = 0; i < test_req->num_ops; i++)
@@ -632,7 +632,7 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
         ret = coap_msg_add_op(req, test_req->ops[i].num, test_req->ops[i].len, test_req->ops[i].val);
         if (ret != 0)
         {
-            coap_log_error("%s\n", strerror(-ret));
+            coap_log_error("%s", strerror(-ret));
             return FAIL;
         }
     }
@@ -641,7 +641,7 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
         ret = coap_msg_set_payload(req, test_req->payload, test_req->payload_len);
         if (ret != 0)
         {
-            coap_log_error("%s\n", strerror(-ret));
+            coap_log_error("%s", strerror(-ret));
             return FAIL;
         }
     }
@@ -671,7 +671,7 @@ static test_result_t exchange(coap_client_t *client, test_coap_client_msg_t *tes
     ret = coap_client_exchange(client, req, resp);
     if (ret != 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
 
@@ -773,7 +773,7 @@ static test_result_t test_exchange_func(test_data_t data)
 #endif
     if (ret != 0)
     {
-        coap_log_error("%s\n", strerror(-ret));
+        coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
 
@@ -822,9 +822,9 @@ static test_result_t test_exchange_func(test_data_t data)
  */
 static void usage(void)
 {
-    coap_log_error("Usage: test_coap_client <options> test-num\n");
+    coap_log_error("Usage: test_coap_client <options> test-num");
     coap_log_error("Options:");
-    coap_log_error("    -l log-level - set the log level (0 to 4)\n");
+    coap_log_error("    -l log-level - set the log level (0 to 4)");
 }
 
 /**
@@ -865,10 +865,10 @@ int main(int argc, char **argv)
             log_level = atoi(optarg);
             break;
         case ':':
-            coap_log_error("Option '%c' requires an argument\n", optopt);
+            coap_log_error("Option '%c' requires an argument", optopt);
             return EXIT_FAILURE;
         case '?':
-            coap_log_error("Unknown option '%c'\n", optopt);
+            coap_log_error("Unknown option '%c'", optopt);
             return EXIT_FAILURE;
         default:
             usage();

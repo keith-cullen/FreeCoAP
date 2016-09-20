@@ -395,6 +395,15 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
                 coap_log_info("Cipher suite is unknown");
             return 0;  /* success */
         }
+        if (ret == GNUTLS_E_TIMEDOUT)
+        {
+            break;
+        }
+        if ((ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
+         || (ret == GNUTLS_E_FATAL_ALERT_RECEIVED))
+        {
+            return -ECONNRESET;
+        }
         if (ret != GNUTLS_E_AGAIN)
         {
             return -1;
@@ -468,6 +477,7 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
  */
 static void coap_server_trans_dtls_destroy(coap_server_trans_t *trans)
 {
+    gnutls_bye(trans->session, GNUTLS_SHUT_WR);
     gnutls_deinit(trans->session);
 }
 
@@ -859,6 +869,12 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
             return -EAGAIN;
         }
         return -1;
+    }
+    if ((num == 0)
+     || (ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
+     || (ret == GNUTLS_E_FATAL_ALERT_RECEIVED))
+    {
+        return -ECONNRESET;
     }
 #else
     server = trans->server;
@@ -2047,9 +2063,13 @@ int coap_server_run(coap_server_t *server)
         ret = coap_server_exchange(server);
         if (ret < 0)
         {
-            coap_log_error("server exchange: %s", strerror(-ret));
-            if (ret != -ETIMEDOUT)
+            if ((ret == -ETIMEDOUT) || (ret == -ECONNRESET))
             {
+                coap_log_notice("server exchange: %s", strerror(-ret));
+            }
+            else
+            {
+                coap_log_error("server exchange: %s", strerror(-ret));
                 return ret;
             }
         }
