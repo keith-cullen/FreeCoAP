@@ -12,7 +12,6 @@ T1 = ..
 
 CC = gcc
 CFLAGS = -Wall \
-         -g \
          -I$(I1) \
          -I$(T1)
 CFLAGS += $(DTLS_CFLAGS)
@@ -27,7 +26,7 @@ OBJS = test_coap_client.o \
        coap_msg.o \
        coap_log.o \
        test.o
-LIBS += $(DTLS_LIBS)
+LIBS = $(DTLS_LIBS)
 PROG = test_coap_client
 RM = /bin/rm -f
 

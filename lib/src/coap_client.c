@@ -223,6 +223,15 @@ static int coap_client_dtls_handshake(coap_client_t *client)
                 coap_log_info("Cipher suite is unknown");
             return 0;  /* success */
         }
+        if (ret == GNUTLS_E_TIMEDOUT)
+        {
+            break;
+        }
+        if ((ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
+         || (ret == GNUTLS_E_FATAL_ALERT_RECEIVED))
+        {
+            return -ECONNRESET;
+        }
         if (ret != GNUTLS_E_AGAIN)
         {
             return -1;
@@ -363,6 +372,7 @@ static int coap_client_dtls_create(coap_client_t *client,
  */
 static void coap_client_dtls_destroy(coap_client_t *client)
 {
+    gnutls_bye(client->session, GNUTLS_SHUT_WR);
     gnutls_deinit(client->session);
     gnutls_priority_deinit(client->priority);
     gnutls_certificate_free_credentials(client->cred);
@@ -740,6 +750,12 @@ static ssize_t coap_client_recv(coap_client_t *client, coap_msg_t *msg)
             return -EAGAIN;
         }
         return -1;
+    }
+    if ((num == 0)
+     || (ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
+     || (ret == GNUTLS_E_FATAL_ALERT_RECEIVED))
+    {
+        return -ECONNRESET;
     }
 #else
     num = recv(client->sd, buf, sizeof(buf), 0);
