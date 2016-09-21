@@ -45,6 +45,9 @@
 #include <linux/types.h>
 #include "coap_client.h"
 #include "coap_log.h"
+#ifdef COAP_DTLS_EN
+#include "dtls_debug.h"
+#endif
 
 #define COAP_CLIENT_ACK_TIMEOUT_SEC   2                                         /**< Minimum delay to wait before retransmitting a confirmable message */
 #define COAP_CLIENT_MAX_RETRANSMIT    4                                         /**< Maximum number of times a confirmable message can be retransmitted */
@@ -163,13 +166,9 @@ static int coap_client_dtls_event(dtls_context_t *ctx, session_t *sess, dtls_ale
     {
         client->state = COAP_CLIENT_DTLS_CONNECTED;
     }
-    else if ((level == 2) && (code == 0))
-    {
-        client->state = COAP_CLIENT_DTLS_CLOSING;
-    }
     else if (level > 0)
     {
-        client->state = COAP_CLIENT_DTLS_ERROR;
+        client->state = COAP_CLIENT_DTLS_ALERT;
     }
     return 0;
 }
@@ -244,7 +243,11 @@ static ssize_t coap_client_dtls_send(coap_client_t *client, const char *buf, siz
     {
         return -errno;
     }
-    if ((ret < 0) || (client->state == COAP_CLIENT_DTLS_ERROR))
+    if (client->state == COAP_CLIENT_DTLS_ALERT)
+    {
+        return -ECONNRESET;
+    }
+    if (ret < 0)
     {
         return -1;
     }
@@ -279,11 +282,7 @@ static ssize_t coap_client_dtls_recv(coap_client_t *client, char *buf, size_t le
     {
         return -errno;
     }
-    if (client->state == COAP_CLIENT_DTLS_ERROR)
-    {
-        return -1;
-    }
-    if (client->state == COAP_CLIENT_DTLS_CLOSING)
+    if (client->state == COAP_CLIENT_DTLS_ALERT)
     {
         return -ECONNRESET;
     }
@@ -337,9 +336,9 @@ static int coap_client_dtls_handshake(coap_client_t *client)
             return num;
         }
     }
-    if (client->state == COAP_CLIENT_DTLS_ERROR)
+    if (client->state == COAP_CLIENT_DTLS_ALERT)
     {
-        return -1;
+        return -ECONNRESET;
     }
     if (client->state != COAP_CLIENT_DTLS_CONNECTED)
     {
@@ -371,6 +370,7 @@ static int coap_client_dtls_create(coap_client_t *client,
     if (!dtls_lib_init_done)
     {
         dtls_init();
+        dtls_set_log_level(DTLS_LOG_EMERG);
         dtls_lib_init_done = 1;
     }
     client->ctx = dtls_new_context(client);
@@ -390,6 +390,7 @@ static int coap_client_dtls_create(coap_client_t *client,
     ret = coap_client_dtls_handshake(client);
     if (ret < 0)
     {
+        coap_log_warn("Failed to complete DTLS handshake");
         dtls_free_context(client->ctx);
         return ret;
     }
