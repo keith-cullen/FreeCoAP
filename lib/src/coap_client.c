@@ -359,7 +359,7 @@ static int coap_client_dtls_create(coap_client_t *client,
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to complete DTLS handshake");
+        coap_log_warn("Failed to complete DTLS handshake");
         return ret;
     }
     return 0;
@@ -661,12 +661,18 @@ static ssize_t coap_client_send(coap_client_t *client, coap_msg_t *msg)
     {
         return -errno;
     }
+    if ((num == 0)
+     || (num == GNUTLS_E_WARNING_ALERT_RECEIVED)
+     || (num == GNUTLS_E_FATAL_ALERT_RECEIVED))
+    {
+        return -ECONNRESET;
+    }
+    if (num == GNUTLS_E_AGAIN)
+    {
+        return -EAGAIN;
+    }
     if (num < 0)
     {
-        if (num == GNUTLS_E_AGAIN)
-        {
-            return -EAGAIN;
-        }
         return -1;
     }
 #else
@@ -743,19 +749,19 @@ static ssize_t coap_client_recv(coap_client_t *client, coap_msg_t *msg)
     {
         return -errno;
     }
-    if (num < 0)
-    {
-        if (num == GNUTLS_E_AGAIN)
-        {
-            return -EAGAIN;
-        }
-        return -1;
-    }
     if ((num == 0)
-     || (ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
-     || (ret == GNUTLS_E_FATAL_ALERT_RECEIVED))
+     || (num == GNUTLS_E_WARNING_ALERT_RECEIVED)
+     || (num == GNUTLS_E_FATAL_ALERT_RECEIVED))
     {
         return -ECONNRESET;
+    }
+    if (num == GNUTLS_E_AGAIN)
+    {
+        return -EAGAIN;
+    }
+    if (num < 0)
+    {
+        return -1;
     }
 #else
     num = recv(client->sd, buf, sizeof(buf), 0);
