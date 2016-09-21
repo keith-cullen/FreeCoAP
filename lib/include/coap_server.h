@@ -85,8 +85,7 @@ typedef enum
 {
     COAP_SERVER_DTLS_UNCONNECTED = 0,                                           /**< DTLS session is not active */
     COAP_SERVER_DTLS_CONNECTED,                                                 /**< DTLS session is active */
-    COAP_SERVER_DTLS_CLOSING,                                                   /**< DTLS session was closed by the client */
-    COAP_SERVER_DTLS_ERROR                                                      /**< DTLS session has encountered an error */
+    COAP_SERVER_DTLS_ALERT                                                      /**< A DTLS alert message was received from the client */
 }
 coap_server_dtls_state_t;
 

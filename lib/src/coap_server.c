@@ -47,6 +47,9 @@
 #include <linux/types.h>
 #include "coap_server.h"
 #include "coap_log.h"
+#ifdef COAP_DTLS_EN
+#include "dtls_debug.h"
+#endif
 
 #define COAP_SERVER_ACK_TIMEOUT_SEC       2                                     /**< Minimum delay to wait before retransmitting a confirmable message */
 #define COAP_SERVER_MAX_RETRANSMIT        4                                     /**< Maximum number of times a confirmable message can be retransmitted */
@@ -298,19 +301,14 @@ static int coap_server_trans_dtls_event(dtls_context_t *ctx, session_t *sess, dt
 {
     coap_server_trans_t *trans = NULL;
 
-    coap_log_debug("%s: level: %d, code: %d", __func__, level, code);
     trans = (coap_server_trans_t *)dtls_get_app_data(ctx);
     if ((level == 0) && (code == DTLS_EVENT_CONNECTED))
     {
         trans->state = COAP_SERVER_DTLS_CONNECTED;
     }
-    else if ((level == 2) && (code == 0))
-    {
-        trans->state = COAP_SERVER_DTLS_CLOSING;
-    }
     else if (level > 0)
     {
-        trans->state = COAP_SERVER_DTLS_ERROR;
+        trans->state = COAP_SERVER_DTLS_ALERT;
     }
     return 0;
 }
@@ -387,7 +385,11 @@ static ssize_t coap_server_trans_dtls_send(coap_server_trans_t *trans, const cha
     {
         return -errno;
     }
-    if ((ret < 0) || (trans->state == COAP_SERVER_DTLS_ERROR))
+    if (trans->state == COAP_SERVER_DTLS_ALERT)
+    {
+        return -ECONNRESET;
+    }
+    if (ret < 0)
     {
         return -1;
     }
@@ -432,11 +434,7 @@ static ssize_t coap_server_trans_dtls_recv(coap_server_trans_t *trans, char *buf
     {
         return -errno;
     }
-    if (trans->state == COAP_SERVER_DTLS_ERROR)
-    {
-        return -1;
-    }
-    if (trans->state == COAP_SERVER_DTLS_CLOSING)
+    if (trans->state == COAP_SERVER_DTLS_ALERT)
     {
         return -ECONNRESET;
     }
@@ -485,9 +483,9 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
             return num;
         }
     }
-    if (trans->state == COAP_SERVER_DTLS_ERROR)
+    if (trans->state == COAP_SERVER_DTLS_ALERT)
     {
-        return -1;
+        return -ECONNRESET;
     }
     if (trans->state != COAP_SERVER_DTLS_CONNECTED)
     {
@@ -524,6 +522,7 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
     ret = coap_server_trans_dtls_handshake(trans);
     if (ret < 0)
     {
+        coap_log_warn("Failed to complete DTLS handshake");
         dtls_free_context(trans->ctx);
         return ret;
     }
@@ -1287,6 +1286,7 @@ static void coap_server_dtls_init(coap_server_t *server,
     if (!dtls_lib_init_done)
     {
         dtls_init();
+        dtls_set_log_level(DTLS_LOG_EMERG);
         dtls_lib_init_done = 1;
     }
     server->ecdsa_key.curve = DTLS_ECDH_CURVE_SECP256R1;
@@ -2009,11 +2009,11 @@ int coap_server_run(coap_server_t *server)
         {
             if ((ret == -ETIMEDOUT) || (ret == -ECONNRESET))
             {
-                coap_log_notice("server exchange: %s", strerror(-ret));
+                coap_log_notice("%s", strerror(-ret));
             }
             else
             {
-                coap_log_error("server exchange: %s", strerror(-ret));
+                coap_log_error("%s", strerror(-ret));
                 return ret;
             }
         }
