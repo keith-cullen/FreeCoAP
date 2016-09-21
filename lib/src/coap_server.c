@@ -464,7 +464,7 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
     if (ret < 0)
     {
         gnutls_deinit(trans->session);
-        coap_log_error("Failed to complete DTLS handshake");
+        coap_log_warn("Failed to complete DTLS handshake");
         return ret;
     }
     return 0;
@@ -772,12 +772,18 @@ static ssize_t coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *ms
     {
         return -errno;
     }
+    if ((num == 0)
+     || (num == GNUTLS_E_WARNING_ALERT_RECEIVED)
+     || (num == GNUTLS_E_FATAL_ALERT_RECEIVED))
+    {
+        return -ECONNRESET;
+    }
+    if (num == GNUTLS_E_AGAIN)
+    {
+        return -EAGAIN;
+    }
     if (num < 0)
     {
-        if (num == GNUTLS_E_AGAIN)
-        {
-            return -EAGAIN;
-        }
         return -1;
     }
 #else
@@ -862,19 +868,19 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
     {
         return -errno;
     }
-    if (num < 0)
-    {
-        if (num == GNUTLS_E_AGAIN)
-        {
-            return -EAGAIN;
-        }
-        return -1;
-    }
     if ((num == 0)
-     || (ret == GNUTLS_E_WARNING_ALERT_RECEIVED)
-     || (ret == GNUTLS_E_FATAL_ALERT_RECEIVED))
+     || (num == GNUTLS_E_WARNING_ALERT_RECEIVED)
+     || (num == GNUTLS_E_FATAL_ALERT_RECEIVED))
     {
         return -ECONNRESET;
+    }
+    if (num == GNUTLS_E_AGAIN)
+    {
+        return -EAGAIN;
+    }
+    if (num < 0)
+    {
+        return -1;
     }
 #else
     server = trans->server;
@@ -2065,11 +2071,11 @@ int coap_server_run(coap_server_t *server)
         {
             if ((ret == -ETIMEDOUT) || (ret == -ECONNRESET))
             {
-                coap_log_notice("server exchange: %s", strerror(-ret));
+                coap_log_notice("%s", strerror(-ret));
             }
             else
             {
-                coap_log_error("server exchange: %s", strerror(-ret));
+                coap_log_error("%s", strerror(-ret));
                 return ret;
             }
         }
