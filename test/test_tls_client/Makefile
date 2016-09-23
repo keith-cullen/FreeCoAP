@@ -10,7 +10,6 @@ S2=../../proxy/common/src
 CC = gcc
 CFLAGS = $(EXTRA_CFLAGS) \
          -Wall \
-         -g \
          -I$(I1) \
          -I$(I2) \
          -DTLS_CLIENT_AUTH

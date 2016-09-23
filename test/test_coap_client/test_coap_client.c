@@ -38,6 +38,7 @@
 #include <getopt.h>
 #include "coap_client.h"
 #include "coap_log.h"
+#include "raw_keys.h"
 #include "test.h"
 
 #define HOST                "::1"                                               /**< Host address of the server */
@@ -505,98 +506,6 @@ test_coap_client_data_t test7_data =
     .num_msg = TEST7_NUM_MSG
 };
 
-#ifdef COAP_DTLS_EN
-
-static unsigned char ecdsa_priv_key[KEY_LEN] = {0};
-static unsigned char ecdsa_pub_key_x[KEY_LEN] = {0};
-static unsigned char ecdsa_pub_key_y[KEY_LEN] = {0};
-
-static int load_key_data(FILE *file, unsigned char *buf)
-{
-    unsigned val = 0;
-    char txt[3] = {0};
-    int num = 0;
-    int c = 0;
-    int i = 0;
-    int j = 0;
-
-    for (i = 0; i < KEY_LEN; i++)
-    {
-        for (j = 0; j < 2; j++)
-        {
-            c = fgetc(file);
-            if (c == EOF)
-            {
-                return -1;
-            }
-            txt[j] = (char)c;
-        }
-        num = sscanf(txt, "%02x", &val);
-        if (num != 1)
-        {
-            return -1;
-        }
-        buf[i] = (unsigned char)val;
-    }
-    return 0;
-}
-
-static int load_keys(const char *privkey, const char *pubkey)
-{
-    FILE *file = NULL;
-    int ret = 0;
-    int j = 0;
-    int c = 0;
-
-    file = fopen(privkey, "r");
-    if (file == NULL)
-    {
-        coap_log_error("failed to open file '%s'", privkey);
-        return -1;
-    }
-    ret = load_key_data(file, ecdsa_priv_key);
-    fclose(file);
-    if (ret < 0)
-    {
-        coap_log_error("failed to read file '%s'", privkey);
-        return -1;
-    }
-    file = fopen(pubkey, "r");
-    if (file == NULL)
-    {
-        coap_log_error("failed to open file '%s'", pubkey);
-        return -1;
-    }
-    /* skip the first byte */
-    for (j = 0; j < 2; j++)
-    {
-        c = fgetc(file);
-        if (c == EOF)
-        {
-            coap_log_error("failed to read file '%s'", pubkey);
-            fclose(file);
-            return -1;
-        }
-    }
-    ret = load_key_data(file, ecdsa_pub_key_x);
-    if (ret < 0)
-    {
-        coap_log_error("failed to read file '%s'", pubkey);
-        fclose(file);
-        return -1;
-    }
-    ret = load_key_data(file, ecdsa_pub_key_y);
-    fclose(file);
-    if (ret < 0)
-    {
-        coap_log_error("failed to read file '%s'", pubkey);
-        return -1;
-    }
-    return 0;
-}
-
-#endif
-
 /**
  *  @brief Print a CoAP message
  *
@@ -821,9 +730,9 @@ static test_result_t test_exchange_func(test_data_t data)
     ret = coap_client_create(&client,
                              test_data->host,
                              test_data->port,
-                             ecdsa_priv_key,
-                             ecdsa_pub_key_x,
-                             ecdsa_pub_key_y);
+                             raw_keys_get_ecdsa_priv_key(),
+                             raw_keys_get_ecdsa_pub_key_x(),
+                             raw_keys_get_ecdsa_pub_key_y());
 #else
     ret = coap_client_create(&client,
                              test_data->host,
@@ -944,7 +853,7 @@ int main(int argc, char **argv)
     coap_log_set_level(log_level);
 
 #ifdef COAP_DTLS_EN
-    ret = load_keys(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME);
+    ret = raw_keys_load(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME);
     if (ret < 0)
     {
         return EXIT_FAILURE;
