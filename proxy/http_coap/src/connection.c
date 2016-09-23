@@ -44,13 +44,13 @@
 #include "thread.h"
 #include "lock.h"
 #include "coap_log.h"
+#include "raw_keys.h"
 
 #define CONNECTION_MSG_BODY_BUF_SIZE   1024
 #define CONNECTION_DATA_BUF_SIZE       4096
 #define CONNECTION_DATA_BUF_MAX_SIZE   (8 * CONNECTION_DATA_BUF_SIZE)
 #define CONNECTION_DATA_BUF_MIN_SPACE  128
 #define CONNECTION_INT_BUF_LEN         16
-#define CONNECTION_ECDSA_KEY_LEN       32
 
 typedef enum
 {
@@ -116,95 +116,7 @@ static int stats_init(void)
 
 #endif  /* CONNECTION_STATS */
 
-static unsigned char connection_ecdsa_priv_key[CONNECTION_ECDSA_KEY_LEN] = {0};
-static unsigned char connection_ecdsa_pub_key_x[CONNECTION_ECDSA_KEY_LEN] = {0};
-static unsigned char connection_ecdsa_pub_key_y[CONNECTION_ECDSA_KEY_LEN] = {0};
-
-static int connection_load_key_data(FILE *file, unsigned char *buf)
-{
-    unsigned val = 0;
-    char txt[3] = {0};
-    int num = 0;
-    int c = 0;
-    int i = 0;
-    int j = 0;
-
-    for (i = 0; i < CONNECTION_ECDSA_KEY_LEN; i++)
-    {
-        for (j = 0; j < 2; j++)
-        {
-            c = fgetc(file);
-            if (c == EOF)
-            {
-                return -1;
-            }
-            txt[j] = (char)c;
-        }
-        num = sscanf(txt, "%02x", &val);
-        if (num != 1)
-        {
-            return -1;
-        }
-        buf[i] = (unsigned char)val;
-    }
-    return 0;
-}
-
-static int connection_load_keys(const char *priv_key, const char *pub_key)
-{
-    FILE *file = NULL;
-    int ret = 0;
-    int j = 0;
-    int c = 0;
-
-    file = fopen(priv_key, "r");
-    if (file == NULL)
-    {
-        coap_log_error("failed to open file '%s'", priv_key);
-        return -1;
-    }
-    ret = connection_load_key_data(file, connection_ecdsa_priv_key);
-    fclose(file);
-    if (ret < 0)
-    {
-        coap_log_error("failed to read file '%s'", priv_key);
-        return -1;
-    }
-    file = fopen(pub_key, "r");
-    if (file == NULL)
-    {
-        coap_log_error("failed to open file '%s'", pub_key);
-        return -1;
-    }
-    /* skip the first byte */
-    for (j = 0; j < 2; j++)
-    {
-        c = fgetc(file);
-        if (c == EOF)
-        {
-            coap_log_error("failed to read file '%s'", pub_key);
-            fclose(file);
-            return -1;
-        }
-    }
-    ret = connection_load_key_data(file, connection_ecdsa_pub_key_x);
-    if (ret < 0)
-    {
-        coap_log_error("failed to read file '%s'", pub_key);
-        fclose(file);
-        return -1;
-    }
-    ret = connection_load_key_data(file, connection_ecdsa_pub_key_y);
-    fclose(file);
-    if (ret < 0)
-    {
-        coap_log_error("failed to read file '%s'", pub_key);
-        return -1;
-    }
-    return 0;
-}
-
-int connection_init(const char *ecdsa_priv_key_file_name, const char *ecdsa_pub_key_file_name)
+int connection_init(const char *priv_key_file_name, const char *pub_key_file_name)
 {
     int ret = 0;
 
@@ -213,7 +125,7 @@ int connection_init(const char *ecdsa_priv_key_file_name, const char *ecdsa_pub_
     {
         return ret;
     }
-    return connection_load_keys(ecdsa_priv_key_file_name, ecdsa_pub_key_file_name);
+    return raw_keys_load(priv_key_file_name, pub_key_file_name);
 }
 
 /*  return: { 0, success
@@ -230,9 +142,9 @@ static int connection_coap_client_create(connection_t *con, uri_t *uri)
     ret = coap_client_create(&con->coap_client,
                              uri_get_host(uri),
                              uri_get_port(uri),
-                             connection_ecdsa_priv_key,
-                             connection_ecdsa_pub_key_x,
-                             connection_ecdsa_pub_key_y);
+                             raw_keys_get_ecdsa_priv_key(),
+                             raw_keys_get_ecdsa_pub_key_x(),
+                             raw_keys_get_ecdsa_pub_key_y());
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to connect to CoAP server host %s and port %s: %s",

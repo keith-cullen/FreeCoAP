@@ -1,8 +1,10 @@
 ifneq ($(dtls),n)
 D1 = ../../org.eclipse.tinydtls
+K1 = ../raw_keys
 DTLS_CFLAGS = -DCOAP_DTLS_EN \
               -DWITH_SHA256 \
-              -I $(D1)
+              -I $(D1) \
+              -I $(K1)
 DTLS_INCS = $(D1)/alert.h \
             $(D1)/ccm.h \
             $(D1)/crypto.h \
@@ -23,7 +25,8 @@ DTLS_INCS = $(D1)/alert.h \
             $(D1)/utlist.h \
             $(D1)/aes/rijndael.h \
             $(D1)/ecc/ecc.h \
-            $(D1)/sha2/sha2.h
+            $(D1)/sha2/sha2.h \
+            $(K1)/raw_keys.h
 DTLS_OBJS = ccm.o \
             crypto.o \
             dtls.o \
@@ -35,7 +38,8 @@ DTLS_OBJS = ccm.o \
             session.o \
             rijndael.o \
             ecc.o \
-            sha2.o
+            sha2.o \
+            raw_keys.o
 endif
 
 I1 = ../../lib/include
@@ -110,6 +114,9 @@ ecc.o: $(D1)/ecc/ecc.c $(INCS)
 
 sha2.o: $(D1)/sha2/sha2.c $(INCS)
 	$(CC) $(CFLAGS) -c $(D1)/sha2/sha2.c
+
+raw_keys.o: $(K1)/raw_keys.c $(NCS)
+	$(CC) $(CFLAGS) -c $(K1)/raw_keys.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)

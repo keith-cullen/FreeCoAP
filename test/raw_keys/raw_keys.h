@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Keith Cullen.
+ * Copyright (c) 2016 Keith Cullen.
  * All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,17 @@
  */
 
 /**
- *  @file connection.h
+ *  @file raw_keys.h
  *
- *  @brief Include file for the FreeCoAP HTTP/CoAP proxy conection module
+ *  @brief Include file for the FreeCoAP raw keys module
  */
 
-#ifndef CONNECTION_H
-#define CONNECTION_H
+#ifndef RAW_KEYS_H
+#define RAW_KEYS_H
 
-#include <netinet/in.h>
-#include "coap_client.h"
-#include "tls_sock.h"
-#include "data_buf.h"
-#include "param.h"
-
-typedef struct
-{
-    unsigned listener_index;
-    unsigned con_index;
-    unsigned num_exchanges;
-    char addr[SOCK_INET_ADDRSTRLEN];
-    tls_sock_t *sock;
-    data_buf_t recv_buf;
-    data_buf_t send_buf;
-    param_t *param;
-    int coap_client_active;
-    char *coap_client_host;
-    char *coap_client_port;
-    coap_client_t coap_client;
-}
-connection_t;
-
-int connection_init(const char *priv_key_file_name, const char *pub_key_file_name);
-void *connection_thread_func(void *data);
-connection_t *connection_new(tls_sock_t *sock, unsigned listener_index, unsigned con_index, param_t *param);
-void connection_delete(connection_t *con);
+unsigned char *raw_keys_get_ecdsa_priv_key(void);
+unsigned char *raw_keys_get_ecdsa_pub_key_x(void);
+unsigned char *raw_keys_get_ecdsa_pub_key_y(void);
+int raw_keys_load(const char *priv_key_file_name, const char *pub_key_file_name);
 
 #endif
