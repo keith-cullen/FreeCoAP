@@ -119,11 +119,11 @@ ecc.o: $(D1)/ecc/ecc.c $(INCS)
 sha2.o: $(D1)/sha2/sha2.c $(INCS)
 	$(CC) $(CFLAGS) -c $(D1)/sha2/sha2.c
 
-test.o: $(T1)/test.c $(INCS)
-	$(CC) $(CFLAGS) -c $(T1)/test.c
-
 raw_keys.o: $(K1)/raw_keys.c $(INCS)
 	$(CC) $(CFLAGS) -c $(K1)/raw_keys.c
+
+test.o: $(T1)/test.c $(INCS)
+	$(CC) $(CFLAGS) -c $(T1)/test.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)
