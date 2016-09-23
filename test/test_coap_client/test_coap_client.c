@@ -38,7 +38,9 @@
 #include <getopt.h>
 #include "coap_client.h"
 #include "coap_log.h"
+#ifdef COAP_DTLS_EN
 #include "raw_keys.h"
+#endif
 #include "test.h"
 
 #define HOST                "::1"                                               /**< Host address of the server */

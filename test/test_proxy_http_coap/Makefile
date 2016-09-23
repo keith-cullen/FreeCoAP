@@ -14,7 +14,6 @@ K1 = ../raw_keys
 CC = gcc
 CFLAGS = $(EXTRA_CFLAGS) \
          -Wall \
-         -DWITH_SHA256 \
          -I$(I1) \
          -I$(I2) \
          -I$(I3) \
@@ -22,7 +21,8 @@ CFLAGS = $(EXTRA_CFLAGS) \
          -I$(K1) \
          -DCOAP_PROXY \
          -DCOAP_DTLS_EN \
-         -DCONNECTION_STATS
+         -DCONNECTION_STATS \
+         -DWITH_SHA256
 LD = gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \

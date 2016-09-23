@@ -37,7 +37,9 @@
 #include <errno.h>
 #include "coap_server.h"
 #include "coap_log.h"
+#ifdef COAP_DTLS_EN
 #include "raw_keys.h"
+#endif
 
 #define HOST                 "::1"                                              /**< Host address to listen on */
 #define PORT                 "12436"                                            /**< UDP port number to listen on */
