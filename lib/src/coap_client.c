@@ -1247,8 +1247,8 @@ static int coap_client_exchange_sep(coap_client_t *client, coap_msg_t *req, coap
  *  @brief Handle the response to a confirmable request
  *
  *  A confirmable request has been sent to the server.
- *  Receive the acknowledgement and response and send
- *  an acknowledgement back to the server.
+ *  Receive the acknowledgement and response. Send an
+ *  acknowledgement if necessary.
  *
  *  @param[in,out] client Pointer to a client structure
  *  @param[in] req Pointer to the request message

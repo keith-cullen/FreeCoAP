@@ -177,6 +177,26 @@ The client, server and proxy applications will pick up the new keys automaticall
 Validation History
 ==================
 
+v0.3
+----
+
+BeagleBone Black
+----------------
+Angstrom v2015.06
+
+Linux beaglebone 4.1.4 #1 SMP PREEMPT Tue Jan 5 09:33:15 GMT 2016 armv7l GNU/Linux
+
+GnuTLS 3.2.0
+
+HP Pavilion
+-----------
+Ubuntu 15.04
+
+Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.2.0
+
+
 v0.2
 ----
 

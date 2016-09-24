@@ -6,7 +6,6 @@ T1=..
 
 CC = gcc
 CFLAGS = -Wall \
-         -g \
          -I$(I1) \
          -I$(I2) \
          -I$(T1)

@@ -12,7 +12,6 @@ S3=../../proxy/http_coap/src
 CC = gcc
 CFLAGS = $(EXTRA_CFLAGS) \
          -Wall \
-         -g \
          -I$(I1) \
          -I$(I2) \
          -I$(I3) \

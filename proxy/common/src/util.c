@@ -33,8 +33,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdarg.h>
-#include <ctype.h>
 #include "util.h"
 
 /*  always writes a terminating null character if dst_len > 0
@@ -96,78 +94,6 @@ size_t util_strncat(char *dst, const char *src, size_t dst_str_len, size_t dst_l
     return dst_str_len + j;
 }
 
-/*  always writes a terminating null character if any chars are written
- *  returns the number of chars that dst would contain, not including
- *  the terminating null character, if dst_len was large enough
- */
-size_t util_snprintf_tail(char *dst, size_t dst_len, size_t dst_str_len, const char *str, ...)
-{
-    va_list arg_list;
-    size_t dst_next_len = 0;
-    char *dst_next = NULL;
-    char *dst_end = NULL;
-    int num = 0;
-
-    va_start(arg_list, str);
-    dst_next = dst + dst_str_len;
-    dst_end = dst + dst_len;
-    if (dst_next < dst_end)
-    {
-        dst_next_len = dst_end - dst_next;
-        num = vsnprintf(dst_next, dst_next_len, str, arg_list);
-        if (num < 0)
-        {
-            num = 0;
-        }
-    }
-    va_end(arg_list);
-    return dst_str_len + num;
-}
-
-/*  returns: {UTIL_OK, success
- *           {UTIL_NOMEM_ERROR, no memory
- *           {UTIL_INVAL_ERROR, new buffer size is invalid
- */
-int util_create_buf(char **buf, size_t buf_len, size_t max_buf_len)
-{
-    if ((buf_len == 0) || (buf_len > max_buf_len))
-    {
-        return UTIL_INVAL_ERROR;
-    }
-    *buf = (char *)calloc(buf_len + 1, 1);
-    if (*buf == NULL)
-    {
-        return UTIL_NOMEM_ERROR;
-    }
-    return UTIL_OK;
-}
-
-/*  returns: {UTIL_OK, success
- *           {UTIL_NOMEM_ERROR, no memory
- *           {UTIL_INVAL_ERROR, new buffer size is invalid
- */
-int util_inc_buf(char **buf, size_t *buf_len, size_t max_buf_len)
-{
-    size_t new_buf_len = 0;
-    char *new_buf = NULL;
-
-    new_buf_len = *buf_len * 2;
-    if ((new_buf_len == 0) || (new_buf_len > max_buf_len))
-    {
-        return UTIL_INVAL_ERROR;
-    }
-    new_buf = (char *)calloc(new_buf_len + 1, 1);
-    if (new_buf == NULL)
-    {
-        return UTIL_NOMEM_ERROR;
-    }
-    memcpy(new_buf, *buf, *buf_len);
-    free(*buf);
-    *buf = new_buf;
-    *buf_len = new_buf_len;
-    return UTIL_OK;
-}
-
 /*  returns: {>=0, file size in bytes
  *           {UTIL_FILE_ERROR, file not readable
  */
@@ -188,7 +114,7 @@ static inline long util_file_len(FILE *file)
  *           {UTIL_FILE_ERROR, file not found or unreadable
  *           {UTIL_NOMEM_ERROR, no memory
  */
-static long util_load_file(const char *file_name, char **buf, int term)
+long util_load_txt_file(const char *file_name, char **buf)
 {
     long file_len = 0;
     long num = 0;
@@ -207,7 +133,7 @@ static long util_load_file(const char *file_name, char **buf, int term)
         fclose(file);
         return UTIL_FILE_ERROR;
     }
-    *buf = (char *)calloc(file_len + term, 1);
+    *buf = (char *)calloc(file_len + 1, 1);
     if (*buf == NULL)
     {
         fclose(file);
@@ -222,111 +148,4 @@ static long util_load_file(const char *file_name, char **buf, int term)
         return UTIL_FILE_ERROR;
     }
     return num;
-}
-
-/*  returns: {>=0, num bytes read
- *           {UTIL_FILE_ERROR, file not found or unreadable
- *           {UTIL_NOMEM_ERROR, no memory
- */
-long util_load_bin_file(const char *file_name, char **buf)
-{
-    return util_load_file(file_name, buf, 0);
-}
-
-/*  returns: {>=0, num bytes read
- *           {UTIL_FILE_ERROR, file not found or unreadable
- *           {UTIL_NOMEM_ERROR, no memory
- */
-long util_load_txt_file(const char *file_name, char **buf)
-{
-    return util_load_file(file_name, buf, 1);
-}
-
-/*  returns: {>=0, num bytes read
- *           {UTIL_FILE_ERROR, file not found or unreadable
- *           {UTIL_INVAL_ERROR, insufficient buffer
- */
-static long util_read_file(const char *file_name, char *buf, size_t len, int term)
-{
-    FILE *file = NULL;
-    long file_len = 0;
-    long num = 0;
-    long ret = 0;
-
-    if (len == 0)
-    {
-        return 0;
-    }
-    memset(buf, 0, len);
-    file = fopen(file_name, "r");
-    if (file == NULL)
-    {
-        return UTIL_FILE_ERROR;
-    }
-    file_len = util_file_len(file);
-    if (file_len <= 0)
-    {
-        fclose(file);
-        return UTIL_FILE_ERROR;
-    }
-    if (file_len + term > (long)len)
-    {
-        fclose(file);
-        return UTIL_INVAL_ERROR;
-    }
-    num = fread(buf, 1, file_len, file);
-    if (num == file_len)
-    {
-        ret = num;  /* success */
-    }
-    else
-    {
-        ret = UTIL_FILE_ERROR;
-    }
-    fclose(file);
-    return ret;
-}
-
-/*  returns: {>=0, num bytes read
- *           {UTIL_FILE_ERROR, file not found or unreadable
- *           {UTIL_INVAL_ERROR, insufficient buffer
- */
-long util_read_bin_file(const char *file_name, char *buf, size_t len)
-{
-    return util_read_file(file_name, buf, len, 0);
-}
-
-/*  returns: {>=0, num bytes read
- *           {UTIL_FILE_ERROR, file not found or unreadable
- *           {UTIL_INVAL_ERROR, insufficient buffer
- */
-long util_read_txt_file(const char *file_name, char *buf, size_t len)
-{
-    return util_read_file(file_name, buf, len, 1);
-}
-
-/*  returns: {UTIL_OK, success
- *           {UTIL_FILE_ERROR, file error
- */
-int util_save_file(const char *file_name, const char *buf, size_t len)
-{
-    size_t num = 0;
-    FILE *file = NULL;
-
-    if (len == 0)
-    {
-        return UTIL_OK;
-    }
-    file = fopen(file_name, "w");
-    if (file == NULL)
-    {
-        return UTIL_FILE_ERROR;
-    }
-    num = fwrite(buf, 1, len, file);
-    fclose(file);
-    if (num != len)
-    {
-        return UTIL_FILE_ERROR;
-    }
-    return UTIL_OK;
 }
