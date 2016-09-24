@@ -1747,9 +1747,8 @@ static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
             add = (val_len < len) ? val_len : len;
             p += add;
             len -= add;
-
-            op = coap_msg_op_get_next(op);
         }
+        op = coap_msg_op_get_next(op);
     }
     if (p == buf)
     {

@@ -34,23 +34,13 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <stdlib.h>
-#include <string.h>
+#include <stddef.h>
 
-#define UTIL_OK            0
 #define UTIL_FILE_ERROR   -1
 #define UTIL_NOMEM_ERROR  -2
-#define UTIL_INVAL_ERROR  -3
 
 size_t util_strncpy(char *dst, const char *src, size_t n);
 size_t util_strncat(char *dst, const char *src, size_t dst_str_len, size_t dst_len);
-size_t util_snprintf_tail(char *dst, size_t dst_len, size_t dst_str_len, const char *str, ...);
-int util_create_buf(char **buf, size_t buf_len, size_t max_buf_len);
-int util_inc_buf(char **buf, size_t *buf_len, size_t max_buf_len);
-long util_load_bin_file(const char *file_name, char **buf);
 long util_load_txt_file(const char *file_name, char **buf);
-long util_read_bin_file(const char *file_name, char *buf, size_t len);
-long util_read_txt_file(const char *file_name, char *buf, size_t len);
-int util_save_file(const char *file_name, const char *buf, size_t len);
 
 #endif
