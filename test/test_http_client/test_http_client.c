@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <netinet/in.h>
+#include <gnutls/gnutls.h>
 #include "http_msg.h"
 #include "tls_sock.h"
 #include "tls.h"
@@ -425,6 +426,7 @@ static void usage(void)
  */
 int main(int argc, char **argv)
 {
+    const char *gnutls_ver = NULL;
     const char *opts = ":hl:";
     unsigned num_tests = 0;
     unsigned num_pass = 0;
@@ -467,6 +469,14 @@ int main(int argc, char **argv)
     }
 
     coap_log_set_level(log_level);
+
+    gnutls_ver = gnutls_check_version(NULL);
+    if (gnutls_ver == NULL)
+    {
+        coap_log_error("Unable to determine GnuTLS version");
+        return EXIT_FAILURE;
+    }
+    coap_log_info("GnuTLS version: %s", gnutls_ver);
 
     ret = tls_init();
     if (ret != SOCK_OK)

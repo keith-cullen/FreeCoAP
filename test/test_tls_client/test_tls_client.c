@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <time.h>
+#include <gnutls/gnutls.h>
 #include "tls_sock.h"
 #include "sock.h"
 #include "tls.h"
@@ -114,6 +115,7 @@ static int client_run(tls_client_t *client)
 int main(void)
 {
     tls_client_t client = {0};
+    const char *gnutls_ver = NULL;
     time_t start = 0;
     time_t end = 0;
     int ret = 0;
@@ -123,6 +125,14 @@ int main(void)
     set_signal();
 
     coap_log_set_level(COAP_LOG_DEBUG);
+
+    gnutls_ver = gnutls_check_version(NULL);
+    if (gnutls_ver == NULL)
+    {
+        coap_log_error("Unable to determine GnuTLS version");
+        return EXIT_FAILURE;
+    }
+    coap_log_info("GnuTLS version: %s", gnutls_ver);
 
     ret = tls_init();
     if (ret != SOCK_OK)

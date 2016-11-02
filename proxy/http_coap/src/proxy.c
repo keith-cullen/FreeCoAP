@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <gnutls/gnutls.h>
 #include "listener.h"
 #include "connection.h"
 #include "param.h"
@@ -93,6 +94,7 @@ int main(int argc, char **argv)
     struct sigaction sai = {{0}};
     const char *config_file_name = CONFIG_FILE_NAME;
     const char *short_opts = ":hc:";
+    const char *gnutls_ver = NULL;
     tls_server_t server = {0};
     listener_t *listener = NULL;
     unsigned listener_index = 0;
@@ -171,6 +173,15 @@ int main(int argc, char **argv)
     }
 
     coap_log_set_level(param_get_max_log_level(&param));
+
+    gnutls_ver = gnutls_check_version(NULL);
+    if (gnutls_ver == NULL)
+    {
+        coap_log_error("Unable to determine GnuTLS version");
+        param_destroy(&param);
+        return EXIT_FAILURE;
+    }
+    coap_log_info("GnuTLS version: %s", gnutls_ver);
 
     /* initialise SSL/TLS */
     ret = tls_init();

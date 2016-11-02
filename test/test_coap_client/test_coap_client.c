@@ -36,6 +36,9 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#ifdef COAP_DTLS_EN
+#include <gnutls/gnutls.h>
+#endif
 #include "coap_client.h"
 #include "coap_log.h"
 #include "test.h"
@@ -839,6 +842,9 @@ static void usage(void)
  */
 int main(int argc, char **argv)
 {
+#ifdef COAP_DTLS_EN
+    const char *gnutls_ver = NULL;
+#endif
     const char *opts = ":hl:";
     unsigned num_tests = 0;
     unsigned num_pass = 0;
@@ -881,6 +887,16 @@ int main(int argc, char **argv)
     }
 
     coap_log_set_level(log_level);
+
+#ifdef COAP_DTLS_EN
+    gnutls_ver = gnutls_check_version(NULL);
+    if (gnutls_ver == NULL)
+    {
+        coap_log_error("Unable to determine GnuTLS version");
+        return EXIT_FAILURE;
+    }
+    coap_log_info("GnuTLS version: %s", gnutls_ver);
+#endif
 
     switch (test_num)
     {
