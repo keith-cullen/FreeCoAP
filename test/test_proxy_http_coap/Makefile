@@ -15,6 +15,7 @@ CFLAGS = $(EXTRA_CFLAGS) \
          -I$(I1) \
          -I$(I2) \
          -I$(I3) \
+         -DTLS_CLIENT_AUTH \
          -DCOAP_PROXY \
          -DCOAP_DTLS_EN \
          -DCONNECTION_STATS

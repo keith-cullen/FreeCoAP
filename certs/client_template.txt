@@ -1,0 +1,5 @@
+organization="Dummy"
+unit="Software"
+cn="dummy/client"
+expiration_days="3650"
+tls_www_client
