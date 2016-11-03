@@ -1,0 +1,6 @@
+organization="Dummy"
+unit="Software"
+cn="dummy/root"
+expiration_days="3650"
+ca
+cert_signing_key
