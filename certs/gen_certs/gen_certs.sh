@@ -52,8 +52,8 @@ touch root_client/certindex.txt
 echo "------------------------------"
 echo "Create Root Server Private Key"
 echo "------------------------------"
-#openssl genrsa -out ./root_server/root_server_privkey.pem 2048
-openssl ecparam -name secp256r1 -genkey -param_enc explicit -out ./root_server/root_server_privkey.pem
+openssl genrsa -out ./root_server/root_server_privkey.pem 2048
+#openssl ecparam -name secp256r1 -genkey -param_enc explicit -out ./root_server/root_server_privkey.pem
 
 echo "------------------------------"
 echo "Create Root Server Certificate"
@@ -64,8 +64,8 @@ openssl req -config ./root_server.conf -new -x509 -days 3652 -key ./root_server/
 echo "-------------------------"
 echo "Create Server Private Key"
 echo "-------------------------"
-#openssl genrsa -out ./server/server_privkey.pem 2048
-openssl ecparam -name secp256r1 -genkey -out ./server/server_privkey.pem
+openssl genrsa -out ./server/server_privkey.pem 2048
+#openssl ecparam -name secp256r1 -genkey -out ./server/server_privkey.pem
 
 echo "---------------------------------"
 echo "Create Server Certificate Request"
@@ -80,8 +80,8 @@ openssl ca -config ./root_server.conf -cert ./root_server/root_server_cert.pem -
 echo "------------------------------"
 echo "Create Root Client Private Key"
 echo "------------------------------"
-#openssl genrsa -out ./root_client/root_client_privkey.pem 2048
-openssl ecparam -name secp256r1 -genkey -out ./root_client/root_client_privkey.pem
+openssl genrsa -out ./root_client/root_client_privkey.pem 2048
+#openssl ecparam -name secp256r1 -genkey -out ./root_client/root_client_privkey.pem
 
 echo "------------------------------"
 echo "Create Root Client Certificate"
@@ -92,8 +92,8 @@ openssl req -config ./root_client.conf -new -x509 -days 3652 -key ./root_client/
 echo "-------------------------"
 echo "Create Client Private Key"
 echo "-------------------------"
-#openssl genrsa -out ./client/client_privkey.pem 2048
-openssl ecparam -name secp256r1 -genkey -out ./client/client_privkey.pem
+openssl genrsa -out ./client/client_privkey.pem 2048
+#openssl ecparam -name secp256r1 -genkey -out ./client/client_privkey.pem
 
 echo "---------------------------------"
 echo "Create Client Certificate Request"
