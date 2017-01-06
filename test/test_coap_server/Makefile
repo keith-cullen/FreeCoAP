@@ -1,3 +1,7 @@
+ifeq ($(ip6),y)
+EXTRA_CFLAGS = -DCOAP_IP6
+endif
+
 ifneq ($(dtls),n)
 D1 = ../../org.eclipse.tinydtls
 K1 = ../raw_keys
@@ -48,12 +52,14 @@ S1 = ../../lib/src
 CC = gcc
 CFLAGS = -Wall \
          -I $(I1)
+CFLAGS += $(EXTRA_CFLAGS)
 CFLAGS += $(DTLS_CFLAGS)
 LD = gcc
 LDFLAGS =
 INCS = $(I1)/coap_server.h \
        $(I1)/coap_msg.h \
-       $(I1)/coap_log.h
+       $(I1)/coap_log.h \
+       $(I1)/coap_ipv.h
 INCS += $(DTLS_INCS)
 OBJS = test_coap_server.o \
        coap_server.o \

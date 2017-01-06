@@ -41,7 +41,11 @@
 #include "raw_keys.h"
 #endif
 
+#ifdef COAP_IP6
 #define HOST                 "::1"                                              /**< Host address to listen on */
+#else
+#define HOST                 "127.0.0.1"                                        /**< Host address to listen on */
+#endif
 #define PORT                 "12436"                                            /**< UDP port number to listen on */
 #define PUB_KEY_FILE_NAME    "../../raw_keys/server_pub_key.txt"                /**< ECDSA public key file name */
 #define PRIV_KEY_FILE_NAME   "../../raw_keys/server_priv_key.txt"               /**< ECDSA private key file name */

@@ -408,7 +408,7 @@ static ssize_t coap_server_trans_dtls_send(coap_server_trans_t *trans, const cha
  */
 static ssize_t coap_server_trans_dtls_recv(coap_server_trans_t *trans, char *buf, size_t len)
 {
-    struct sockaddr_in6 client_sin = {0};
+    coap_ipv_sockaddr_in_t client_sin = {0};
     socklen_t client_sin_len = 0;
     coap_server_t *server = NULL;
     ssize_t num = 0;
@@ -553,7 +553,7 @@ static void coap_server_trans_dtls_destroy(coap_server_trans_t *trans)
  */
 static void coap_server_trans_destroy(coap_server_trans_t *trans)
 {
-    coap_log_debug("Destroyed transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_debug("Destroyed transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
 #ifdef COAP_DTLS_EN
     coap_server_trans_dtls_destroy(trans);
 #endif
@@ -839,7 +839,7 @@ static ssize_t coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *ms
     }
 #endif
     coap_server_trans_touch(trans);
-    coap_log_debug("Sent to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_debug("Sent to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     return num;
 }
 
@@ -897,7 +897,7 @@ static void coap_server_trans_handle_format_error(coap_server_trans_t *trans, ch
 static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *msg)
 {
 #ifndef COAP_DTLS_EN
-    struct sockaddr_in6 client_sin = {0};
+    coap_ipv_sockaddr_in_t client_sin = {0};
     coap_server_t *server = NULL;
     socklen_t client_sin_len = 0;
 #endif
@@ -940,7 +940,7 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
         return ret;
     }
     coap_server_trans_touch(trans);
-    coap_log_debug("Received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_debug("Received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     return num;
 }
 
@@ -962,7 +962,7 @@ static int coap_server_trans_reject_con(coap_server_trans_t *trans, coap_msg_t *
     ssize_t num = 0;
     int ret = 0;
 
-    coap_log_info("Rejecting confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Rejecting confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     coap_msg_create(&rej);
     ret = coap_msg_set_type(&rej, COAP_MSG_RST);
     if (ret < 0)
@@ -996,7 +996,7 @@ static int coap_server_trans_reject_con(coap_server_trans_t *trans, coap_msg_t *
  */
 static int coap_server_trans_reject_non(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    coap_log_info("Rejecting non-confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Rejecting non-confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     return 0;
 }
 
@@ -1011,7 +1011,7 @@ static int coap_server_trans_reject_non(coap_server_trans_t *trans, coap_msg_t *
  */
 static int coap_server_trans_reject_ack(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    coap_log_info("Rejecting acknowledgement message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Rejecting acknowledgement message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     return 0;
 }
 
@@ -1026,7 +1026,7 @@ static int coap_server_trans_reject_ack(coap_server_trans_t *trans, coap_msg_t *
  */
 static int coap_server_trans_reject_reset(coap_server_trans_t *trans, coap_msg_t *msg)
 {
-    coap_log_info("Rejecting reset message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Rejecting reset message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     return 0;
 }
 
@@ -1079,14 +1079,14 @@ static int coap_server_trans_reject_bad_option(coap_server_trans_t *trans, coap_
     ssize_t num = 0;
     int ret = 0;
 
-    coap_log_info("Found bad option number %u in message from address %s and port %u", op_num, trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Found bad option number %u in message from address %s and port %u", op_num, trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     if (coap_msg_get_type(msg) == COAP_MSG_NON)
     {
         return coap_server_trans_reject_non(trans, msg);
     }
     /* confirmable request containing a bad option */
     /* send a piggy-backed response containing 4.02 Bad Option */
-    coap_log_info("Sending 'Bad Option' response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Sending 'Bad Option' response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     coap_msg_create(&rej);
     ret = coap_msg_set_type(&rej, COAP_MSG_ACK);
     if (ret < 0)
@@ -1145,7 +1145,7 @@ static int coap_server_trans_send_ack(coap_server_trans_t *trans, coap_msg_t *ms
     ssize_t num = 0;
     int ret = 0;
 
-    coap_log_info("Acknowledging confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Acknowledging confirmable message from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     coap_msg_create(&ack);
     ret = coap_msg_set_type(&ack, COAP_MSG_ACK);
     if (ret < 0)
@@ -1186,11 +1186,11 @@ static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
     ssize_t num = 0;
     int ret = 0;
 
-    coap_log_debug("Transaction expired for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_debug("Transaction expired for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     ret = coap_server_trans_update_ack_timer(trans);
     if (ret == 0)
     {
-        coap_log_debug("Retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        coap_log_debug("Retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
         num = coap_server_trans_send(trans, &trans->resp);
         if (num < 0)
         {
@@ -1199,8 +1199,8 @@ static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
     }
     else if (ret == -ETIMEDOUT)
     {
-        coap_log_debug("Stopped retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
-        coap_log_info("No acknowledgement received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        coap_log_debug("Stopped retransmitting to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+        coap_log_info("No acknowledgement received from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
         coap_server_trans_destroy(trans);
         ret = 0;
     }
@@ -1212,14 +1212,14 @@ static int coap_server_trans_handle_ack_timeout(coap_server_trans_t *trans)
  *
  *  @param[out] trans Pointer to a transaction structure
  *  @param[in] server Pointer to a server structure
- *  @param[in] client_sin Pointer to a struct sockaddr_in6
- *  @param[in] client_sin_len Length of the struct sockaddr_in6
+ *  @param[in] client_sin Pointer to a coap_ipv_sockaddr_in_t
+ *  @param[in] client_sin_len Length of the coap_ipv_sockaddr_in_t
  *
  *  @returns Operation status
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t client_sin_len)
+static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *server, coap_ipv_sockaddr_in_t *client_sin, socklen_t client_sin_len)
 {
     const char *p = NULL;
 #ifdef COAP_DTLS_EN
@@ -1237,7 +1237,7 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
     }
     memcpy(&trans->client_sin, client_sin, client_sin_len);
     trans->client_sin_len = client_sin_len;
-    p = inet_ntop(AF_INET6, &client_sin->sin6_addr, trans->client_addr, sizeof(trans->client_addr));
+    p = inet_ntop(COAP_IPV_AF_INET, &client_sin->COAP_IPV_SIN_ADDR, trans->client_addr, sizeof(trans->client_addr));
     if (p == NULL)
     {
         close(trans->timer_fd);
@@ -1258,7 +1258,7 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
         return ret;
     }
 #endif
-    coap_log_debug("Created transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_debug("Created transaction for address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     return 0;
 }
 
@@ -1331,13 +1331,13 @@ int coap_server_create(coap_server_t *server,
     memset(server, 0, sizeof(coap_server_t));
     /* resolve host and port */
     hints.ai_flags = 0;
-    hints.ai_family = AF_INET6;      /* preferred socket domain */
-    hints.ai_socktype = SOCK_DGRAM;  /* preferred socket type */
-    hints.ai_protocol = 0;           /* preferred protocol (3rd argument to socket()) - 0 specifies that any protocol will do */
-    hints.ai_addrlen = 0;            /* must be 0 */
-    hints.ai_addr = NULL;            /* must be NULL */
-    hints.ai_canonname = NULL;       /* must be NULL */
-    hints.ai_next = NULL;            /* must be NULL */
+    hints.ai_family = COAP_IPV_AF_INET;  /* preferred socket domain */
+    hints.ai_socktype = SOCK_DGRAM;      /* preferred socket type */
+    hints.ai_protocol = 0;               /* preferred protocol (3rd argument to socket()) - 0 specifies that any protocol will do */
+    hints.ai_addrlen = 0;                /* must be 0 */
+    hints.ai_addr = NULL;                /* must be NULL */
+    hints.ai_canonname = NULL;           /* must be NULL */
+    hints.ai_next = NULL;                /* must be NULL */
     ret = getaddrinfo(host, port, &hints, &list);
     if (ret < 0)
     {
@@ -1345,7 +1345,7 @@ int coap_server_create(coap_server_t *server,
     }
     for (node = list; node != NULL; node = node->ai_next)
     {
-        if ((node->ai_family == AF_INET6)
+        if ((node->ai_family == COAP_IPV_AF_INET)
          && (node->ai_socktype == SOCK_DGRAM))
         {
             server->sd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
@@ -1457,13 +1457,13 @@ static unsigned coap_server_check_options(coap_msg_t *msg)
  *  @brief Search for a transaction structure in a server structure that matches an endpoint
  *
  *  @param[in] server Pointer to a server structure
- *  @param[in] client_sin Pointer to a struct sockaddr_in6
- *  @param[in] client_sin_len Length of the struct sockaddr_in6
+ *  @param[in] client_sin Pointer to a coap_ipv_sockaddr_in_t
+ *  @param[in] client_sin_len Length of the coap_ipv_sockaddr_in_t
  *
  *  @returns Pointer to a transaction structure
  *  @retval NULL No matching transaction structure found
  */
-static coap_server_trans_t *coap_server_find_trans(coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t client_sin_len)
+static coap_server_trans_t *coap_server_find_trans(coap_server_t *server, coap_ipv_sockaddr_in_t *client_sin, socklen_t client_sin_len)
 {
     coap_server_trans_t *trans = NULL;
     unsigned i = 0;
@@ -1616,12 +1616,12 @@ static int coap_server_listen(coap_server_t *server)
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int coap_server_accept(coap_server_t *server, struct sockaddr_in6 *client_sin, socklen_t *client_sin_len)
+static int coap_server_accept(coap_server_t *server, coap_ipv_sockaddr_in_t *client_sin, socklen_t *client_sin_len)
 {
     ssize_t num = 0;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
 
-    *client_sin_len = sizeof(struct sockaddr_in6);
+    *client_sin_len = sizeof(coap_ipv_sockaddr_in_t);
     num = recvfrom(server->sd, buf, sizeof(buf), MSG_PEEK, (struct sockaddr *)client_sin, client_sin_len);
     if (num < 0)
     {
@@ -1707,7 +1707,7 @@ static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
  */
 static int coap_server_exchange(coap_server_t *server)
 {
-    struct sockaddr_in6 client_sin = {0};
+    coap_ipv_sockaddr_in_t client_sin = {0};
     coap_server_trans_t *trans = NULL;
     coap_msg_t recv_msg = {0};
     coap_msg_t send_msg = {0};
@@ -1766,7 +1766,7 @@ static int coap_server_exchange(coap_server_t *server)
             /* message deduplication */
             /* acknowledge the (confirmable) request again */
             /* do not send the response again */
-            coap_log_info("Received duplicate confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            coap_log_info("Received duplicate confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
             ret = coap_server_trans_send_ack(trans, &recv_msg);
             coap_msg_destroy(&recv_msg);
             if (ret < 0)
@@ -1781,7 +1781,7 @@ static int coap_server_exchange(coap_server_t *server)
             /* message deduplication */
             /* do not acknowledge the (non-confirmable) request again */
             /* do not send the response again */
-            coap_log_info("Received duplicate non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            coap_log_info("Received duplicate non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
             coap_msg_destroy(&recv_msg);
             return 0;
         }
@@ -1794,7 +1794,7 @@ static int coap_server_exchange(coap_server_t *server)
         {
             /* the server must stop retransmitting its response */
             /* on any matching acknowledgement or reset message */
-            coap_log_info("Received acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            coap_log_info("Received acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
             ret = coap_server_trans_stop_ack_timer(trans);
             coap_msg_destroy(&recv_msg);
             if (ret < 0)
@@ -1808,7 +1808,7 @@ static int coap_server_exchange(coap_server_t *server)
         {
             /* the server must stop retransmitting its response */
             /* on any matching acknowledgement or reset message */
-            coap_log_info("Received reset from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            coap_log_info("Received reset from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
             ret = coap_server_trans_stop_ack_timer(trans);
             coap_msg_destroy(&recv_msg);
             if (ret < 0)
@@ -1833,11 +1833,11 @@ static int coap_server_exchange(coap_server_t *server)
 
     if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
     {
-        coap_log_info("Received confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        coap_log_info("Received confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     }
     else if (coap_msg_get_type(&recv_msg) == COAP_MSG_NON)
     {
-        coap_log_info("Received non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        coap_log_info("Received non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     }
 
     /* check options */
@@ -1860,11 +1860,11 @@ static int coap_server_exchange(coap_server_t *server)
         resp_type = coap_server_get_resp_type(server, &recv_msg);
         if (resp_type == COAP_SERVER_SEPARATE)
         {
-            coap_log_info("Request URI path requires a separate response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            coap_log_info("Request URI path requires a separate response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
         }
         else
         {
-            coap_log_info("Request URI path requires a piggy-backed response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+            coap_log_info("Request URI path requires a piggy-backed response to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
         }
     }
 
@@ -1882,7 +1882,7 @@ static int coap_server_exchange(coap_server_t *server)
     }
 
     /* generate response */
-    coap_log_info("Responding to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+    coap_log_info("Responding to address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
     coap_msg_create(&send_msg);
     ret = (*server->handle)(server, &recv_msg, &send_msg);
     if (ret < 0)
@@ -1975,7 +1975,7 @@ static int coap_server_exchange(coap_server_t *server)
     /* start the acknowledgement timer if an acknowledgement is expected */
     if (coap_msg_get_type(&send_msg) == COAP_MSG_CON)
     {
-        coap_log_info("Expecting acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.sin6_port));
+        coap_log_info("Expecting acknowledgement from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
         ret = coap_server_trans_start_ack_timer(trans);
         if (ret < 0)
         {

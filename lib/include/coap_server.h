@@ -41,6 +41,7 @@
 #include "dtls.h"
 #endif
 #include "coap_msg.h"
+#include "coap_ipv.h"
 
 #define COAP_SERVER_NUM_TRANS         8                                         /**< Maximum number of active transactions per server */
 #define COAP_SERVER_ADDR_BUF_LEN      128                                       /**< Buffer length for host addresses */
@@ -103,8 +104,8 @@ typedef struct coap_server_trans
     int timer_fd;                                                               /**< Timer file descriptor */
     struct timespec timeout;                                                    /**< Timeout value */
     unsigned num_retrans;                                                       /**< Current number of retransmissions */
-    struct sockaddr_in6 client_sin;                                             /**< IPv6 socket structure */
-    socklen_t client_sin_len;                                                   /**< IPv6 socket structure length */
+    coap_ipv_sockaddr_in_t client_sin;                                          /**< Socket structure */
+    socklen_t client_sin_len;                                                   /**< Socket structure length */
     char client_addr[COAP_SERVER_ADDR_BUF_LEN];                                 /**< String to hold the client address */
     coap_msg_t req;                                                             /**< Last request message received for this transaction */
     coap_msg_t resp;                                                            /**< Last response message sent for this transaction */

@@ -20,7 +20,7 @@ An implementation of the CoAP protocol for GNU/Linux consisting of:
 
 - more than 10,000 lines of unit test code
 
-Copyright (c) 2015 - 2016 Keith Cullen
+Copyright (c) 2015 - 2017 Keith Cullen
 
 Released under a BSD style license.
 
@@ -59,7 +59,7 @@ $ make
 
 $ ./test_coap_msg
 
-To test the CoAP client and CoAP server test applications with CoAP/IPv6
+To test the CoAP client and CoAP server test applications with CoAP/IPv4
 ------------------------------------------------------------------------
 
 $ cd FreeCoAP/test/test_coap_server
@@ -76,7 +76,7 @@ $ make dtls=n
 
 $ ./test_coap_client
 
-To test the CoAP client and CoAP server test applications with CoAP/DTLS/IPv6
+To test the CoAP client and CoAP server test applications with CoAP/DTLS/IPv4
 -----------------------------------------------------------------------------
 
 $ cd FreeCoAP/test/test_coap_server
@@ -93,7 +93,41 @@ $ make
 
 $ ./test_coap_client
 
-To test the HTTP/CoAP proxy application with HTTP/TLS/IPv4 and CoAP/DTLS/IPv6
+To test the CoAP client and CoAP server test applications with CoAP/IPv6
+------------------------------------------------------------------------
+
+$ cd FreeCoAP/test/test_coap_server
+
+$ make ip6=y dtls=n
+
+$ ./test_coap_server
+
+(In a different terminal)
+
+$ cd FreeCoAP/test/test_coap_client
+
+$ make ip6=y dtls=n
+
+$ ./test_coap_client
+
+To test the CoAP client and CoAP server test applications with CoAP/DTLS/IPv6
+-----------------------------------------------------------------------------
+
+$ cd FreeCoAP/test/test_coap_server
+
+$ make ip6=y
+
+$ ./test_coap_server
+
+(In a different terminal)
+
+$ cd FreeCoAP/test/test_coap_client
+
+$ make ip6=y
+
+$ ./test_coap_client
+
+To test the HTTP/CoAP proxy application with HTTP/TLS/IPv4 and CoAP/DTLS/IPv4
 -----------------------------------------------------------------------------
 
 $ cd FreeCoAP/test/test_coap_server
@@ -123,7 +157,7 @@ To test the HTTP/CoAP proxy application with HTTP/TLS/IPv6 and CoAP/DTLS/IPv6
 
 $ cd FreeCoAP/test/test_coap_server
 
-$ make
+$ make ip6=y
 
 $ ./test_coap_server
 
@@ -131,7 +165,7 @@ $ ./test_coap_server
 
 $ cd FreeCoAP/test/test_proxy_http_coap
 
-$ make ip6=y
+$ make http_ip6=y coap_ip6=y
 
 $ ./proxy
 
@@ -139,7 +173,32 @@ $ ./proxy
 
 $ cd FreeCoAP/test/test_http_client
 
+$ make http_ip6=y coap_ip6=y
+
+$ ./test_http_client
+
+To test the HTTP/CoAP proxy application with HTTP/TLS/IPv4 and CoAP/DTLS/IPv6
+-----------------------------------------------------------------------------
+
+$ cd FreeCoAP/test/test_coap_server
+
 $ make ip6=y
+
+$ ./test_coap_server
+
+(In a second terminal)
+
+$ cd FreeCoAP/test/test_proxy_http_coap
+
+$ make coap_ip6=y
+
+$ ./proxy
+
+(In a third terminal)
+
+$ cd FreeCoAP/test/test_http_client
+
+$ make coap_ip6=y
 
 $ ./test_http_client
 
@@ -177,8 +236,8 @@ The client, server and proxy applications will pick up the new keys automaticall
 Validation History
 ==================
 
-v0.3-tinydtls
--------------
+0.3-tinydtls
+------------
 
 BeagleBone Black
 ----------------
@@ -199,6 +258,26 @@ Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_6
 GnuTLS 3.2.0
 
 tinydtls 0.8.6
+
+
+v0.3
+----
+
+BeagleBone Black
+----------------
+Angstrom v2015.06
+
+Linux beaglebone 4.1.4 #1 SMP PREEMPT Tue Jan 5 09:33:15 GMT 2016 armv7l GNU/Linux
+
+GnuTLS 3.2.0
+
+HP Pavilion
+-----------
+Ubuntu 15.04
+
+Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.2.0
 
 
 v0.2

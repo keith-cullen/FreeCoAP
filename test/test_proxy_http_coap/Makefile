@@ -1,5 +1,9 @@
-ifeq ($(ip6),y)
-EXTRA_CFLAGS = -DSOCK_IP6
+ifeq ($(http_ip6),y)
+EXTRA_CFLAGS += -DSOCK_IP6
+endif
+
+ifeq ($(coap_ip6),y)
+EXTRA_CFLAGS += -DCOAP_IP6
 endif
 
 I1=../../lib/include
@@ -12,8 +16,7 @@ D1 = ../../org.eclipse.tinydtls
 K1 = ../raw_keys
 
 CC = gcc
-CFLAGS = $(EXTRA_CFLAGS) \
-         -Wall \
+CFLAGS = -Wall \
          -I$(I1) \
          -I$(I2) \
          -I$(I3) \
@@ -23,10 +26,13 @@ CFLAGS = $(EXTRA_CFLAGS) \
          -DCOAP_DTLS_EN \
          -DCONNECTION_STATS \
          -DWITH_SHA256
+CFLAGS += $(EXTRA_CFLAGS)
 LD = gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
+       $(I1)/coap_log.h \
+       $(I1)/coap_ipv.h \
        $(I3)/listener.h \
        $(I3)/connection.h \
        $(I3)/param.h \
@@ -41,7 +47,6 @@ INCS = $(I1)/coap_client.h \
        $(I2)/util.h \
        $(I2)/thread.h \
        $(I2)/lock.h \
-       $(I1)/coap_log.h \
        $(D1)/alert.h \
        $(D1)/ccm.h \
        $(D1)/crypto.h \
