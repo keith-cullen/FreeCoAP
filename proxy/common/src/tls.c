@@ -126,7 +126,7 @@ static int tls_client_cache_set(tls_client_cache_t *cache, char *addr, gnutls_da
         cache->index %= cache->size;
     }
 
-    util_strncpy(cache->element[i].addr, addr, INET6_ADDRSTRLEN);
+    util_strncpy(cache->element[i].addr, addr, SOCK_INET_ADDRSTRLEN);
     memcpy(cache->element[i].session_data, data.data, data.size);
     cache->element[i].session_data_size = data.size;
 
