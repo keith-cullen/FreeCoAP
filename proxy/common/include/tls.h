@@ -53,7 +53,7 @@
 
 typedef struct
 {
-    char addr[INET6_ADDRSTRLEN];
+    char addr[SOCK_INET_ADDRSTRLEN];
     unsigned char session_data[TLS_CLIENT_MAX_SESSION_DATA_SIZE];
     size_t session_data_size;
 }

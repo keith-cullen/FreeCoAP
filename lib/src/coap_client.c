@@ -412,13 +412,13 @@ int coap_client_create(coap_client_t *client,
     memset(client, 0, sizeof(coap_client_t));
     /* resolve host and port */
     hints.ai_flags = 0;
-    hints.ai_family = AF_INET6;      /* preferred socket domain */
-    hints.ai_socktype = SOCK_DGRAM;  /* preferred socket type */
-    hints.ai_protocol = 0;           /* preferred protocol (3rd argument to socket()) - 0 specifies that any protocol will do */
-    hints.ai_addrlen = 0;            /* must be 0 */
-    hints.ai_addr = NULL;            /* must be NULL */
-    hints.ai_canonname = NULL;       /* must be NULL */
-    hints.ai_next = NULL;            /* must be NULL */
+    hints.ai_family = COAP_IPV_AF_INET;  /* preferred socket domain */
+    hints.ai_socktype = SOCK_DGRAM;      /* preferred socket type */
+    hints.ai_protocol = 0;               /* preferred protocol (3rd argument to socket()) - 0 specifies that any protocol will do */
+    hints.ai_addrlen = 0;                /* must be 0 */
+    hints.ai_addr = NULL;                /* must be NULL */
+    hints.ai_canonname = NULL;           /* must be NULL */
+    hints.ai_next = NULL;                /* must be NULL */
     ret = getaddrinfo(host, port, &hints, &list);
     if (ret < 0)
     {
@@ -426,7 +426,7 @@ int coap_client_create(coap_client_t *client,
     }
     for (node = list; node != NULL; node = node->ai_next)
     {
-        if ((node->ai_family == AF_INET6)
+        if ((node->ai_family == COAP_IPV_AF_INET)
          && (node->ai_socktype == SOCK_DGRAM))
         {
             client->sd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
