@@ -1,5 +1,9 @@
-ifeq ($(ip6),y)
-EXTRA_CFLAGS = -DSOCK_IP6
+ifeq ($(http_ip6),y)
+EXTRA_CFLAGS += -DSOCK_IP6
+endif
+
+ifeq ($(coap_ip6),y)
+EXTRA_CFLAGS += -DCOAP_IP6
 endif
 
 I1=../../lib/include
@@ -9,12 +13,12 @@ S2=../../proxy/common/src
 T1=..
 
 CC = gcc
-CFLAGS = $(EXTRA_CFLAGS) \
-         -Wall \
+CFLAGS = -Wall \
          -I$(I1) \
          -I$(I2) \
          -I$(T1) \
          -DTLS_CLIENT_AUTH
+CFLAGS += $(EXTRA_CFLAGS)
 LD = gcc
 LDFLAGS =
 

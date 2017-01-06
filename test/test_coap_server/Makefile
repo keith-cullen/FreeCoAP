@@ -1,3 +1,7 @@
+ifeq ($(ip6),y)
+EXTRA_CFLAGS = -DCOAP_IP6
+endif
+
 ifneq ($(dtls),n)
 DTLS_CFLAGS = -DCOAP_DTLS_EN
 DTLS_LIBS = -lgmp \
@@ -12,6 +16,7 @@ S1 = ../../lib/src
 CC = gcc
 CFLAGS = -Wall \
          -I $(I1)
+CFLAGS += $(EXTRA_CFLAGS)
 CFLAGS += $(DTLS_CFLAGS)
 LD = gcc
 LDFLAGS =

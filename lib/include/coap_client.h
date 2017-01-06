@@ -41,6 +41,7 @@
 #include <gnutls/dtls.h>
 #endif
 #include "coap_msg.h"
+#include "coap_ipv.h"
 
 #define COAP_CLIENT_HOST_BUF_LEN  128                                           /**< Buffer length for host addresses */
 #define COAP_CLIENT_PORT_BUF_LEN  8                                             /**< Buffer length for port numbers */
@@ -54,8 +55,8 @@ typedef struct
     int timer_fd;                                                               /**< Timer file descriptor */
     struct timespec timeout;                                                    /**< Timeout value */
     unsigned num_retrans;                                                       /**< Current number of retransmissions */
-    struct sockaddr_in6 server_sin;                                             /**< IPv6 socket structture */
-    socklen_t server_sin_len;                                                   /**< IPv6 socket structure length */
+    coap_ipv_sockaddr_in_t server_sin;                                          /**< Socket structture */
+    socklen_t server_sin_len;                                                   /**< Socket structure length */
     char server_host[COAP_CLIENT_HOST_BUF_LEN];                                 /**< String to hold the server host address */
     char server_port[COAP_CLIENT_PORT_BUF_LEN];                                 /**< String to hold the server port number */
 #ifdef COAP_DTLS_EN
