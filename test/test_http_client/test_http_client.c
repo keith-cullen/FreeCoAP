@@ -47,11 +47,16 @@
 
 #define SERVER_COMMON_NAME  "dummy/server"                                      /**< Expected common name in the proxy's certificate */
 #ifdef SOCK_IP6
-#define HOST                "::1"                                               /**< Host address of the proxy */
+#define PROXY_HOST          "::1"                                               /**< Host address of the proxy */
 #else
-#define HOST                "127.0.0.1"                                         /**< Host address of the proxy */
+#define PROXY_HOST          "127.0.0.1"                                         /**< Host address of the proxy */
 #endif
-#define PORT                "12437"                                             /**< TCP port number of the proxy */
+#ifdef COAP_IP6
+#define SERVER_HOST         "[::1]"                                             /**< Host address of the server */
+#else
+#define SERVER_HOST         "127.0.0.1"                                         /**< Host address of the server */
+#endif
+#define PROXY_PORT          "12437"                                             /**< TCP port number of the proxy */
 #define TRUST_FILE_NAME     "../../certs/root_server_cert.pem"                  /**< TLS trust file name */
 #define CERT_FILE_NAME      "../../certs/client_cert.pem"                       /**< TLS certificate file name */
 #define KEY_FILE_NAME       "../../certs/client_privkey.pem"                    /**< TLS key file name */
@@ -84,7 +89,7 @@ const char test1_body[] = "Hello Client!";
 test_http_client_data_t test1_data =
 {
     .desc = "test 1: Send GET request",
-    .req_str = "GET coaps://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://"SERVER_HOST":12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test1_start,
     .num_headers = TEST1_NUM_HEADERS,
     .name = test1_name,
@@ -102,7 +107,7 @@ const char test2_body[] = "Hello Client!";
 test_http_client_data_t test2_data =
 {
     .desc = "test 2: Send double POST request",
-    .req_str = "POST coaps://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nRequest=Hello",
+    .req_str = "POST coaps://"SERVER_HOST":12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nRequest=Hello",
     .start = test2_start,
     .num_headers = TEST2_NUM_HEADERS,
     .name = test2_name,
@@ -115,7 +120,7 @@ const char *test3_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "501", "Not Implement
 test_http_client_data_t test3_data =
 {
     .desc = "test 3: Send a request with an unsupported method",
-    .req_str = "CONNECT coaps://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "CONNECT coaps://"SERVER_HOST":12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test3_start,
     .num_headers = 0,
     .name = NULL,
@@ -128,7 +133,7 @@ const char *test4_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "400", "Bad Request"}
 test_http_client_data_t test4_data =
 {
     .desc = "test 4: Send a request with an unsupported scheme in the request-URI",
-    .req_str = "GET dummy://[::1]:12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET dummy://"SERVER_HOST":12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test4_start,
     .num_headers = 0,
     .name = NULL,
@@ -141,7 +146,7 @@ const char *test5_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "406", "Not Acceptabl
 test_http_client_data_t test5_data =
 {
     .desc = "test 5: Send a request with an unsupported Accept header value",
-    .req_str = "GET coaps://[::1]:12436/resource HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://"SERVER_HOST":12436/resource HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test5_start,
     .num_headers = 0,
     .name = NULL,
@@ -154,7 +159,7 @@ const char *test6_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "502", "Bad Gateway"}
 test_http_client_data_t test6_data =
 {
     .desc = "test 6: Send a request that will invoke a response from the CoAP server with an unsafe option",
-    .req_str = "GET coaps://[::1]:12436/unsafe HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://"SERVER_HOST":12436/unsafe HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
     .start = test6_start,
     .num_headers = 0,
     .name = NULL,
@@ -293,7 +298,7 @@ static test_result_t test_exchange_func(test_data_t data)
 
     printf("%s\n", test_data->desc);
 
-    ret = tls_sock_open(&s, &client, HOST, PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
+    ret = tls_sock_open(&s, &client, PROXY_HOST, PROXY_PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
     if (ret != SOCK_OK)
     {
         return FAIL;
@@ -356,7 +361,7 @@ static test_result_t test_double_exchange_func(test_data_t data)
 
     printf("%s\n", test_data->desc);
 
-    ret = tls_sock_open(&s, &client, HOST, PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
+    ret = tls_sock_open(&s, &client, PROXY_HOST, PROXY_PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
     if (ret != SOCK_OK)
     {
         return FAIL;

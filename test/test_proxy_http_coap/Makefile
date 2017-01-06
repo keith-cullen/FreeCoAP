@@ -1,5 +1,9 @@
-ifeq ($(ip6),y)
-EXTRA_CFLAGS = -DSOCK_IP6
+ifeq ($(http_ip6),y)
+EXTRA_CFLAGS += -DSOCK_IP6
+endif
+
+ifeq ($(coap_ip6),y)
+EXTRA_CFLAGS += -DCOAP_IP6
 endif
 
 I1=../../lib/include
@@ -10,8 +14,7 @@ I3=../../proxy/http_coap/include
 S3=../../proxy/http_coap/src
 
 CC = gcc
-CFLAGS = $(EXTRA_CFLAGS) \
-         -Wall \
+CFLAGS = -Wall \
          -I$(I1) \
          -I$(I2) \
          -I$(I3) \
@@ -19,10 +22,13 @@ CFLAGS = $(EXTRA_CFLAGS) \
          -DCOAP_PROXY \
          -DCOAP_DTLS_EN \
          -DCONNECTION_STATS
+CFLAGS += $(EXTRA_CFLAGS)
 LD = gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
+       $(I1)/coap_log.h \
+       $(I1)/coap_ipv.h \
        $(I3)/listener.h \
        $(I3)/connection.h \
        $(I3)/param.h \
@@ -36,8 +42,7 @@ INCS = $(I1)/coap_client.h \
        $(I2)/data_buf.h \
        $(I2)/util.h \
        $(I2)/thread.h \
-       $(I2)/lock.h \
-       $(I1)/coap_log.h
+       $(I2)/lock.h
 OBJS = proxy.o \
        coap_client.o \
        coap_msg.o \

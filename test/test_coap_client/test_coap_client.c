@@ -43,7 +43,11 @@
 #include "coap_log.h"
 #include "test.h"
 
+#ifdef COAP_IP6
 #define HOST             "::1"                                                  /**< Host address of the server */
+#else
+#define HOST             "127.0.0.1"                                            /**< Host address of the server */
+#endif
 #define PORT             "12436"                                                /**< UDP port number of the server */
 #define TRUST_FILE_NAME  "../../certs/root_server_cert.pem"                     /**< DTLS trust file name */
 #define CERT_FILE_NAME   "../../certs/client_cert.pem"                          /**< DTLS certificate file name */
@@ -619,13 +623,13 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
     int ret = 0;
 
     ret = coap_msg_set_type(req, test_req->type);
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
         return FAIL;
     }
     ret = coap_msg_set_code(req, test_req->code_class, test_req->code_detail);
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
         return FAIL;
@@ -633,7 +637,7 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
     for (i = 0; i < test_req->num_ops; i++)
     {
         ret = coap_msg_add_op(req, test_req->ops[i].num, test_req->ops[i].len, test_req->ops[i].val);
-        if (ret != 0)
+        if (ret < 0)
         {
             coap_log_error("%s", strerror(-ret));
             return FAIL;
@@ -642,7 +646,7 @@ static test_result_t populate_req(test_coap_client_msg_t *test_req, coap_msg_t *
     if (test_req->payload)
     {
         ret = coap_msg_set_payload(req, test_req->payload, test_req->payload_len);
-        if (ret != 0)
+        if (ret < 0)
         {
             coap_log_error("%s", strerror(-ret));
             return FAIL;
@@ -672,7 +676,7 @@ static test_result_t exchange(coap_client_t *client, test_coap_client_msg_t *tes
         return result;
     }
     ret = coap_client_exchange(client, req, resp);
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
         return FAIL;
@@ -774,7 +778,7 @@ static test_result_t test_exchange_func(test_data_t data)
                              test_data->host,
                              test_data->port);
 #endif
-    if (ret != 0)
+    if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
         return FAIL;

@@ -74,27 +74,29 @@
 
 #ifdef SOCK_IP6
 
+#define SOCK_AF_INET          AF_INET6
+#define SOCK_PF_INET          PF_INET6
 #define SOCK_SIN_FAMILY       sin6_family
 #define SOCK_SIN_ADDR         sin6_addr
 #define SOCK_IN_ADDR          sin6_addr
 #define SOCK_SIN_PORT         sin6_port
-#define SOCK_PF_INET          PF_INET6
-#define SOCK_AF_INET          AF_INET6
 #define SOCK_INET_ADDRSTRLEN  INET6_ADDRSTRLEN
 #define SOCK_INADDR_ANY       in6addr_any
-#define sock_in_addr_t        struct in6_addr
+
+typedef struct in6_addr       sock_in_addr_t;
 typedef struct sockaddr_in6   sock_sockaddr_in_t;
 
 #else  /* SOCK_IP4 */
 
+#define SOCK_AF_INET          AF_INET
+#define SOCK_PF_INET          PF_INET
 #define SOCK_SIN_FAMILY       sin_family
 #define SOCK_SIN_ADDR         sin_addr
 #define SOCK_IN_ADDR          sin_addr.s_addr
 #define SOCK_SIN_PORT         sin_port
-#define SOCK_PF_INET          PF_INET
-#define SOCK_AF_INET          AF_INET
 #define SOCK_INET_ADDRSTRLEN  INET_ADDRSTRLEN
 #define SOCK_INADDR_ANY       htonl(INADDR_ANY)
+
 typedef struct in_addr        sock_in_addr_t;
 typedef struct sockaddr_in    sock_sockaddr_in_t;
 

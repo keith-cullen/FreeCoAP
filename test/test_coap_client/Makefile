@@ -1,3 +1,7 @@
+ifeq ($(ip6),y)
+EXTRA_CFLAGS = -DCOAP_IP6
+endif
+
 ifneq ($(dtls),n)
 DTLS_CFLAGS = -DCOAP_DTLS_EN
 DTLS_LIBS = -lgmp \
@@ -14,12 +18,14 @@ CC = gcc
 CFLAGS = -Wall \
          -I$(I1) \
          -I$(T1)
+CFLAGS += $(EXTRA_CFLAGS)
 CFLAGS += $(DTLS_CFLAGS)
 LD = gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
        $(I1)/coap_log.h \
+       $(I1)/coap_ipv.h \
        $(T1)/test.h
 OBJS = test_coap_client.o \
        coap_client.o \

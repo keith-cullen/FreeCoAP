@@ -41,7 +41,11 @@
 #include "coap_server.h"
 #include "coap_log.h"
 
+#ifdef COAP_IP6
 #define HOST                 "::1"                                              /**< Host address to listen on */
+#else
+#define HOST                 "127.0.0.1"                                        /**< Host address to listen on */
+#endif
 #define PORT                 "12436"                                            /**< UDP port number to listen on */
 #define KEY_FILE_NAME        "../../certs/server_privkey.pem"                   /**< DTLS key file name */
 #define CERT_FILE_NAME       "../../certs/server_cert.pem"                      /**< DTLS certificate file name */
