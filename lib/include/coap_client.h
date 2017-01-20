@@ -79,6 +79,7 @@ coap_client_t;
  *  @param[in] cert_file_name String containing the DTLS certificate file name
  *  @param[in] trust_file_name String containing the DTLS trust file name
  *  @param[in] crls_file_name String containing the DTLS certificate revocation list file name
+ *  @param[in] common_name String containing the common name of the server
  *
  *  @returns Operation status
  *  @retval 0 Success
@@ -90,7 +91,8 @@ int coap_client_create(coap_client_t *client,
                        const char *key_file_name,
                        const char *cert_file_name,
                        const char *trust_file_name,
-                       const char *crl_file_name);
+                       const char *crl_file_name,
+                       const char *common_name);
 
 #else  /* !COAP_DTLS_EN */
 
