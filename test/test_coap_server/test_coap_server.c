@@ -42,9 +42,9 @@
 #include "coap_log.h"
 
 #ifdef COAP_IP6
-#define HOST                 "::1"                                              /**< Host address to listen on */
+#define HOST                 "::"                                               /**< Host address to listen on */
 #else
-#define HOST                 "127.0.0.1"                                        /**< Host address to listen on */
+#define HOST                 "0.0.0.0"                                          /**< Host address to listen on */
 #endif
 #define PORT                 "12436"                                            /**< UDP port number to listen on */
 #define KEY_FILE_NAME        "../../certs/server_privkey.pem"                   /**< DTLS key file name */
@@ -236,7 +236,11 @@ int main()
 #endif
     if (ret < 0)
     {
-        coap_log_error("%s", strerror(-ret));
+        if (ret != -1)
+        {
+            /* a return value of -1 indicates a DTLS failure which has already been logged */
+            coap_log_error("%s", strerror(-ret));
+        }
         return EXIT_FAILURE;
     }
     ret = coap_server_add_sep_resp_uri_path(&server, SEP_URI_PATH);
@@ -249,7 +253,11 @@ int main()
     ret = coap_server_run(&server);
     if (ret < 0)
     {
-        coap_log_error("%s", strerror(-ret));
+        if (ret != -1)
+        {
+            /* a return value of -1 indicates a DTLS failure which has already been logged */
+            coap_log_error("%s", strerror(-ret));
+        }
         coap_server_destroy(&server);
         return EXIT_FAILURE;
     }
