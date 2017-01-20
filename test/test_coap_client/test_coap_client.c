@@ -53,6 +53,7 @@
 #define CERT_FILE_NAME   "../../certs/client_cert.pem"                          /**< DTLS certificate file name */
 #define KEY_FILE_NAME    "../../certs/client_privkey.pem"                       /**< DTLS key file name */
 #define CRL_FILE_NAME    ""                                                     /**< DTLS certificate revocation list file name */
+#define COMMON_NAME      "dummy/server"                                         /**< Common name of the server */
 #define SEP_URI_PATH     "separate"                                             /**< URI path option value to trigger a separate response from the server */
 
 /**
@@ -93,6 +94,7 @@ typedef struct
     const char *cert_file_name;                                                 /**< DTLS certificate file name */
     const char *trust_file_name;                                                /**< DTLS trust file name */
     const char *crl_file_name;                                                  /**< DTLS certificate revocation list file name */
+    const char *common_name;                                                    /**< Common name of the server */
     test_coap_client_msg_t *test_req;                                           /**< Array of test request message structures */
     test_coap_client_msg_t *test_resp;                                          /**< Array of test response message structures */
     size_t num_msg;                                                             /**< Length of the arrays of test message structures */
@@ -149,6 +151,7 @@ test_coap_client_data_t test1_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
     .test_req = test1_req,
     .test_resp = test1_resp,
     .num_msg = TEST1_NUM_MSG
@@ -204,6 +207,7 @@ test_coap_client_data_t test2_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
     .test_req = test2_req,
     .test_resp = test2_resp,
     .num_msg = TEST2_NUM_MSG
@@ -259,6 +263,7 @@ test_coap_client_data_t test3_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
     .test_req = test3_req,
     .test_resp = test3_resp,
     .num_msg = TEST3_NUM_MSG
@@ -332,6 +337,7 @@ test_coap_client_data_t test4_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
     .test_req = test4_req,
     .test_resp = test4_resp,
     .num_msg = TEST4_NUM_MSG
@@ -405,6 +411,7 @@ test_coap_client_data_t test5_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
     .test_req = test5_req,
     .test_resp = test5_resp,
     .num_msg = TEST5_NUM_MSG
@@ -478,6 +485,7 @@ test_coap_client_data_t test6_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
     .test_req = test6_req,
     .test_resp = test6_resp,
     .num_msg = TEST6_NUM_MSG
@@ -540,6 +548,7 @@ test_coap_client_data_t test7_data =
     .cert_file_name = CERT_FILE_NAME,
     .trust_file_name = TRUST_FILE_NAME,
     .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
     .test_req = test7_req,
     .test_resp = test7_resp,
     .num_msg = TEST7_NUM_MSG
@@ -772,7 +781,8 @@ static test_result_t test_exchange_func(test_data_t data)
                              test_data->key_file_name,
                              test_data->cert_file_name,
                              test_data->trust_file_name,
-                             test_data->crl_file_name);
+                             test_data->crl_file_name,
+                             test_data->common_name);
 #else
     ret = coap_client_create(&client,
                              test_data->host,

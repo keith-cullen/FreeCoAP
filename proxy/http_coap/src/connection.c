@@ -137,6 +137,7 @@ static int connection_coap_client_create(connection_t *con, uri_t *uri)
                             param_get_coap_client_key_file_name(con->param),
                             param_get_coap_client_cert_file_name(con->param),
                             param_get_coap_client_trust_file_name(con->param),
+                            NULL,
                             NULL);
     if (ret < 0)
     {
@@ -449,52 +450,6 @@ static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_
         coap_log_error("[%u] <%u> %s Failed to convert CoAP message to HTTP message: %s",
                        con->listener_index, con->con_index, con->addr, strerror(-ret));
         return connection_gen_error_resp(con, resp_msg, code);
-    }
-    return 0;
-}
-
-/*  simple test function to exercise the HTTP client <--> proxy side of the connection
- *  without the proxy <--> COAP server side of the connection
- *
- *  return: { 0, success
- *          {<0, error
- */
-static int connection_process_simple(connection_t *con, http_msg_t *req_msg, http_msg_t *resp_msg)
-{
-    const char *body = "Hello Client!";
-    char int_buf[CONNECTION_INT_BUF_LEN] = {0};
-    size_t len = 0;
-    int ret = 0;
-
-    ret = http_msg_set_start(resp_msg, "HTTP/1.1", "200", "OK");
-    if (ret < 0)
-    {
-        coap_log_error("[%u] <%u> %s Failed to set start line in response message to HTTP client: %s",
-                       con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return ret;
-    }
-    len = strlen(body);
-    snprintf(int_buf, sizeof(int_buf), "%zd", len);
-    ret = http_msg_set_header(resp_msg, "Content-Length", int_buf);
-    if (ret < 0)
-    {
-        coap_log_error("[%u] <%u> %s Failed to set header in response message to HTTP client: %s",
-                       con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return ret;
-    }
-    ret = http_msg_set_header(resp_msg, "Content-Type", "application/text");
-    if (ret < 0)
-    {
-        coap_log_error("[%u] <%u> %s Failed to set header in response message to HTTP client: %s",
-                       con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return ret;
-    }
-    ret = http_msg_set_body(resp_msg, body, len);
-    if (ret < 0)
-    {
-        coap_log_error("[%u] <%u> %s Failed to set body in response message to HTTP client: %s",
-                       con->listener_index, con->con_index, con->addr, http_msg_strerror(ret));
-        return ret;
     }
     return 0;
 }

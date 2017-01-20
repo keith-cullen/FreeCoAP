@@ -45,6 +45,9 @@
 #include <sys/timerfd.h>
 #include <sys/select.h>
 #include <linux/types.h>
+#ifdef COAP_DTLS_EN
+#include <gnutls/x509.h>
+#endif
 #include "coap_server.h"
 #include "coap_log.h"
 
@@ -417,6 +420,104 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
     return -ETIMEDOUT;
 }
 
+#ifdef COAP_CLIENT_AUTH
+
+/**
+ *  @brief Verify the clients's certificate
+ *
+ *  @param[in,out] trans Pointer to a transaction structure
+ *
+ *  @returns Operation success
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+static int coap_server_trans_dtls_verify_peer_cert(coap_server_trans_t *trans)
+{
+    gnutls_certificate_type_t cert_type = 0;
+    const gnutls_datum_t *cert_list = NULL;
+    gnutls_x509_crt_t cert = {0};
+    unsigned cert_list_size = 0;
+    unsigned status = 0;
+    time_t expiration_time = 0;
+    time_t activation_time = 0;
+    time_t current_time = 0;
+    int ret = 0;
+
+    ret = gnutls_certificate_verify_peers2(trans->session, &status);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        coap_log_error("The peer certificate was not verified");
+        return -1;
+    }
+    if (status & GNUTLS_CERT_INVALID)
+    {
+        coap_log_error("The peer certificate is not trusted");
+        return -1;
+    }
+    if (status & GNUTLS_CERT_SIGNER_NOT_FOUND)
+    {
+        coap_log_error("No issuer found for the peer certificate");
+        return -1;
+    }
+    if (status & GNUTLS_CERT_SIGNER_NOT_CA)
+    {
+        coap_log_error("The issuer for the peer certificate is not a certificate authority");
+        return -1;
+    }
+    if (status & GNUTLS_CERT_REVOKED)
+    {
+        coap_log_error("The peer certificate has been revoked");
+        return -1;
+    }
+    cert_type = gnutls_certificate_type_get(trans->session);
+    if (cert_type != GNUTLS_CRT_X509)
+    {
+        coap_log_error("The peer certificate is not an X509 certificate");
+        return -1;
+    }
+    ret = gnutls_x509_crt_init(&cert);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        coap_log_error("Unable to initialise gnutls_x509_crt_t object");
+        return -1;
+    }
+    cert_list = gnutls_certificate_get_peers(trans->session, &cert_list_size);
+    if (cert_list == NULL)
+    {
+        coap_log_error("No peer certificate found");
+        gnutls_x509_crt_deinit(cert);
+        return -1;
+    }
+    /* We only check the first (leaf) certificate in the chain */
+    ret = gnutls_x509_crt_import(cert, &cert_list[0], GNUTLS_X509_FMT_DER);
+    if (ret != GNUTLS_E_SUCCESS)
+    {
+        coap_log_error("Unable to parse certificate");
+        gnutls_x509_crt_deinit(cert);
+        return -1;
+    }
+    current_time = time(NULL);
+    expiration_time = gnutls_x509_crt_get_expiration_time(cert);
+    if ((expiration_time == -1) || (expiration_time < current_time))
+    {
+        coap_log_error("The peer certificate has expired");
+        gnutls_x509_crt_deinit(cert);
+        return -1;
+    }
+    activation_time = gnutls_x509_crt_get_activation_time(cert);
+    if ((activation_time == -1) || (activation_time > current_time))
+    {
+        coap_log_error("The peer certificate is not yet activated");
+        gnutls_x509_crt_deinit(cert);
+        return -1;
+    }
+    coap_log_info("Peer certificate validated");
+    gnutls_x509_crt_deinit(cert);
+    return 0;
+}
+
+#endif  /* COAP_CLIENT_AUTH */
+
 /**
  *  @brief Initialise the DTLS members of a transaction structure
  *
@@ -460,6 +561,9 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
     gnutls_transport_set_push_function(trans->session, coap_server_trans_dtls_push_func);
     gnutls_dtls_set_mtu(trans->session, COAP_SERVER_DTLS_MTU);
     gnutls_dtls_set_timeouts(trans->session, COAP_SERVER_DTLS_RETRANS_TIMEOUT, COAP_SERVER_DTLS_TOTAL_TIMEOUT);
+#ifdef COAP_CLIENT_AUTH
+    gnutls_certificate_server_set_request(trans->session, GNUTLS_CERT_REQUIRE);
+#endif
     ret = coap_server_trans_dtls_handshake(trans);
     if (ret < 0)
     {
@@ -467,6 +571,14 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
         coap_log_warn("Failed to complete DTLS handshake");
         return ret;
     }
+#ifdef COAP_CLIENT_AUTH
+    ret = coap_server_trans_dtls_verify_peer_cert(trans);
+    if (ret < 0)
+    {
+        gnutls_deinit(trans->session);
+        return ret;
+    }
+#endif
     return 0;
 }
 
@@ -2062,7 +2174,6 @@ int coap_server_run(coap_server_t *server)
         ret = coap_server_listen(server);
         if (ret < 0)
         {
-            coap_log_error("server listen: %s", strerror(-ret));
             return ret;
         }
         ret = coap_server_exchange(server);
@@ -2072,9 +2183,8 @@ int coap_server_run(coap_server_t *server)
             {
                 coap_log_notice("%s", strerror(-ret));
             }
-            else
+            else if (ret != -1)  /* a return value of -1 indicates a DTLS error */
             {
-                coap_log_error("%s", strerror(-ret));
                 return ret;
             }
         }
