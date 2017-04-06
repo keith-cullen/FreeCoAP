@@ -237,6 +237,7 @@ int tls_sock_open_(tls_sock_t *s, const char *common_name, int timeout)
         ret = tls_sock_verify_peer_cert(s, common_name);
         if (ret != SOCK_OK)
         {
+            gnutls_bye(s->session, GNUTLS_SHUT_RDWR);
             gnutls_deinit(s->session);
             close(s->sd);
             return ret;
@@ -249,6 +250,7 @@ int tls_sock_open_(tls_sock_t *s, const char *common_name, int timeout)
         ret = tls_sock_verify_peer_cert(s, common_name);
         if (ret != SOCK_OK)
         {
+            gnutls_bye(s->session, GNUTLS_SHUT_RDWR);
             gnutls_deinit(s->session);
             close(s->sd);
             return ret;
