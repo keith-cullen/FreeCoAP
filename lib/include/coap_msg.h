@@ -43,9 +43,9 @@
 #define COAP_MSG_MAX_CODE_DETAIL               31                               /**< Maximum code detail */
 #define COAP_MSG_MAX_MSG_ID                    ((1 << 16) - 1)                  /**< Maximum message ID */
 
-#define COAP_MSG_OP_URI_PATH_NUM               11                               /**< Uri-path option number */
 #define COAP_MSG_OP_URI_PATH_MAX_LEN           256                              /**< Maximum buffer length for a reconstructed URI path */
-
+#define COAP_MSG_OP_MAX_BLOCK_VAL_LEN          3                                /**< Maximum buffer length for a Block1 or Block2 option value */
+#define COAP_MSG_OP_MAX_BLOCK_SIZE             (1 << 10)                        /**< Maximum block size for a Block1 or Block2 option */
 #define COAP_MSG_MAX_BUF_LEN                   1152                             /**< Maximum buffer length for header and payload */
 
 #define coap_msg_op_num_is_critical(num)       ((num) & 1)                      /**< Indicate if an option is critical */
@@ -119,7 +119,8 @@ typedef enum
     COAP_MSG_DELETED = 2,                                                       /**< Deleted success response */
     COAP_MSG_VALID = 3,                                                         /**< Valid success response */
     COAP_MSG_CHANGED = 4,                                                       /**< Changed success response */
-    COAP_MSG_CONTENT = 5                                                        /**< Content success response */
+    COAP_MSG_CONTENT = 5,                                                       /**< Content success response */
+    COAP_MSG_CONTINUE = 31                                                      /**< Continue success response */
 }
 coap_msg_success_t;
 
@@ -135,6 +136,7 @@ typedef enum
     COAP_MSG_NOT_FOUND = 4,                                                     /**< Not found client error */
     COAP_MSG_METHOD_NOT_ALLOWED = 5,                                            /**< Method not allowed client error */
     COAP_MSG_NOT_ACCEPTABLE = 6,                                                /**< Not acceptable client error */
+    COAP_MSG_INCOMPLETE = 8,                                                    /**< Request entity incomplete client error */
     COAP_MSG_PRECOND_FAILED = 12,                                               /**< Precondition failed client error */
     COAP_MSG_REQ_ENT_TOO_LARGE = 13,                                            /**< Request entity too large client error */
     COAP_MSG_UNSUP_CONT_FMT = 15                                                /**< Unsupported content-format client error */
@@ -172,6 +174,9 @@ typedef enum
     COAP_MSG_URI_QUERY = 15,                                                    /**< URI-Query option number */
     COAP_MSG_ACCEPT = 17,                                                       /**< Accept option number */
     COAP_MSG_LOCATION_QUERY = 20,                                               /**< Location-Query option number */
+    COAP_MSG_BLOCK2 = 23,                                                       /**< Block2 option number */
+    COAP_MSG_BLOCK1 = 27,                                                       /**< Block1 option number */
+    COAP_MSG_SIZE2 = 28,                                                        /**< Size2 option number */
     COAP_MSG_PROXY_URI = 35,                                                    /**< Proxy-URI option number */
     COAP_MSG_PROXY_SCHEME = 39,                                                 /**< Proxy-Scheme option number */
     COAP_MSG_SIZE1 = 60                                                         /**< Size1 option number */
@@ -228,6 +233,36 @@ coap_msg_t;
  *  @retval 0 Option is not recognized
  */
 int coap_msg_op_num_is_recognized(unsigned num);
+
+/**
+ *  @brief Parse Block1 or Block2 option value
+ *
+ *  @param[out] num Pointer to Block number
+ *  @param[out] more Pointer to More value
+ *  @param[out] size Pointer to Block size
+ *  @param[in] val Pointer to the option value
+ *  @param[in] len Option length
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+int coap_msg_op_parse_block_val(unsigned *num, unsigned *more, unsigned *size, const char *val, unsigned len);
+
+/**
+ *  @brief Format Block1 or Block2 option value
+ *
+ *  @param[out] val Pointer to option value
+ *  @param[in] len Length of option value
+ *  @param[in] num Block number
+ *  @param[in] more More value
+ *  @param[in] size Block size
+ *
+ *  @returns Length of the formatted option value or error code
+ *  @retval >0 Length of the formatted option value
+ *  @retval <0 Error
+ */
+int coap_msg_op_format_block_val(char *val, unsigned len, unsigned num, unsigned more, unsigned size);
 
 /**
  *  @brief Generate a random string of bytes
