@@ -512,6 +512,295 @@ test_coap_client_data_t test7_data =
     .num_msg = TEST7_NUM_MSG
 };
 
+#define TEST8_NUM_MSG       6
+#define TEST8_REQ_OP1_LEN   5
+#define TEST8_REQ_OP2_LEN   1
+#define TEST8_REQ_OP3_LEN   1
+#define TEST8_REQ_OP4_LEN   1
+#define TEST8_REQ_OP5_LEN   1
+#define TEST8_REQ_OP6_LEN   1
+#define TEST8_REQ_NUM_OPS1  2
+#define TEST8_REQ_NUM_OPS2  2
+#define TEST8_REQ_NUM_OPS3  2
+#define TEST8_REQ_NUM_OPS4  1
+#define TEST8_REQ_NUM_OPS5  2
+#define TEST8_REQ_NUM_OPS6  2
+#define TEST8_RESP_OP_LEN   1
+#define TEST8_RESP_NUM_OPS  1
+
+char test8_req_op1_val[TEST8_REQ_OP1_LEN + 1] = "block";
+char test8_req_op2_val[TEST8_REQ_OP2_LEN] =  {0x08};  /* PUT num: 0, more: 1, size: 16 */
+char test8_req_op3_val[TEST8_REQ_OP3_LEN] =  {0x18};  /* PUT num: 1, more: 1, size: 16 */
+char test8_req_op4_val[TEST8_REQ_OP4_LEN] =  {0x20};  /* PUT num: 2, more: 0, size: 16 */
+char test8_req_op5_val[TEST8_REQ_OP5_LEN] =  {0x10};  /* GET num: 1, more: 0, size: 16 */
+char test8_req_op6_val[TEST8_REQ_OP6_LEN] =  {0x20};  /* GET num: 2, more: 0, size: 16 */
+
+char test8_resp_op1_val[TEST8_RESP_OP_LEN] =  {0x00};  /* PUT num: 0, more: 0, size: 16 */
+char test8_resp_op2_val[TEST8_RESP_OP_LEN] =  {0x10};  /* PUT num: 1, more: 0, size: 16 */
+char test8_resp_op3_val[TEST8_RESP_OP_LEN] =  {0x20};  /* PUT num: 2, more: 0, size: 16 */
+char test8_resp_op4_val[TEST8_RESP_OP_LEN] =  {0x08};  /* GET num: 0, more: 1, size: 16 */
+char test8_resp_op5_val[TEST8_RESP_OP_LEN] =  {0x18};  /* GET num: 1, more: 1, size: 16 */
+char test8_resp_op6_val[TEST8_RESP_OP_LEN] =  {0x20};  /* GET num: 2, more: 0, size: 16 */
+
+test_coap_client_msg_op_t test8_req_ops1[TEST8_REQ_NUM_OPS1] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST8_REQ_OP1_LEN,
+        .val = test8_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST8_REQ_OP2_LEN,
+        .val = test8_req_op2_val
+    }
+};
+
+test_coap_client_msg_op_t test8_req_ops2[TEST8_REQ_NUM_OPS2] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST8_REQ_OP1_LEN,
+        .val = test8_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST8_REQ_OP3_LEN,
+        .val = test8_req_op3_val
+    }
+};
+
+test_coap_client_msg_op_t test8_req_ops3[TEST8_REQ_NUM_OPS3] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST8_REQ_OP1_LEN,
+        .val = test8_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST8_REQ_OP4_LEN,
+        .val = test8_req_op4_val
+    }
+};
+
+test_coap_client_msg_op_t test8_req_ops4[TEST8_REQ_NUM_OPS4] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST8_REQ_OP1_LEN,
+        .val = test8_req_op1_val
+    }
+};
+
+test_coap_client_msg_op_t test8_req_ops5[TEST8_REQ_NUM_OPS5] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST8_REQ_OP1_LEN,
+        .val = test8_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST8_REQ_OP5_LEN,
+        .val = test8_req_op5_val
+    }
+};
+
+test_coap_client_msg_op_t test8_req_ops6[TEST8_REQ_NUM_OPS6] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST8_REQ_OP1_LEN,
+        .val = test8_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST8_REQ_OP6_LEN,
+        .val = test8_req_op6_val
+    }
+};
+
+test_coap_client_msg_op_t test8_resp_ops1[TEST8_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST8_RESP_OP_LEN,
+        .val = test8_resp_op1_val
+    }
+};
+
+test_coap_client_msg_op_t test8_resp_ops2[TEST8_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST8_RESP_OP_LEN,
+        .val = test8_resp_op2_val
+    }
+};
+
+test_coap_client_msg_op_t test8_resp_ops3[TEST8_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST8_RESP_OP_LEN,
+        .val = test8_resp_op3_val
+    }
+};
+
+test_coap_client_msg_op_t test8_resp_ops4[TEST8_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST8_RESP_OP_LEN,
+        .val = test8_resp_op4_val
+    }
+};
+
+test_coap_client_msg_op_t test8_resp_ops5[TEST8_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST8_RESP_OP_LEN,
+        .val = test8_resp_op5_val
+    }
+};
+
+test_coap_client_msg_op_t test8_resp_ops6[TEST8_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST8_RESP_OP_LEN,
+        .val = test8_resp_op6_val
+    }
+};
+
+test_coap_client_msg_t test8_req[TEST8_NUM_MSG] =
+{
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_PUT,
+        .ops = test8_req_ops1,
+        .num_ops = TEST8_REQ_NUM_OPS1,
+        .payload = "0123456789abcdef",
+        .payload_len = 16
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_PUT,
+        .ops = test8_req_ops2,
+        .num_ops = TEST8_REQ_NUM_OPS2,
+        .payload = "ghijklmnopqrstuv",
+        .payload_len = 16
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_PUT,
+        .ops = test8_req_ops3,
+        .num_ops = TEST8_REQ_NUM_OPS3,
+        .payload = "wzyx.!?#",
+        .payload_len = 8
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_GET,
+        .ops = test8_req_ops4,
+        .num_ops = TEST8_REQ_NUM_OPS4,
+        .payload = NULL,
+        .payload_len = 0
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_GET,
+        .ops = test8_req_ops5,
+        .num_ops = TEST8_REQ_NUM_OPS5,
+        .payload = NULL,
+        .payload_len = 0
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_GET,
+        .ops = test8_req_ops6,
+        .num_ops = TEST8_REQ_NUM_OPS6,
+        .payload = NULL,
+        .payload_len = 0
+    }
+};
+
+test_coap_client_msg_t test8_resp[TEST8_NUM_MSG] =
+{
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CHANGED,
+        .ops = test8_resp_ops1,
+        .num_ops = TEST8_RESP_NUM_OPS,
+        .payload = NULL,
+        .payload_len = 0
+    },
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CHANGED,
+        .ops = test8_resp_ops2,
+        .num_ops = TEST8_RESP_NUM_OPS,
+        .payload = NULL,
+        .payload_len = 0
+    },
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CHANGED,
+        .ops = test8_resp_ops3,
+        .num_ops = TEST8_RESP_NUM_OPS,
+        .payload = NULL,
+        .payload_len = 0
+    },
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CONTENT,
+        .ops = test8_resp_ops4,
+        .num_ops = TEST8_RESP_NUM_OPS,
+        .payload = "0123456789abcdef",
+        .payload_len = 16
+    },
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CONTENT,
+        .ops = test8_resp_ops5,
+        .num_ops = TEST8_RESP_NUM_OPS,
+        .payload = "ghijklmnopqrstuv",
+        .payload_len = 16
+    },
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CONTENT,
+        .ops = test8_resp_ops6,
+        .num_ops = TEST8_RESP_NUM_OPS,
+        .payload = "wzyx.!?#",
+        .payload_len = 8
+    }
+};
+
+test_coap_client_data_t test8_data =
+{
+    .desc = "test 8: send three blockwise PUT requests and three blockwise GET requests",
+    .host = HOST,
+    .port = PORT,
+    .test_req = test8_req,
+    .test_resp = test8_resp,
+    .num_msg = TEST8_NUM_MSG
+};
+
 /**
  *  @brief Print a CoAP message
  *
@@ -667,14 +956,17 @@ static test_result_t compare_ver_token(coap_msg_t *req, coap_msg_t *resp)
 {
     if (coap_msg_get_ver(req) != coap_msg_get_ver(resp))
     {
+        coap_log_warn("Version in request and response messages do not match");
         return FAIL;
     }
     if (coap_msg_get_token_len(req) != coap_msg_get_token_len(resp))
     {
+        coap_log_warn("Token length in request and response messages do not match");
         return FAIL;
     }
     else if (memcmp(coap_msg_get_token(req), coap_msg_get_token(resp), coap_msg_get_token_len(req)) != 0)
     {
+        coap_log_warn("Token in request and response messages do not match");
         return FAIL;
     }
     return PASS;
@@ -690,24 +982,66 @@ static test_result_t compare_ver_token(coap_msg_t *req, coap_msg_t *resp)
  */
 static test_result_t check_resp(test_coap_client_msg_t *test_resp, coap_msg_t *resp)
 {
+    test_coap_client_msg_op_t *exp_op = NULL;
+    coap_msg_op_t *resp_op = NULL;
+    unsigned match = 0;
+    unsigned i = 0;
+
     if (test_resp->type != coap_msg_get_type(resp))
     {
+        coap_log_warn("Unexpected type in response message");
+        coap_log_debug("Received: %d", coap_msg_get_type(resp));
+        coap_log_debug("Expected: %d", test_resp->type);
         return FAIL;
     }
     if (test_resp->code_class != coap_msg_get_code_class(resp))
     {
+        coap_log_warn("Unexpected code class in response message");
+        coap_log_debug("Received: %d", coap_msg_get_code_class(resp));
+        coap_log_debug("Expected: %d", test_resp->code_class);
         return FAIL;
     }
     if (test_resp->code_detail != coap_msg_get_code_detail(resp))
     {
+        coap_log_warn("Unexpected code detail in response message");
+        coap_log_debug("Received: %d", coap_msg_get_code_detail(resp));
+        coap_log_debug("Expected: %d", test_resp->code_detail);
         return FAIL;
+    }
+    for (i = 0; i < test_resp->num_ops; i++)
+    {
+        match = 0;
+        exp_op = &test_resp->ops[i];
+        resp_op = coap_msg_get_first_op(resp);
+        while (resp_op != NULL)
+        {
+            if ((coap_msg_op_get_num(resp_op) == exp_op->num)
+             && (coap_msg_op_get_len(resp_op) == exp_op->len)
+             && (memcmp(coap_msg_op_get_val(resp_op), exp_op->val, exp_op->len) == 0))
+            {
+                match = 1;
+                break;
+            }
+            resp_op = coap_msg_op_get_next(resp_op);
+        }
+        if (!match)
+        {
+            coap_log_warn("Expected option not found in response message");
+            return FAIL;
+        }
     }
     if (test_resp->payload_len != coap_msg_get_payload_len(resp))
     {
+        coap_log_warn("Unexpected payload length in response message");
+        coap_log_debug("Received: %d", coap_msg_get_payload_len(resp));
+        coap_log_debug("Expected: %d", test_resp->payload_len);
         return FAIL;
     }
     else if (memcmp(test_resp->payload, coap_msg_get_payload(resp), test_resp->payload_len))
     {
+        coap_log_warn("Unexpected payload in response message");
+        coap_log_debug("Received: %s", coap_msg_get_payload(resp));
+        coap_log_debug("Expected: %s", test_resp->payload);
         return FAIL;
     }
     return PASS;
@@ -827,7 +1161,8 @@ int main(int argc, char **argv)
                       {test_exchange_func, &test4_data},
                       {test_exchange_func, &test5_data},
                       {test_exchange_func, &test6_data},
-                      {test_exchange_func, &test7_data}};
+                      {test_exchange_func, &test7_data},
+                      {test_exchange_func, &test8_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
@@ -896,8 +1231,12 @@ int main(int argc, char **argv)
         num_tests = 1;
         num_pass = test_run(&tests[6], num_tests);
         break;
+    case 8:
+        num_tests = 1;
+        num_pass = test_run(&tests[7], num_tests);
+        break;
     default:
-        num_tests = 7;
+        num_tests = 8;
         num_pass = test_run(tests, num_tests);
     }
 

@@ -76,12 +76,97 @@ int coap_msg_op_num_is_recognized(unsigned num)
     case COAP_MSG_URI_QUERY:
     case COAP_MSG_ACCEPT:
     case COAP_MSG_LOCATION_QUERY:
+    case COAP_MSG_BLOCK2:
+    case COAP_MSG_BLOCK1:
+    case COAP_MSG_SIZE2:
     case COAP_MSG_PROXY_URI:
     case COAP_MSG_PROXY_SCHEME:
     case COAP_MSG_SIZE1:
         return 1;
     }
     return 0;
+}
+
+int coap_msg_op_parse_block_val(unsigned *num, unsigned *more, unsigned *size, const char *val, unsigned len)
+{
+    switch (len)
+    {
+    case 1:
+        *size = 1 << ((val[0] & 0x07) + 4);
+        *more = !!(val[0] & 0x08);
+        *num = ((unsigned)(unsigned char)val[0] & 0x000000f0) >> 4;
+        break;
+    case 2:
+        *size = 1 << ((val[1] & 0x07) + 4);
+        *more = !!(val[1] & 0x08);
+        *num = ((unsigned)(unsigned char)val[0] << 4)
+             | (((unsigned)(unsigned char)val[1] & 0x000000f0) >> 4);
+        break;
+    default:
+        *size = 1 << ((val[2] & 0x07) + 4);
+        *more = !!(val[2] & 0x08);
+        *num = ((unsigned)(unsigned char)val[0] << 12)
+             | ((unsigned)(unsigned char)val[1] << 4)
+             | (((unsigned)(unsigned char)val[2] & 0x000000f0) >> 4);
+    }
+    if (*size > COAP_MSG_OP_MAX_BLOCK_SIZE)
+    {
+        return -EINVAL;
+    }
+    return 0;
+}
+
+int coap_msg_op_format_block_val(char *val, unsigned len, unsigned num, unsigned more, unsigned size)
+{
+    unsigned szx = 0;
+
+    switch (size)
+    {
+    case (1 <<  4): szx = 0; break;
+    case (1 <<  5): szx = 1; break;
+    case (1 <<  6): szx = 2; break;
+    case (1 <<  7): szx = 3; break;
+    case (1 <<  8): szx = 4; break;
+    case (1 <<  9): szx = 5; break;
+    case (1 << 10): szx = 6; break;
+    default:
+        return -EINVAL;
+    }
+
+    switch (len)
+    {
+    case 1:
+        if (num > (1 << 4))
+        {
+            return -EINVAL;
+        }
+        val[0] = num << 4;
+        val[0] |= (!!more) << 3;
+        val[0] |= szx;
+        return 1;
+    case 2:
+        if (num > (1 << 12))
+        {
+            return -EINVAL;
+        }
+        val[0] = num >> 4;
+        val[1] = num << 4;
+        val[1] |= (!!more) << 3;
+        val[1] |= szx;
+        return 2;
+    case 3:
+        if (num > (1 << 20))
+        {
+            return -EINVAL;
+        }
+        val[0] = num >> 12;
+        val[1] = num >> 4;
+        val[2] = num << 4;
+        val[2] |= (!!more) << 3;
+        val[2] |= szx;
+        return 3;
+    }
+    return -EINVAL;
 }
 
 /**

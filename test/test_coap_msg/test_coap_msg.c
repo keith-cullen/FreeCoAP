@@ -52,6 +52,9 @@ typedef struct
     unsigned num;                                                               /**< Option number */
     unsigned len;                                                               /**< Option length */
     char *val;                                                                  /**< Pointer to a buffer containing the option value */
+    unsigned block_num;                                                         /**< Block number for Block1 or Block2 option */
+    unsigned block_more;                                                        /**< More value for Block1 or Block2 option */
+    unsigned block_size;                                                        /**< Block size (in bytes) for Block1 or Block2 option */
 }
 test_coap_msg_op_t;
 
@@ -64,8 +67,8 @@ typedef struct
     const char *format_desc;                                                    /**< Test description for the format test */
     const char *copy_desc;                                                      /**< Test description for the copy test */
     const char *recognize_desc;                                                 /**< Test description for the recognize test */
-    const char *check_critical;                                                 /**< Test description for the check critical options test */
-    const char *check_unsafe;                                                   /**< Test description for the check unsafe options test */
+    const char *check_critical_desc;                                            /**< Test description for the check critical options test */
+    const char *check_unsafe_desc;                                              /**< Test description for the check unsafe options test */
     ssize_t parse_ret;                                                          /**< Expected return value for the parse function */
     int set_type_ret;                                                           /**< Expected return value for the set type function */
     int set_code_ret;                                                           /**< Expected return value for the set code function */
@@ -120,13 +123,19 @@ test_coap_msg_op_t test1_ops[TEST1_NUM_OPS] =
     {
         .num = 0,
         .len = TEST1_OP1_LEN,
-        .val = test1_op1_val
+        .val = test1_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 1,
         .len = TEST1_OP2_LEN,
-        .val = test1_op2_val
+        .val = test1_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test1_payload[TEST1_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -137,8 +146,8 @@ test_coap_msg_data_t test1_data =
     .format_desc = "test 27: format CoAP message with token, with options, with payload",
     .copy_desc = "test 51: copy CoAP message with token, with options, with payload",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -189,13 +198,19 @@ test_coap_msg_op_t test2_ops[TEST2_NUM_OPS] =
     {
         .num = 0,
         .len = TEST2_OP1_LEN,
-        .val = test2_op1_val
+        .val = test2_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 1,
         .len = TEST2_OP2_LEN,
-        .val = test2_op2_val
+        .val = test2_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test2_payload[TEST2_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -206,8 +221,8 @@ test_coap_msg_data_t test2_data =
     .format_desc = "test 28: format CoAP message with no token, with options, with payload",
     .copy_desc = "test 52: copy CoAP message with no token, with options, with payload",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -255,8 +270,8 @@ test_coap_msg_data_t test3_data =
     .format_desc = "test 29: format CoAP message with token, with no options, with payload",
     .copy_desc = "test 53: copy CoAP message with token, with no options, with payload",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -307,13 +322,19 @@ test_coap_msg_op_t test4_ops[TEST4_NUM_OPS] =
     {
         .num = 0,
         .len = TEST4_OP1_LEN,
-        .val = test4_op1_val
+        .val = test4_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 1,
         .len = TEST4_OP2_LEN,
-        .val = test4_op2_val
+        .val = test4_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -323,8 +344,8 @@ test_coap_msg_data_t test4_data =
     .format_desc = "test 30: format CoAP message with token, with options, with no payload",
     .copy_desc = "test 54: copy CoAP message with token, with options, with no payload",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -369,8 +390,8 @@ test_coap_msg_data_t test5_data =
     .format_desc = "test 31: format CoAP message with no token, with no options, with payload",
     .copy_desc = "test 55: copy CoAP message with no token, with no options, with payload",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -418,13 +439,19 @@ test_coap_msg_op_t test6_ops[TEST6_NUM_OPS] =
     {
         .num = 0,
         .len = TEST6_OP1_LEN,
-        .val = test6_op1_val
+        .val = test6_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 1,
         .len = TEST6_OP2_LEN,
-        .val = test6_op2_val
+        .val = test6_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -434,8 +461,8 @@ test_coap_msg_data_t test6_data =
     .format_desc = "test 32: format CoAP message with no token, with options, with no payload",
     .copy_desc = "test 56: copy CoAP message with no token, with options, with no payload",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -479,8 +506,8 @@ test_coap_msg_data_t test7_data =
     .format_desc = "test 33: format CoAP message with token, with no options, with no payload",
     .copy_desc = "test 57: copy CoAP message with token, with no options, with no payload",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -521,8 +548,8 @@ test_coap_msg_data_t test8_data =
     .format_desc = "test 34: format CoAP message with no token, with no options, with no payload",
     .copy_desc = "test 58: copy CoAP message with no token, with no options, with no payload",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -576,13 +603,19 @@ test_coap_msg_op_t test9_ops[TEST9_NUM_OPS] =
     {
         .num = 0,
         .len = TEST9_OP1_LEN,
-        .val = test9_op1_val
+        .val = test9_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 13 + 0x01,
         .len = TEST9_OP2_LEN,
-        .val = test9_op2_val
+        .val = test9_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test9_payload[TEST9_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -593,8 +626,8 @@ test_coap_msg_data_t test9_data =
     .format_desc = "test 35: format CoAP message with option delta extended by 1-byte",
     .copy_desc = "test 59: copy CoAP message with option delta extended by 1-byte",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -648,13 +681,19 @@ test_coap_msg_op_t test10_ops[TEST10_NUM_OPS] =
     {
         .num = 0,
         .len = TEST10_OP1_LEN,
-        .val = test10_op1_val
+        .val = test10_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 269 + 0x0102,
         .len = TEST10_OP2_LEN,
-        .val = test10_op2_val
+        .val = test10_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test10_payload[TEST10_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -665,8 +704,8 @@ test_coap_msg_data_t test10_data =
     .format_desc = "test 36: format CoAP message with option delta extended by 2-bytes",
     .copy_desc = "test 60: copy CoAP message with option delta extended by 2-bytes",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -720,13 +759,19 @@ test_coap_msg_op_t test11_ops[TEST11_NUM_OPS] =
     {
         .num = 0,
         .len = TEST11_OP1_LEN,
-        .val = test11_op1_val
+        .val = test11_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 1,
         .len = TEST11_OP2_LEN,
-        .val = test11_op2_val
+        .val = test11_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test11_payload[TEST11_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -737,8 +782,8 @@ test_coap_msg_data_t test11_data =
     .format_desc = "test 37: format CoAP message with option length extended by 1-byte",
     .copy_desc = "test 61: copy CoAP message with option length extended by 1-byte",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -792,13 +837,19 @@ test_coap_msg_op_t test12_ops[TEST12_NUM_OPS] =
     {
         .num = 0,
         .len = TEST12_OP1_LEN,
-        .val = test12_op1_val
+        .val = test12_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 1,
         .len = TEST12_OP2_LEN,
-        .val = test12_op2_val
+        .val = test12_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test12_payload[TEST12_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -809,8 +860,8 @@ test_coap_msg_data_t test12_data =
     .format_desc = "test 38: format CoAP message with option length extended by 2-bytes",
     .copy_desc = "test 62: copy CoAP message with option length extended by 2-bytes",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -864,13 +915,19 @@ test_coap_msg_op_t test13_ops[TEST13_NUM_OPS] =
     {
         .num = 0,
         .len = TEST13_OP1_LEN,
-        .val = test13_op1_val
+        .val = test13_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 13 + 0x02,
         .len = TEST13_OP2_LEN,
-        .val = test13_op2_val
+        .val = test13_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test13_payload[TEST13_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -881,8 +938,8 @@ test_coap_msg_data_t test13_data =
     .format_desc = "test 39: format CoAP message with option delta extended by 1-byte and option length extended by 1-byte",
     .copy_desc = "test 63: parse CoAP message with option delta extended by 1-byte and option length extended by 1-byte",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -936,13 +993,19 @@ test_coap_msg_op_t test14_ops[TEST14_NUM_OPS] =
     {
         .num = 0,
         .len = TEST14_OP1_LEN,
-        .val = test14_op1_val
+        .val = test14_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 269 + 0x0203,
         .len = TEST14_OP2_LEN,
-        .val = test14_op2_val
+        .val = test14_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test14_payload[TEST14_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -953,8 +1016,8 @@ test_coap_msg_data_t test14_data =
     .format_desc = "test 40: format CoAP message with option delta extended by 2-bytes and option length extended by 1-byte",
     .copy_desc = "test 64: copy CoAP message with option delta extended by 2-bytes and option length extended by 1-byte",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1008,13 +1071,19 @@ test_coap_msg_op_t test15_ops[TEST15_NUM_OPS] =
     {
         .num = 0,
         .len = TEST15_OP1_LEN,
-        .val = test15_op1_val
+        .val = test15_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 13 + 0x03,
         .len = TEST15_OP2_LEN,
-        .val = test15_op2_val
+        .val = test15_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test15_payload[TEST15_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -1025,8 +1094,8 @@ test_coap_msg_data_t test15_data =
     .format_desc = "test 41: format CoAP message with option delta extended by 1-byte and option length extended by 2-bytes",
     .copy_desc = "test 65: copy CoAP message with option delta extended by 1-byte and option length extended by 2-bytes",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1080,13 +1149,19 @@ test_coap_msg_op_t test16_ops[TEST16_NUM_OPS] =
     {
         .num = 0,
         .len = TEST16_OP1_LEN,
-        .val = test16_op1_val
+        .val = test16_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 269 + 0x0304,
         .len = TEST16_OP2_LEN,
-        .val = test16_op2_val
+        .val = test16_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test16_payload[TEST16_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -1097,8 +1172,8 @@ test_coap_msg_data_t test16_data =
     .format_desc = "test 42: format CoAP message with option delta extended by 2-bytes and option length extended by 2-bytes",
     .copy_desc = "test 66: copy CoAP message with option delta extended by 2-bytes and option length extended by 2-bytes",
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1139,8 +1214,8 @@ test_coap_msg_data_t test17_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EINVAL,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1181,8 +1256,8 @@ test_coap_msg_data_t test18_data =
     .format_desc = "test 43: format empty non-confirmable CoAP message",
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1223,8 +1298,8 @@ test_coap_msg_data_t test19_data =
     .format_desc = "test 44: format non-empty reset CoAP message",
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1268,8 +1343,8 @@ test_coap_msg_data_t test20_data =
     .format_desc = "test 45: format CoAP message with invalid token length (9)",
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1313,8 +1388,8 @@ test_coap_msg_data_t test21_data =
     .format_desc = "test 46: format CoAP message with invalid token length (15)",
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1358,8 +1433,8 @@ test_coap_msg_data_t test22_data =
     .format_desc = "test 47: format empty CoAP message with non-zero token length",
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1404,8 +1479,8 @@ test_coap_msg_data_t test23_data =
     .format_desc = "test 48: format empty CoAP message with payload",
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1448,8 +1523,8 @@ test_coap_msg_data_t test24_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1492,8 +1567,8 @@ test_coap_msg_data_t test25_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1535,8 +1610,8 @@ test_coap_msg_data_t test26_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1577,8 +1652,8 @@ test_coap_msg_data_t test27_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1619,8 +1694,8 @@ test_coap_msg_data_t test28_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1698,121 +1773,181 @@ test_coap_msg_op_t test29_ops[TEST29_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,
         .len = TEST29_OP1_LEN,
-        .val = test29_op1_val
+        .val = test29_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_URI_HOST,
         .len = TEST29_OP2_LEN,
-        .val = test29_op2_val
+        .val = test29_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_ETAG,
         .len = TEST29_OP3_LEN,
-        .val = test29_op3_val
+        .val = test29_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [3] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,
         .len = TEST29_OP4_LEN,
-        .val = test29_op4_val
+        .val = test29_op4_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [4] =
     {
         .num = COAP_MSG_URI_PORT,
         .len = TEST29_OP5_LEN,
-        .val = test29_op5_val
+        .val = test29_op5_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [5] =
     {
         .num = COAP_MSG_LOCATION_PATH,
         .len = TEST29_OP6_LEN,
-        .val = test29_op6_val
+        .val = test29_op6_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [6] =
     {
         .num = COAP_MSG_URI_PATH,
         .len = TEST29_OP7_LEN,
-        .val = test29_op7_val
+        .val = test29_op7_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [7] =
     {
         .num = COAP_MSG_CONTENT_FORMAT,
         .len = TEST29_OP8_LEN,
-        .val = test29_op8_val
+        .val = test29_op8_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [8] =
     {
         .num = COAP_MSG_MAX_AGE,
         .len = TEST29_OP9_LEN,
-        .val = test29_op9_val
+        .val = test29_op9_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [9] =
     {
         .num = COAP_MSG_URI_QUERY,
         .len = TEST29_OP10_LEN,
-        .val = test29_op10_val
+        .val = test29_op10_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [10] =
     {
         .num = COAP_MSG_ACCEPT,
         .len = TEST29_OP11_LEN,
-        .val = test29_op11_val
+        .val = test29_op11_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [11] =
     {
         .num = COAP_MSG_LOCATION_QUERY,
         .len = TEST29_OP12_LEN,
-        .val = test29_op12_val
+        .val = test29_op12_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [12] =
     {
         .num = COAP_MSG_PROXY_URI,
         .len = TEST29_OP13_LEN,
-        .val = test29_op13_val
+        .val = test29_op13_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [13] =
     {
         .num = COAP_MSG_PROXY_SCHEME,
         .len = TEST29_OP14_LEN,
-        .val = test29_op14_val
+        .val = test29_op14_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [14] =
     {
         .num = COAP_MSG_SIZE1,
         .len = TEST29_OP15_LEN,
-        .val = test29_op15_val
+        .val = test29_op15_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [15] =
     {
         .num = 0x61,  /* unrecognized option number */
         .len = TEST29_OP16_LEN,
-        .val = test29_op16_val
+        .val = test29_op16_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [16] =
     {
         .num = 0x62,  /* unrecognized option number */
         .len = TEST29_OP17_LEN,
-        .val = test29_op17_val
+        .val = test29_op17_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [17] =
     {
         .num = 0x63,  /* unrecognized option number */
         .len = TEST29_OP18_LEN,
-        .val = test29_op18_val
+        .val = test29_op18_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [18] =
     {
         .num = 0x64,  /* unrecognized option number */
         .len = TEST29_OP19_LEN,
-        .val = test29_op19_val
+        .val = test29_op19_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [19] =
     {
         .num = 0x65,  /* unrecognized option number */
         .len = TEST29_OP20_LEN,
-        .val = test29_op20_val
+        .val = test29_op20_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -1822,8 +1957,8 @@ test_coap_msg_data_t test29_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = "test 67: Recognize option numbers",
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1865,19 +2000,28 @@ test_coap_msg_op_t test30_ops[TEST30_NUM_OPS] =
     {
         .num = COAP_MSG_ETAG,  /* recognized elective */
         .len = TEST30_OP1_LEN,
-        .val = test30_op1_val
+        .val = test30_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_LOCATION_PATH,  /* recognized elective */
         .len = TEST30_OP2_LEN,
-        .val = test30_op2_val
+        .val = test30_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_CONTENT_FORMAT,  /* recognized elective */
         .len = TEST30_OP3_LEN,
-        .val = test30_op3_val
+        .val = test30_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -1887,8 +2031,8 @@ test_coap_msg_data_t test30_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 68: Check recognized elective options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 68: Check recognized elective options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1930,19 +2074,28 @@ test_coap_msg_op_t test31_ops[TEST31_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,  /* recognized critical */
         .len = TEST31_OP1_LEN,
-        .val = test31_op1_val
+        .val = test31_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_LOCATION_PATH,  /* recognized elective */
         .len = TEST31_OP2_LEN,
-        .val = test31_op2_val
+        .val = test31_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_CONTENT_FORMAT,  /* recognized elective */
         .len = TEST31_OP3_LEN,
-        .val = test31_op3_val
+        .val = test31_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -1952,8 +2105,8 @@ test_coap_msg_data_t test31_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 69: Check recognized elective and recognized critical options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 69: Check recognized elective and recognized critical options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1995,19 +2148,28 @@ test_coap_msg_op_t test32_ops[TEST32_NUM_OPS] =
     {
         .num = COAP_MSG_ETAG,  /* recognized elective */
         .len = TEST32_OP1_LEN,
-        .val = test32_op1_val
+        .val = test32_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_URI_HOST,  /* recognized critical */
         .len = TEST32_OP2_LEN,
-        .val = test32_op2_val
+        .val = test32_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_CONTENT_FORMAT,  /* recognized elective */
         .len = TEST32_OP3_LEN,
-        .val = test32_op3_val
+        .val = test32_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2017,8 +2179,8 @@ test_coap_msg_data_t test32_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 70: Check recognized elective and recognized critical options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 70: Check recognized elective and recognized critical options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2060,19 +2222,28 @@ test_coap_msg_op_t test33_ops[TEST33_NUM_OPS] =
     {
         .num = COAP_MSG_ETAG,  /* recognized elective */
         .len = TEST33_OP1_LEN,
-        .val = test33_op1_val
+        .val = test33_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_LOCATION_PATH,  /* recognized elective */
         .len = TEST33_OP2_LEN,
-        .val = test33_op2_val
+        .val = test33_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,  /* recognized critical */
         .len = TEST33_OP3_LEN,
-        .val = test33_op3_val
+        .val = test33_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2082,8 +2253,8 @@ test_coap_msg_data_t test33_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 71: Check recognized elective and recognized critical options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 71: Check recognized elective and recognized critical options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2125,19 +2296,28 @@ test_coap_msg_op_t test34_ops[TEST34_NUM_OPS] =
     {
         .num = 0x62,  /* unrecognized elective */
         .len = TEST34_OP1_LEN,
-        .val = test34_op1_val
+        .val = test34_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_LOCATION_PATH,  /* recognized elective */
         .len = TEST34_OP2_LEN,
-        .val = test34_op2_val
+        .val = test34_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_CONTENT_FORMAT,  /* recognized elective */
         .len = TEST34_OP3_LEN,
-        .val = test34_op3_val
+        .val = test34_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2147,8 +2327,8 @@ test_coap_msg_data_t test34_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 72: Check recognized and unrecognized elective options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 72: Check recognized and unrecognized elective options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2190,19 +2370,28 @@ test_coap_msg_op_t test35_ops[TEST35_NUM_OPS] =
     {
         .num = COAP_MSG_ETAG,  /* recognized elective */
         .len = TEST35_OP1_LEN,
-        .val = test35_op1_val
+        .val = test35_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 0x64,  /* unrecognized elective */
         .len = TEST35_OP2_LEN,
-        .val = test35_op2_val
+        .val = test35_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_CONTENT_FORMAT,  /* recognized elective */
         .len = TEST35_OP3_LEN,
-        .val = test35_op3_val
+        .val = test35_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2212,8 +2401,8 @@ test_coap_msg_data_t test35_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 73: Check recognized and unrecognized elective options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 73: Check recognized and unrecognized elective options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2255,19 +2444,28 @@ test_coap_msg_op_t test36_ops[TEST36_NUM_OPS] =
     {
         .num = COAP_MSG_ETAG,  /* recognized elective */
         .len = TEST36_OP1_LEN,
-        .val = test36_op1_val
+        .val = test36_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_LOCATION_PATH,  /* recognized elective */
         .len = TEST36_OP2_LEN,
-        .val = test36_op2_val
+        .val = test36_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = 0x66,  /* unrecognized elective */
         .len = TEST36_OP3_LEN,
-        .val = test36_op3_val
+        .val = test36_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2277,8 +2475,8 @@ test_coap_msg_data_t test36_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 74: Check recognized and unrecognized elective options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 74: Check recognized and unrecognized elective options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2320,19 +2518,28 @@ test_coap_msg_op_t test37_ops[TEST37_NUM_OPS] =
     {
         .num = 0x61,  /* unrecognized critical */
         .len = TEST37_OP1_LEN,
-        .val = test37_op1_val
+        .val = test37_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_LOCATION_PATH,  /* recognized elective */
         .len = TEST37_OP2_LEN,
-        .val = test37_op2_val
+        .val = test37_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_CONTENT_FORMAT,  /* recognized elective */
         .len = TEST37_OP3_LEN,
-        .val = test37_op3_val
+        .val = test37_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2342,8 +2549,8 @@ test_coap_msg_data_t test37_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 75: Check recognized elective and unrecognized critical options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 75: Check recognized elective and unrecognized critical options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2385,19 +2592,28 @@ test_coap_msg_op_t test38_ops[TEST38_NUM_OPS] =
     {
         .num = COAP_MSG_ETAG,  /* recognized elective */
         .len = TEST38_OP1_LEN,
-        .val = test38_op1_val
+        .val = test38_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 0x63,  /* unrecognized critical */
         .len = TEST38_OP2_LEN,
-        .val = test38_op2_val
+        .val = test38_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_CONTENT_FORMAT,  /* recognized elective */
         .len = TEST38_OP3_LEN,
-        .val = test38_op3_val
+        .val = test38_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2407,8 +2623,8 @@ test_coap_msg_data_t test38_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 76: Check recognized elective and unrecognized critical options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 76: Check recognized elective and unrecognized critical options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2450,19 +2666,28 @@ test_coap_msg_op_t test39_ops[TEST39_NUM_OPS] =
     {
         .num = COAP_MSG_ETAG,  /* recognized elective */
         .len = TEST39_OP1_LEN,
-        .val = test39_op1_val
+        .val = test39_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_LOCATION_PATH,  /* recognized elective */
         .len = TEST39_OP2_LEN,
-        .val = test39_op2_val
+        .val = test39_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = 0x65,  /* unrecognized critical */
         .len = TEST39_OP3_LEN,
-        .val = test39_op3_val
+        .val = test39_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2472,8 +2697,8 @@ test_coap_msg_data_t test39_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = "test 77: Check recognized elective and unrecognized critical options",
-    .check_unsafe = NULL,
+    .check_critical_desc = "test 77: Check recognized elective and unrecognized critical options",
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2515,19 +2740,28 @@ test_coap_msg_op_t test40_ops[TEST40_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,  /* recognized safe */
         .len = TEST40_OP1_LEN,
-        .val = test40_op1_val
+        .val = test40_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_ETAG,  /* recognized safe */
         .len = TEST40_OP2_LEN,
-        .val = test40_op2_val
+        .val = test40_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,  /* recognized safe */
         .len = TEST40_OP3_LEN,
-        .val = test40_op3_val
+        .val = test40_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2537,8 +2771,8 @@ test_coap_msg_data_t test40_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 78: Check recognized safe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 78: Check recognized safe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2580,19 +2814,28 @@ test_coap_msg_op_t test41_ops[TEST41_NUM_OPS] =
     {
         .num = COAP_MSG_URI_HOST,  /* recognized unsafe */
         .len = TEST41_OP1_LEN,
-        .val = test41_op1_val
+        .val = test41_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_ETAG,  /* recognized safe */
         .len = TEST41_OP2_LEN,
-        .val = test41_op2_val
+        .val = test41_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,  /* recognized safe */
         .len = TEST41_OP3_LEN,
-        .val = test41_op3_val
+        .val = test41_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2602,8 +2845,8 @@ test_coap_msg_data_t test41_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 79: Check recognized safe and recognized unsafe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 79: Check recognized safe and recognized unsafe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2645,19 +2888,28 @@ test_coap_msg_op_t test42_ops[TEST42_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,  /* recognized safe */
         .len = TEST42_OP1_LEN,
-        .val = test42_op1_val
+        .val = test42_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_URI_PORT,  /* recognized unsafe */
         .len = TEST42_OP2_LEN,
-        .val = test42_op2_val
+        .val = test42_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,  /* recognized safe */
         .len = TEST42_OP3_LEN,
-        .val = test42_op3_val
+        .val = test42_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2667,8 +2919,8 @@ test_coap_msg_data_t test42_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 80: Check recognized safe and recognized unsafe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 80: Check recognized safe and recognized unsafe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2710,19 +2962,28 @@ test_coap_msg_op_t test43_ops[TEST43_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,  /* recognized safe */
         .len = TEST43_OP1_LEN,
-        .val = test43_op1_val
+        .val = test43_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_ETAG,  /* recognized safe */
         .len = TEST43_OP2_LEN,
-        .val = test43_op2_val
+        .val = test43_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_URI_PATH,  /* recognized unsafe */
         .len = TEST43_OP3_LEN,
-        .val = test43_op3_val
+        .val = test43_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2732,8 +2993,8 @@ test_coap_msg_data_t test43_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 81: Check recognized safe and recognized unsafe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 81: Check recognized safe and recognized unsafe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2775,19 +3036,28 @@ test_coap_msg_op_t test44_ops[TEST44_NUM_OPS] =
     {
         .num = 0x61,  /* unrecognized safe */
         .len = TEST44_OP1_LEN,
-        .val = test44_op1_val
+        .val = test44_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_ETAG,  /* recognized safe */
         .len = TEST44_OP2_LEN,
-        .val = test44_op2_val
+        .val = test44_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,  /* recognized safe */
         .len = TEST44_OP3_LEN,
-        .val = test44_op3_val
+        .val = test44_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2797,8 +3067,8 @@ test_coap_msg_data_t test44_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 82: Check recognized and unrecognized safe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 82: Check recognized and unrecognized safe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2840,19 +3110,28 @@ test_coap_msg_op_t test45_ops[TEST45_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,  /* recognized safe */
         .len = TEST45_OP1_LEN,
-        .val = test45_op1_val
+        .val = test45_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 0x64,  /* unrecognized safe */
         .len = TEST45_OP2_LEN,
-        .val = test45_op2_val
+        .val = test45_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,  /* recognized safe */
         .len = TEST45_OP3_LEN,
-        .val = test45_op3_val
+        .val = test45_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2862,8 +3141,8 @@ test_coap_msg_data_t test45_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 83: Check recognized and unrecognized safe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 83: Check recognized and unrecognized safe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2905,19 +3184,28 @@ test_coap_msg_op_t test46_ops[TEST46_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,  /* recognized safe */
         .len = TEST46_OP1_LEN,
-        .val = test46_op1_val
+        .val = test46_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_ETAG,  /* recognized safe */
         .len = TEST46_OP2_LEN,
-        .val = test46_op2_val
+        .val = test46_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = 0x65,  /* unrecognized safe */
         .len = TEST46_OP3_LEN,
-        .val = test46_op3_val
+        .val = test46_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2927,8 +3215,8 @@ test_coap_msg_data_t test46_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 84: Check recognized and unrecognized safe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 84: Check recognized and unrecognized safe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2970,19 +3258,28 @@ test_coap_msg_op_t test47_ops[TEST47_NUM_OPS] =
     {
         .num = 0x62,  /* unrecognized unsafe */
         .len = TEST47_OP1_LEN,
-        .val = test47_op1_val
+        .val = test47_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_ETAG,  /* recognized safe */
         .len = TEST47_OP2_LEN,
-        .val = test47_op2_val
+        .val = test47_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,  /* recognized safe */
         .len = TEST47_OP3_LEN,
-        .val = test47_op3_val
+        .val = test47_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -2992,8 +3289,8 @@ test_coap_msg_data_t test47_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 85: Check recognized safe and unrecognized unsafe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 85: Check recognized safe and unrecognized unsafe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3035,19 +3332,28 @@ test_coap_msg_op_t test48_ops[TEST48_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,  /* recognized safe */
         .len = TEST48_OP1_LEN,
-        .val = test48_op1_val
+        .val = test48_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = 0x63,  /* unrecognized unsafe */
         .len = TEST48_OP2_LEN,
-        .val = test48_op2_val
+        .val = test48_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = COAP_MSG_IF_NONE_MATCH,  /* recognized safe */
         .len = TEST48_OP3_LEN,
-        .val = test48_op3_val
+        .val = test48_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -3057,8 +3363,8 @@ test_coap_msg_data_t test48_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 86: Check recognized safe and unrecognized unsafe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 86: Check recognized safe and unrecognized unsafe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3100,19 +3406,28 @@ test_coap_msg_op_t test49_ops[TEST49_NUM_OPS] =
     {
         .num = COAP_MSG_IF_MATCH,  /* recognized safe */
         .len = TEST49_OP1_LEN,
-        .val = test49_op1_val
+        .val = test49_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         .num = COAP_MSG_ETAG,  /* recognized safe */
         .len = TEST49_OP2_LEN,
-        .val = test49_op2_val
+        .val = test49_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         .num = 0x66,  /* unrecognized unsafe */
         .len = TEST49_OP3_LEN,
-        .val = test49_op3_val
+        .val = test49_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 
@@ -3122,8 +3437,8 @@ test_coap_msg_data_t test49_data =
     .format_desc = NULL,
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = "test 87: Check recognized safe and unrecognized unsafe options",
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = "test 87: Check recognized safe and unrecognized unsafe options",
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3187,35 +3502,50 @@ test_coap_msg_op_t test50_ops[TEST50_NUM_OPS] =
         /* option 4 */
         .num = 2,
         .len = TEST50_OP4_LEN,
-        .val = test50_op4_val
+        .val = test50_op4_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [1] =
     {
         /* option 1 */
         .num = 0,
         .len = TEST50_OP1_LEN,
-        .val = test50_op1_val
+        .val = test50_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [2] =
     {
         /* option 2 */
         .num = 1,
         .len = TEST50_OP2_LEN,
-        .val = test50_op2_val
+        .val = test50_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [3] =
     {
         /* option 5 */
         .num = 3,
         .len = TEST50_OP5_LEN,
-        .val = test50_op5_val
+        .val = test50_op5_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     },
     [4] =
     {
         /* option 3 */
         .num = 1,
         .len = TEST50_OP3_LEN,
-        .val = test50_op3_val
+        .val = test50_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
     }
 };
 char test50_payload[TEST50_PAYLOAD_LEN] = {0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf};
@@ -3226,8 +3556,8 @@ test_coap_msg_data_t test50_data =
     .format_desc = "test 88: format CoAP message with token, with options presented in the wrong order, with payload",
     .copy_desc = NULL,
     .recognize_desc = NULL,
-    .check_critical = NULL,
-    .check_unsafe = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3253,6 +3583,315 @@ test_coap_msg_data_t test50_data =
     .num_ops = TEST50_NUM_OPS,
     .payload = test50_payload,
     .payload_len = TEST50_PAYLOAD_LEN
+};
+
+#define TEST51_OP1_LEN  1
+#define TEST51_OP2_LEN  1
+#define TEST51_OP3_LEN  2
+#define TEST51_OP4_LEN  2
+#define TEST51_OP5_LEN  3
+#define TEST51_OP6_LEN  3
+#define TEST51_NUM_OPS  6
+
+char test51_op1_val[TEST51_OP1_LEN] = {0x00};
+char test51_op2_val[TEST51_OP2_LEN] = {0xf9};
+char test51_op3_val[TEST51_OP3_LEN] = {0x12, 0x32};
+char test51_op4_val[TEST51_OP4_LEN] = {0xed, 0xcb};
+char test51_op5_val[TEST51_OP5_LEN] = {0x45, 0x67, 0x84};
+char test51_op6_val[TEST51_OP6_LEN] = {0xba, 0x98, 0x7d};
+test_coap_msg_op_t test51_ops[TEST51_NUM_OPS] =
+{
+    [0] =
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST51_OP1_LEN,
+        .val = test51_op1_val,
+        .block_num = 0x0,
+        .block_more = 0,
+        .block_size = 16
+    },
+    [1] =
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST51_OP2_LEN,
+        .val = test51_op2_val,
+        .block_num = 0xf,
+        .block_more = 1,
+        .block_size = 32
+    },
+    [2] =
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST51_OP3_LEN,
+        .val = test51_op3_val,
+        .block_num = 0x123,
+        .block_more = 0,
+        .block_size = 64
+    },
+    [3] =
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST51_OP4_LEN,
+        .val = test51_op4_val,
+        .block_num = 0xedc,
+        .block_more = 1,
+        .block_size = 128
+    },
+    [4] =
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST51_OP5_LEN,
+        .val = test51_op5_val,
+        .block_num = 0x45678,
+        .block_more = 0,
+        .block_size = 256
+    },
+    [5] =
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST51_OP6_LEN,
+        .val = test51_op6_val,
+        .block_num = 0xba987,
+        .block_more = 1,
+        .block_size = 512
+    }
+};
+
+test_coap_msg_data_t test51_data =
+{
+    .parse_desc = "test 89: parse CoAP Block1 and Block2 option values",
+    .format_desc = "test 91: format CoAP Block1 and Block2 option values",
+    .copy_desc = NULL,
+    .recognize_desc = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
+    .parse_ret = 0,
+    .set_type_ret = 0,
+    .set_code_ret = 0,
+    .set_msg_id_ret = 0,
+    .set_token_ret = 0,
+    .add_op_ret = 0,
+    .set_payload_ret = 0,
+    .format_ret = 0,
+    .copy_ret = 0,
+    .recognize_ret = NULL,
+    .check_critical_ops_ret = 0,
+    .check_unsafe_ops_ret = 0,
+    .buf = NULL,
+    .buf_len = 0,
+    .ver = 0,
+    .type = 0,
+    .code_class = 0,
+    .code_detail = 0,
+    .msg_id = 0,
+    .token = NULL,
+    .token_len = 0,
+    .ops = test51_ops,
+    .num_ops = TEST51_NUM_OPS,
+    .payload = NULL,
+    .payload_len = 0
+};
+
+#define TEST52_OP1_LEN  1
+#define TEST52_OP2_LEN  1
+#define TEST52_OP3_LEN  2
+#define TEST52_OP4_LEN  2
+#define TEST52_OP5_LEN  3
+#define TEST52_OP6_LEN  3
+#define TEST52_NUM_OPS  6
+
+char test52_op1_val[TEST52_OP1_LEN] = {0x07};
+char test52_op2_val[TEST52_OP2_LEN] = {0xff};
+char test52_op3_val[TEST52_OP3_LEN] = {0x12, 0x37};
+char test52_op4_val[TEST52_OP4_LEN] = {0xed, 0xcf};
+char test52_op5_val[TEST52_OP5_LEN] = {0x45, 0x67, 0x87};
+char test52_op6_val[TEST52_OP6_LEN] = {0xba, 0x98, 0x7f};
+test_coap_msg_op_t test52_ops[TEST52_NUM_OPS] =
+{
+    [0] =
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST52_OP1_LEN,
+        .val = test52_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    },
+    [1] =
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST52_OP2_LEN,
+        .val = test52_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    },
+    [2] =
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST52_OP3_LEN,
+        .val = test52_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    },
+    [3] =
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST52_OP4_LEN,
+        .val = test52_op4_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    },
+    [4] =
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST52_OP5_LEN,
+        .val = test52_op5_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    },
+    [5] =
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST52_OP6_LEN,
+        .val = test52_op6_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    }
+};
+
+test_coap_msg_data_t test52_data =
+{
+    .parse_desc = "test 90: parse invalid CoAP Block1 and Block2 option values",
+    .format_desc = NULL,
+    .copy_desc = NULL,
+    .recognize_desc = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
+    .parse_ret = -EINVAL,
+    .set_type_ret = 0,
+    .set_code_ret = 0,
+    .set_msg_id_ret = 0,
+    .set_token_ret = 0,
+    .add_op_ret = 0,
+    .set_payload_ret = 0,
+    .format_ret = 0,
+    .copy_ret = 0,
+    .recognize_ret = NULL,
+    .check_critical_ops_ret = 0,
+    .check_unsafe_ops_ret = 0,
+    .buf = NULL,
+    .buf_len = 0,
+    .ver = 0,
+    .type = 0,
+    .code_class = 0,
+    .code_detail = 0,
+    .msg_id = 0,
+    .token = NULL,
+    .token_len = 0,
+    .ops = test52_ops,
+    .num_ops = TEST52_NUM_OPS,
+    .payload = NULL,
+    .payload_len = 0
+};
+
+#define TEST53_NUM_OPS  6
+
+test_coap_msg_op_t test53_ops[TEST53_NUM_OPS] =
+{
+    [0] =
+    {
+        .num = 0,
+        .len = 0,
+        .val = NULL,
+        .block_num = (1 << 4),
+        .block_more = 0,
+        .block_size = 0
+    },
+    [1] =
+    {
+        .num = 0,
+        .len = 0,
+        .val = NULL,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 1
+    },
+    [2] =
+    {
+        .num = 0,
+        .len = 0,
+        .val = NULL,
+        .block_num = (1 << 12),
+        .block_more = 0,
+        .block_size = 0
+    },
+    [3] =
+    {
+        .num = 0,
+        .len = 0,
+        .val = NULL,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 257
+    },
+    [4] =
+    {
+        .num = 0,
+        .len = 0,
+        .val = NULL,
+        .block_num = (1 << 20),
+        .block_more = 0,
+        .block_size = 0
+    },
+    [5] =
+    {
+        .num = 0,
+        .len = 0,
+        .val = NULL,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = (1 << 11)
+    }
+};
+
+test_coap_msg_data_t test53_data =
+{
+    .parse_desc = NULL,
+    .format_desc = "test 92: format invalid CoAP Block1 and Block2 option values",
+    .copy_desc = NULL,
+    .recognize_desc = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
+    .parse_ret = 0,
+    .set_type_ret = 0,
+    .set_code_ret = 0,
+    .set_msg_id_ret = 0,
+    .set_token_ret = 0,
+    .add_op_ret = 0,
+    .set_payload_ret = 0,
+    .format_ret = -EINVAL,
+    .copy_ret = 0,
+    .recognize_ret = NULL,
+    .check_critical_ops_ret = 0,
+    .check_unsafe_ops_ret = 0,
+    .buf = NULL,
+    .buf_len = 0,
+    .ver = 0,
+    .type = 0,
+    .code_class = 0,
+    .code_detail = 0,
+    .msg_id = 0,
+    .token = NULL,
+    .token_len = 0,
+    .ops = test53_ops,
+    .num_ops = TEST53_NUM_OPS,
+    .payload = NULL,
+    .payload_len = 0
 };
 
 /**
@@ -3751,7 +4390,7 @@ static test_result_t test_check_critical_ops_func(test_data_t data)
     unsigned i = 0;
     int ret = 0;
 
-    printf("%s\n", test_data->check_critical);
+    printf("%s\n", test_data->check_critical_desc);
 
     coap_msg_create(&msg);
     for (i = 0; i < test_data->num_ops; i++)
@@ -3788,7 +4427,7 @@ static test_result_t test_check_unsafe_ops_func(test_data_t data)
     unsigned i = 0;
     int ret = 0;
 
-    printf("%s\n", test_data->check_unsafe);
+    printf("%s\n", test_data->check_unsafe_desc);
 
     coap_msg_create(&msg);
     for (i = 0; i < test_data->num_ops; i++)
@@ -3806,6 +4445,89 @@ static test_result_t test_check_unsafe_ops_func(test_data_t data)
         result = FAIL;
     }
     coap_msg_destroy(&msg);
+    return result;
+}
+
+/**
+ *  @brief Parse Block1 and Block2 option values
+ *
+ *  @param[in] data Pointer to a message test structure
+ *
+ *  @returns Test result
+ */
+static test_result_t test_parse_block_op_func(test_data_t data)
+{
+    test_coap_msg_data_t *test_data = (test_coap_msg_data_t *)data;
+    test_result_t result = PASS;
+    unsigned size = 0;
+    unsigned more = 0;
+    unsigned num = 0;
+    unsigned i = 0;
+    int ret = 0;
+
+    printf("%s\n", test_data->parse_desc);
+
+    for (i = 0; i < test_data->num_ops; i++)
+    {
+        ret = coap_msg_op_parse_block_val(&num, &more, &size, test_data->ops[i].val, test_data->ops[i].len);
+        if (ret != test_data->parse_ret)
+        {
+            result = FAIL;
+        }
+        if (test_data->parse_ret == 0)
+        {
+            if ((num != test_data->ops[i].block_num)
+             || (more != test_data->ops[i].block_more)
+             || (size != test_data->ops[i].block_size))
+            {
+                result = FAIL;
+            }
+        }
+    }
+    return result;
+}
+
+/**
+ *  @brief Format Block1 and Block2 option values
+ *
+ *  @param[in] data Pointer to a message test structure
+ *
+ *  @returns Test result
+ */
+static test_result_t test_format_block_op_func(test_data_t data)
+{
+    test_coap_msg_data_t *test_data = (test_coap_msg_data_t *)data;
+    test_result_t result = PASS;
+    unsigned i = 0;
+    char val[COAP_MSG_OP_MAX_BLOCK_VAL_LEN] = {0};
+    int ret = 0;
+
+    printf("%s\n", test_data->format_desc);
+
+    for (i = 0; i < test_data->num_ops; i++)
+    {
+        ret = coap_msg_op_format_block_val(val, test_data->ops[i].len,
+                                           test_data->ops[i].block_num,
+                                           test_data->ops[i].block_more,
+                                           test_data->ops[i].block_size);
+        if (test_data->format_ret != 0)
+        {
+            /* check error cases */
+            if (ret != test_data->format_ret)
+            {
+                result = FAIL;
+            }
+        }
+        else
+        {
+            /* check valid cases */
+            if ((ret != test_data->ops[i].len)
+             || (memcmp(val, test_data->ops[i].val, test_data->ops[i].len) != 0))
+            {
+                result = FAIL;
+            }
+        }
+    }
     return result;
 }
 
@@ -3905,7 +4627,12 @@ int main(void)
                       {test_check_unsafe_ops_func,   &test47_data},
                       {test_check_unsafe_ops_func,   &test48_data},
                       {test_check_unsafe_ops_func,   &test49_data},
-                      {test_format_func,             &test50_data}};
+                      {test_format_func,             &test50_data},
+                      {test_parse_block_op_func,     &test51_data},
+                      {test_parse_block_op_func,     &test52_data},
+                      {test_format_block_op_func,    &test51_data},
+                      {test_format_block_op_func,    &test53_data}
+    };
     unsigned num_tests = DIM(tests);
     unsigned num_pass = 0;
 
