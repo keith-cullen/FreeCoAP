@@ -139,13 +139,13 @@ void coap_client_destroy(coap_client_t *client);
 /**
  *  @brief Send a request to the server and receive the response
  *
- *  @param[in,out] client Pointer to a client structure
- *  @param[in] req Pointer to the request message
- *  @param[out] resp Pointer to the response message
- *
  *  This function sets the message ID and token fields of
  *  the request message overriding any values set by the
  *  calling function.
+ *
+ *  @param[in,out] client Pointer to a client structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
  *
  *  @returns Operation status
  *  @retval 0 Success
