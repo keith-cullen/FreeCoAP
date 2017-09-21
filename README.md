@@ -235,6 +235,30 @@ The client, server and proxy applications will pick up the new keys automaticall
 Validation History
 ==================
 
+0.4-tinydtls
+------------
+
+HP Pavilion
+-----------
+Ubuntu 15.04
+
+Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.3.8
+
+
+v0.4
+----
+
+HP Pavilion
+-----------
+Ubuntu 15.04
+
+Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.3.8
+
+
 0.3-tinydtls
 ------------
 
