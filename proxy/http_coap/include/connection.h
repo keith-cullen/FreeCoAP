@@ -57,7 +57,7 @@ typedef struct
 }
 connection_t;
 
-int connection_init(const char *priv_key_file_name, const char *pub_key_file_name);
+int connection_init(const char *priv_key_file_name, const char *pub_key_file_name, const char *access_file_name);
 void *connection_thread_func(void *data);
 connection_t *connection_new(tls_sock_t *sock, unsigned listener_index, unsigned con_index, param_t *param);
 void connection_delete(connection_t *con);

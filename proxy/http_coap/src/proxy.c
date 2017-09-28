@@ -194,7 +194,8 @@ int main(int argc, char **argv)
     }
 
     ret = connection_init(param_get_coap_client_priv_key_file_name(&param),
-                          param_get_coap_client_pub_key_file_name(&param));
+                          param_get_coap_client_pub_key_file_name(&param),
+                          param_get_coap_client_access_file_name(&param));
     if (ret < 0)
     {
         coap_log_error("Unable to initialise connection module");

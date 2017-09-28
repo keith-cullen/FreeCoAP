@@ -335,6 +335,31 @@ static int coap_server_trans_dtls_get_ecdsa_key(dtls_context_t *ctx, const sessi
 }
 
 /**
+ *  @brief Convert one component (x or y) of an ECDSA public key to a string representation
+ *
+ *  @param[out] buf Pointer to a buffer to hold the string
+ *  @param[in] buf_len Length of the buffer to hold the string
+ *  @param[in] data Pointer to a buffer that holds the key component
+ *  @param[in] data_len Length of the buffer that holds the key component
+ */
+static void coap_server_trans_dtls_ecdsa_comp_to_str(char *buf, size_t buf_len, const unsigned char *data, size_t data_len)
+{
+    unsigned i = 0;
+    size_t cur_len = 0;
+    char *cur = NULL;
+
+    cur = buf;
+    cur_len = buf_len;
+    for (i = 0; i < data_len - 1; i++)
+    {
+        snprintf(cur, cur_len, "0x%02x, ", data[i]);
+        cur += 6;
+        cur_len = (cur_len < 6) ? 0 : cur_len - 6;
+    }
+    snprintf(cur, cur_len, "0x%02x", data[i]);
+}
+
+/**
  *  @brief Verify the ECDSA public key received from the client
  *
  *  @param[in] ctx Pointer to a DTLS context structure
@@ -343,14 +368,45 @@ static int coap_server_trans_dtls_get_ecdsa_key(dtls_context_t *ctx, const sessi
  *  @param[in] ecdsa_pub_key_y Buffer containing the y component of the ECDSA public key
  *  @param[in] key_size Size of the ecdsa_pub_key_x and ecdsa_pub_key_y buffers
  *
- *  @returns 0
+ *  @returns Operation success
+ *  @retval 0 Success
+ *  @retval <0 Error
  */
 static int coap_server_trans_dtls_verify_ecdsa_key(dtls_context_t *ctx, const session_t *sess,
                                                    const unsigned char *ecdsa_pub_key_x,
                                                    const unsigned char *ecdsa_pub_key_y,
                                                    size_t key_size)
 {
-    return 0;
+    const unsigned char *ecdsa_access_x = NULL;
+    const unsigned char *ecdsa_access_y = NULL;
+    coap_server_trans_t *trans = NULL;
+    coap_server_t *server = NULL;
+    unsigned i = 0;
+    char buf[256] = {0};
+
+    trans = (coap_server_trans_t *)dtls_get_app_data(ctx);
+    server = trans->server;
+
+    coap_server_trans_dtls_ecdsa_comp_to_str(buf, sizeof(buf), ecdsa_pub_key_x, key_size);
+    coap_log_debug("client ecdsa_pub_key_x[%zd]: [%s]",  key_size, buf);
+    coap_server_trans_dtls_ecdsa_comp_to_str(buf, sizeof(buf), ecdsa_pub_key_y, key_size);
+    coap_log_debug("client ecdsa_pub_key_y[%zd]: [%s]",  key_size, buf);
+
+    if (key_size != server->ecdsa_size)
+    {
+        return -EPERM;
+    }
+    for (i = 0; i < server->ecdsa_access_num; i++)
+    {
+        ecdsa_access_x = server->ecdsa_access_x + (i * server->ecdsa_size);
+        ecdsa_access_y = server->ecdsa_access_y + (i * server->ecdsa_size);
+        if ((memcmp((void *)ecdsa_pub_key_x, (void *)ecdsa_access_x, server->ecdsa_size) == 0)
+         && (memcmp((void *)ecdsa_pub_key_y, (void *)ecdsa_access_y, server->ecdsa_size) == 0))
+        {
+            return 0;
+        }
+    }
+    return -EPERM;
 }
 
 /**
@@ -1239,11 +1295,19 @@ static int coap_server_trans_create(coap_server_trans_t *trans, coap_server_t *s
  *  @param[in] ecdsa_priv_key Buffer containing the ECDSA private key
  *  @param[in] ecdsa_pub_key_x Buffer containing the x component of the ECDSA public key
  *  @param[in] ecdsa_pub_key_y Buffer containing the y component of the ECDSA public key
+ *  @param[in] ecdsa_access_x Buffer containing the x components of the ECDSA access control list
+ *  @param[in] ecdsa_access_y Buffer containing the y components of the ECDSA access control list
+ *  @param[in] ecdsa_access_num Number of entries in the ECDSA access control list
+ *  @param[in] ecdsa_size Size of an ECDSA component
  */
 static void coap_server_dtls_init(coap_server_t *server,
                                   const unsigned char *ecdsa_priv_key,
                                   const unsigned char *ecdsa_pub_key_x,
-                                  const unsigned char *ecdsa_pub_key_y)
+                                  const unsigned char *ecdsa_pub_key_y,
+                                  const unsigned char *ecdsa_access_x,
+                                  const unsigned char *ecdsa_access_y,
+                                  unsigned ecdsa_access_num,
+                                  unsigned ecdsa_size)
 {
     static int dtls_lib_init_done = 0;
 
@@ -1257,6 +1321,10 @@ static void coap_server_dtls_init(coap_server_t *server,
     server->ecdsa_key.priv_key = ecdsa_priv_key;
     server->ecdsa_key.pub_key_x = ecdsa_pub_key_x;
     server->ecdsa_key.pub_key_y = ecdsa_pub_key_y;
+    server->ecdsa_access_x = ecdsa_access_x;
+    server->ecdsa_access_y = ecdsa_access_y;
+    server->ecdsa_access_num = ecdsa_access_num;
+    server->ecdsa_size = ecdsa_size;
 }
 
 #endif  /* COAP_DTLS_EN */
@@ -1272,7 +1340,11 @@ int coap_server_create(coap_server_t *server,
                        const char *port,
                        const unsigned char *ecdsa_priv_key,
                        const unsigned char *ecdsa_pub_key_x,
-                       const unsigned char *ecdsa_pub_key_y)
+                       const unsigned char *ecdsa_pub_key_y,
+                       const unsigned char *ecdsa_access_x,
+                       const unsigned char *ecdsa_access_y,
+                       unsigned ecdsa_access_num,
+                       unsigned ecdsa_size)
 #else
 int coap_server_create(coap_server_t *server,
                        int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
@@ -1359,7 +1431,14 @@ int coap_server_create(coap_server_t *server,
     coap_server_path_list_create(&server->sep_list);
     server->handle = handle;
 #ifdef COAP_DTLS_EN
-    coap_server_dtls_init(server, ecdsa_priv_key, ecdsa_pub_key_x, ecdsa_pub_key_y);
+    coap_server_dtls_init(server,
+                          ecdsa_priv_key,
+                          ecdsa_pub_key_x,
+                          ecdsa_pub_key_y,
+                          ecdsa_access_x,
+                          ecdsa_access_y,
+                          ecdsa_access_num,
+                          ecdsa_size);
 #endif
     coap_log_notice("Listening on address %s and port %s", host, port);
     return 0;

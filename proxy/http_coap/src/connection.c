@@ -116,7 +116,7 @@ static int stats_init(void)
 
 #endif  /* CONNECTION_STATS */
 
-int connection_init(const char *priv_key_file_name, const char *pub_key_file_name)
+int connection_init(const char *priv_key_file_name, const char *pub_key_file_name, const char *access_file_name)
 {
     int ret = 0;
 
@@ -125,7 +125,7 @@ int connection_init(const char *priv_key_file_name, const char *pub_key_file_nam
     {
         return ret;
     }
-    return raw_keys_load(priv_key_file_name, pub_key_file_name);
+    return raw_keys_load(priv_key_file_name, pub_key_file_name, access_file_name);
 }
 
 /*  return: { 0, success
@@ -144,7 +144,11 @@ static int connection_coap_client_create(connection_t *con, uri_t *uri)
                              uri_get_port(uri),
                              raw_keys_get_ecdsa_priv_key(),
                              raw_keys_get_ecdsa_pub_key_x(),
-                             raw_keys_get_ecdsa_pub_key_y());
+                             raw_keys_get_ecdsa_pub_key_y(),
+                             raw_keys_get_ecdsa_access_x(),
+                             raw_keys_get_ecdsa_access_y(),
+                             raw_keys_get_ecdsa_access_num(),
+                             RAW_KEYS_ECDSA_KEY_LEN);
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to connect to CoAP server host %s and port %s: %s",

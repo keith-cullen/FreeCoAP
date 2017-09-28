@@ -34,9 +34,14 @@
 #ifndef RAW_KEYS_H
 #define RAW_KEYS_H
 
+#define RAW_KEYS_ECDSA_KEY_LEN  32  /* bytes */
+
 unsigned char *raw_keys_get_ecdsa_priv_key(void);
 unsigned char *raw_keys_get_ecdsa_pub_key_x(void);
 unsigned char *raw_keys_get_ecdsa_pub_key_y(void);
-int raw_keys_load(const char *priv_key_file_name, const char *pub_key_file_name);
+unsigned char *raw_keys_get_ecdsa_access_x(void);
+unsigned char *raw_keys_get_ecdsa_access_y(void);
+unsigned raw_keys_get_ecdsa_access_num(void);
+int raw_keys_load(const char *priv_key_file_name, const char *pub_key_file_name, const char *access_file_name);
 
 #endif
