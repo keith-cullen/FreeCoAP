@@ -132,6 +132,10 @@ typedef struct coap_server
     int (* handle)(struct coap_server *, coap_msg_t *, coap_msg_t *);           /**< Call-back function to handle requests and generate responses */
 #ifdef COAP_DTLS_EN
     dtls_ecdsa_key_t ecdsa_key;                                                 /**< ECDSA keys */
+    const unsigned char *ecdsa_access_x;                                        /**< Buffer containing the x components of the ECDSA access control list */
+    const unsigned char *ecdsa_access_y;                                        /**< Buffer containing the y components of the ECDSA access control list */
+    unsigned ecdsa_access_num;                                                  /**< Number of entries in the ECDSA access control list */
+    unsigned ecdsa_size;                                                        /**< Size of an ECDSA component */
 #endif
 }
 coap_server_t;
@@ -148,6 +152,10 @@ coap_server_t;
  *  @param[in] ecdsa_priv_key Buffer containing the ECDSA private key
  *  @param[in] ecdsa_pub_key_x Buffer containing the x component of the ECDSA public key
  *  @param[in] ecdsa_pub_key_y Buffer containing the y component of the ECDSA public key
+ *  @param[in] ecdsa_access_x Buffer containing the x components of the ECDSA access control list
+ *  @param[in] ecdsa_access_y Buffer containing the y components of the ECDSA access control list
+ *  @param[in] ecdsa_access_num Number of entries in the ECDSA access control list
+ *  @param[in] ecdsa_size Size of an ECDSA component
  *
  *  @returns Operation status
  *  @retval 0 Success
@@ -159,7 +167,11 @@ int coap_server_create(coap_server_t *server,
                        const char *port,
                        const unsigned char *ecdsa_priv_key,
                        const unsigned char *ecdsa_pub_key_x,
-                       const unsigned char *ecdsa_pub_key_y);
+                       const unsigned char *ecdsa_pub_key_y,
+                       const unsigned char *ecdsa_access_x,
+                       const unsigned char *ecdsa_access_y,
+                       unsigned ecdsa_access_num,
+                       unsigned ecdsa_size);
 
 #else  /* !COAP_DTLS_EN */
 

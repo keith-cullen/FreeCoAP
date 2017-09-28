@@ -43,6 +43,7 @@
 #define PARAM_DEF_HTTP_SERVER_KEY_FILE_NAME              "http_server_privkey.pem" /**< TLS key file name */
 #define PARAM_DEF_COAP_CLIENT_PUB_KEY_FILE_NAME          "client_pub_key.txt"      /**< DTLS public key file name */
 #define PARAM_DEF_COAP_CLIENT_PRIV_KEY_FILE_NAME         "client_priv_key.txt"     /**< DTLS private key file name */
+#define PARAM_DEF_COAP_CLIENT_ACCESS_FILE_NAME           "client_access.txt"       /**< DTLS access control list file name */
 
 #define param_get_port(param)                            ((param)->port)
 #define param_get_max_log_level(param)                   ((param)->max_log_level)
@@ -51,6 +52,7 @@
 #define param_get_http_server_trust_file_name(param)     ((param)->http_server_trust_file_name)
 #define param_get_coap_client_pub_key_file_name(param)   ((param)->coap_client_pub_key_file_name)
 #define param_get_coap_client_priv_key_file_name(param)  ((param)->coap_client_priv_key_file_name)
+#define param_get_coap_client_access_file_name(param)    ((param)->coap_client_access_file_name)
 
 typedef struct
 {
@@ -61,6 +63,7 @@ typedef struct
     char *http_server_trust_file_name;
     char *coap_client_pub_key_file_name;
     char *coap_client_priv_key_file_name;
+    char *coap_client_access_file_name;
 }
 param_t;
 

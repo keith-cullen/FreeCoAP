@@ -49,6 +49,7 @@
 #define PORT                 "12436"                                            /**< UDP port number to listen on */
 #define PUB_KEY_FILE_NAME    "../../raw_keys/server_pub_key.txt"                /**< ECDSA public key file name */
 #define PRIV_KEY_FILE_NAME   "../../raw_keys/server_priv_key.txt"               /**< ECDSA private key file name */
+#define ACCESS_FILE_NAME     "../../raw_keys/server_access.txt"                 /**< ECDSA public key access control list file name */
 #define KEY_LEN              32                                                 /**< Length in bytes of the ECDSA keys*/
 #define SEP_URI_PATH         "/separate"                                        /**< URI path that requires a separate response */
 #define UNSAFE_URI_PATH      "unsafe"                                           /**< URI path that causes the server to include an unsafe option in the response */
@@ -484,12 +485,20 @@ int main()
     coap_log_set_level(COAP_LOG_DEBUG);
 
 #ifdef COAP_DTLS_EN
-    ret = raw_keys_load(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME);
+    ret = raw_keys_load(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
     if (ret < 0)
     {
         return EXIT_FAILURE;
     }
-    ret = coap_server_create(&server, server_handle, HOST, PORT, raw_keys_get_ecdsa_priv_key(), raw_keys_get_ecdsa_pub_key_x(), raw_keys_get_ecdsa_pub_key_y());
+    ret = coap_server_create(&server, server_handle, HOST, PORT,
+                             raw_keys_get_ecdsa_priv_key(),
+                             raw_keys_get_ecdsa_pub_key_x(),
+                             raw_keys_get_ecdsa_pub_key_y(),
+                             raw_keys_get_ecdsa_access_x(),
+                             raw_keys_get_ecdsa_access_y(),
+                             raw_keys_get_ecdsa_access_num(),
+                             RAW_KEYS_ECDSA_KEY_LEN);
+
 #else
     ret = coap_server_create(&server, server_handle, HOST, PORT);
 #endif

@@ -193,6 +193,31 @@ static int coap_client_dtls_get_ecdsa_key(dtls_context_t *ctx, const session_t *
 }
 
 /**
+ *  @brief Convert one component (x or y) of an ECDSA public key to a string representation
+ *
+ *  @param[out] buf Pointer to a buffer to hold the string
+ *  @param[in] buf_len Length of the buffer to hold the string
+ *  @param[in] data Pointer to a buffer that holds the key component
+ *  @param[in] data_len Length of the buffer that holds the key component
+ */
+static void coap_client_dtls_ecdsa_comp_to_str(char *buf, size_t buf_len, const unsigned char *data, size_t data_len)
+{
+    unsigned i = 0;
+    size_t cur_len = 0;
+    char *cur = NULL;
+
+    cur = buf;
+    cur_len = buf_len;
+    for (i = 0; i < data_len - 1; i++)
+    {
+        snprintf(cur, cur_len, "0x%02x, ", data[i]);
+        cur += 6;
+        cur_len = (cur_len < 6) ? 0 : cur_len - 6;
+    }
+    snprintf(cur, cur_len, "0x%02x", data[i]);
+}
+
+/**
  *  @brief Verify the ECDSA public key received from the server
  *
  *  @param[in] ctx Pointer to a DTLS context structure
@@ -201,14 +226,43 @@ static int coap_client_dtls_get_ecdsa_key(dtls_context_t *ctx, const session_t *
  *  @param[in] ecdsa_pub_key_y Buffer containing the y component of the ECDSA public key
  *  @param[in] key_size Size of the ecdsa_pub_key_x and ecdsa_pub_key_y buffers
  *
- *  @returns 0
+ *  @returns Operation success
+ *  @retval 0 Success
+ *  @retval <0 Error
  */
 static int coap_client_dtls_verify_ecdsa_key(dtls_context_t *ctx, const session_t *sess,
                                              const unsigned char *ecdsa_pub_key_x,
                                              const unsigned char *ecdsa_pub_key_y,
                                              size_t key_size)
 {
-    return 0;
+    const unsigned char *ecdsa_access_x = NULL;
+    const unsigned char *ecdsa_access_y = NULL;
+    coap_client_t *client = NULL;
+    unsigned i = 0;
+    char buf[256] = {0};
+
+    client = (coap_client_t *)dtls_get_app_data(ctx);
+
+    coap_client_dtls_ecdsa_comp_to_str(buf, sizeof(buf), ecdsa_pub_key_x, key_size);
+    coap_log_debug("server ecdsa_pub_key_x[%zd]: [%s]",  key_size, buf);
+    coap_client_dtls_ecdsa_comp_to_str(buf, sizeof(buf), ecdsa_pub_key_y, key_size);
+    coap_log_debug("server ecdsa_pub_key_y[%zd]: [%s]",  key_size, buf);
+
+    if (key_size != client->ecdsa_size)
+    {
+        return -EPERM;
+    }
+    for (i = 0; i < client->ecdsa_access_num; i++)
+    {
+        ecdsa_access_x = client->ecdsa_access_x + (i * client->ecdsa_size);
+        ecdsa_access_y = client->ecdsa_access_y + (i * client->ecdsa_size);
+        if ((memcmp((void *)ecdsa_pub_key_x, (void *)ecdsa_access_x, client->ecdsa_size) == 0)
+         && (memcmp((void *)ecdsa_pub_key_y, (void *)ecdsa_access_y, client->ecdsa_size) == 0))
+        {
+            return 0;
+        }
+    }
+    return -EPERM;
 }
 
 /**
@@ -354,6 +408,10 @@ static int coap_client_dtls_handshake(coap_client_t *client)
  *  @param[in] ecdsa_priv_key Buffer containing the ECDSA private key
  *  @param[in] ecdsa_pub_key_x Buffer containing the x component of the ECDSA public key
  *  @param[in] ecdsa_pub_key_y Buffer containing the y component of the ECDSA public key
+ *  @param[in] ecdsa_access_x Buffer containing the x components of the ECDSA access control list
+ *  @param[in] ecdsa_access_y Buffer containing the y components of the ECDSA access control list
+ *  @param[in] ecdsa_access_num Number of entries in the ECDSA access control list
+ *  @param[in] ecdsa_size Size of an ECDSA component
  *
  *  @returns Operation status
  *  @retval 0 Success
@@ -362,7 +420,11 @@ static int coap_client_dtls_handshake(coap_client_t *client)
 static int coap_client_dtls_create(coap_client_t *client,
                                    const unsigned char *ecdsa_priv_key,
                                    const unsigned char *ecdsa_pub_key_x,
-                                   const unsigned char *ecdsa_pub_key_y)
+                                   const unsigned char *ecdsa_pub_key_y,
+                                   const unsigned char *ecdsa_access_x,
+                                   const unsigned char *ecdsa_access_y,
+                                   unsigned ecdsa_access_num,
+                                   unsigned ecdsa_size)
 {
     static int dtls_lib_init_done = 0;
     int ret = 0;
@@ -383,6 +445,10 @@ static int coap_client_dtls_create(coap_client_t *client,
     client->ecdsa_key.priv_key = ecdsa_priv_key;
     client->ecdsa_key.pub_key_x = ecdsa_pub_key_x;
     client->ecdsa_key.pub_key_y = ecdsa_pub_key_y;
+    client->ecdsa_access_x = ecdsa_access_x;
+    client->ecdsa_access_y = ecdsa_access_y;
+    client->ecdsa_access_num = ecdsa_access_num;
+    client->ecdsa_size = ecdsa_size;
     client->sess.size = client->server_sin_len;
     memcpy(&client->sess.addr.sin6, &client->server_sin, client->server_sin_len);
     client->sess.ifindex = 0;
@@ -420,7 +486,11 @@ int coap_client_create(coap_client_t *client,
                        const char *port,
                        const unsigned char *ecdsa_priv_key,
                        const unsigned char *ecdsa_pub_key_x,
-                       const unsigned char *ecdsa_pub_key_y)
+                       const unsigned char *ecdsa_pub_key_y,
+                       const unsigned char *ecdsa_access_x,
+                       const unsigned char *ecdsa_access_y,
+                       unsigned ecdsa_access_num,
+                       unsigned ecdsa_size)
 #else
 int coap_client_create(coap_client_t *client,
                        const char *host,
@@ -503,7 +573,14 @@ int coap_client_create(coap_client_t *client,
         return -errno;
     }
 #ifdef COAP_DTLS_EN
-    ret = coap_client_dtls_create(client, ecdsa_priv_key, ecdsa_pub_key_x, ecdsa_pub_key_y);
+    ret = coap_client_dtls_create(client,
+                                  ecdsa_priv_key,
+                                  ecdsa_pub_key_x,
+                                  ecdsa_pub_key_y,
+                                  ecdsa_access_x,
+                                  ecdsa_access_y,
+                                  ecdsa_access_num,
+                                  ecdsa_size);
     if (ret < 0)
     {
         close(client->timer_fd);

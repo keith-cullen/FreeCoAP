@@ -13,7 +13,7 @@ openssl ec -in client.pem -outform DER | tail -c +8 | head -c 32 | xxd -p -c 32 
 echo "----------------------------"
 echo "Generating Client Public Key"
 echo "----------------------------"
-openssl ec -in client.pem -pubout -outform DER | tail -c 65 | xxd -p -c 65 > client_pub_key.txt
+openssl ec -in client.pem -pubout -outform DER | tail -c 64 | xxd -p -c 64 > client_pub_key.txt
 
 echo "---------------------"
 echo "Generating Server Key"
@@ -28,4 +28,14 @@ openssl ec -in server.pem -outform DER | tail -c +8 | head -c 32 | xxd -p -c 32 
 echo "----------------------------"
 echo "Generating Server Public Key"
 echo "----------------------------"
-openssl ec -in server.pem -pubout -outform DER | tail -c 65 | xxd -p -c 65 > server_pub_key.txt
+openssl ec -in server.pem -pubout -outform DER | tail -c 64 | xxd -p -c 64 > server_pub_key.txt
+
+echo "-------------------------------------"
+echo "Generating Client Access Control List"
+echo "-------------------------------------"
+cp server_pub_key.txt client_access.txt
+
+echo "-------------------------------------"
+echo "Generating Server Access Control List"
+echo "-------------------------------------"
+cp client_pub_key.txt server_access.txt
