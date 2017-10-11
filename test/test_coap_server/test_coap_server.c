@@ -51,7 +51,7 @@
 #define CERT_FILE_NAME       "../../certs/server_cert.pem"                      /**< DTLS certificate file name */
 #define TRUST_FILE_NAME      "../../certs/root_client_cert.pem"                 /**< DTLS trust file name */
 #define CRL_FILE_NAME        ""                                                 /**< DTLS certificate revocation list file name */
-#define SEP_URI_PATH         "/separate"                                        /**< URI path that requires a separate response */
+#define SEP_URI_PATH         "/sep/uri/path"                                    /**< URI path that requires a separate response */
 #define UNSAFE_URI_PATH      "unsafe"                                           /**< URI path that causes the server to include an unsafe option in the response */
 #define BLOCKWISE_URI_PATH   "block"                                            /**< URI path that causes the server to use blockwise transfers */
 #define BLOCKWISE_BUF_LEN    40                                                 /**< Total length (in bytes) of the buffer used for blockwise transfers */
@@ -123,26 +123,26 @@ static void print_coap_msg(const char *str, coap_msg_t *msg)
 }
 
 /**
- *  @brief Match the URI path in a request
+ *  @brief Match the URI path in a CoAP message
  *
- *  Check the URI path option in the request
- *  message for a specific value.
+ *  Check the URI path option in a CoAP message
+ *  against a specific value.
  *
- *  @param[in] req Pointer to the request message
+ *  @param[in] msg Pointer to a CoAP message
  *  @param[in] str String containing the URI path
  *
  *  @returns Operation status
  *  @retval 1 match
  *  @retval 0 no match
  */
-static int server_match_uri_path(coap_msg_t *req, const char *str)
+static int server_match_uri_path(coap_msg_t *msg, const char *str)
 {
     coap_msg_op_t *op = NULL;
     unsigned num = 0;
     unsigned len = 0;
     char *val = NULL;
 
-    op = coap_msg_get_first_op(req);
+    op = coap_msg_get_first_op(msg);
     while (op != NULL)
     {
         num = coap_msg_op_get_num(op);

@@ -1,7 +1,6 @@
 ifeq ($(ip6),y)
-EXTRA_CFLAGS = -DCOAP_IP6
+IP6_CFLAGS = -DCOAP_IP6
 endif
-
 ifneq ($(dtls),n)
 DTLS_CFLAGS = -DCOAP_DTLS_EN
 DTLS_LIBS = -lgmp \
@@ -9,18 +8,16 @@ DTLS_LIBS = -lgmp \
             -lnettle \
             -lgnutls
 endif
-
 I1 = ../../lib/include
 S1 = ../../lib/src
 T1 = ..
-
-CC = gcc
+CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
          -I$(T1)
-CFLAGS += $(EXTRA_CFLAGS)
+CFLAGS += $(IP6_CFLAGS)
 CFLAGS += $(DTLS_CFLAGS)
-LD = gcc
+LD_ ?= gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
@@ -37,22 +34,22 @@ PROG = test_coap_client
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
 
 test_coap_client.o: test_coap_client.c $(INCS)
-	$(CC) $(CFLAGS) -c test_coap_client.c
+	$(CC_) $(CFLAGS) -c test_coap_client.c
 
 coap_client.o: $(S1)/coap_client.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S1)/coap_client.c
+	$(CC_) $(CFLAGS) -c $(S1)/coap_client.c
 
 coap_msg.o: $(S1)/coap_msg.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S1)/coap_msg.c
+	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
 
 coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S1)/coap_log.c
+	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
 
 test.o: $(T1)/test.c $(INCS)
-	$(CC) $(CFLAGS) -c $(T1)/test.c
+	$(CC_) $(CFLAGS) -c $(T1)/test.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)
