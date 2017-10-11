@@ -51,7 +51,7 @@
 #define PRIV_KEY_FILE_NAME   "../../raw_keys/server_priv_key.txt"               /**< ECDSA private key file name */
 #define ACCESS_FILE_NAME     "../../raw_keys/server_access.txt"                 /**< ECDSA public key access control list file name */
 #define KEY_LEN              32                                                 /**< Length in bytes of the ECDSA keys*/
-#define SEP_URI_PATH         "/separate"                                        /**< URI path that requires a separate response */
+#define SEP_URI_PATH         "/sep/uri/path"                                    /**< URI path that requires a separate response */
 #define UNSAFE_URI_PATH      "unsafe"                                           /**< URI path that causes the server to include an unsafe option in the response */
 #define BLOCKWISE_URI_PATH   "block"                                            /**< URI path that causes the server to use blockwise transfers */
 #define BLOCKWISE_BUF_LEN    40                                                 /**< Total length (in bytes) of the buffer used for blockwise transfers */
