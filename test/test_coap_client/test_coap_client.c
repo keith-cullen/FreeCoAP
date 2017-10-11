@@ -44,17 +44,22 @@
 #include "test.h"
 
 #ifdef COAP_IP6
-#define HOST             "::1"                                                  /**< Host address of the server */
+#define HOST               "::1"                                                /**< Host address of the server */
 #else
-#define HOST             "127.0.0.1"                                            /**< Host address of the server */
+#define HOST               "127.0.0.1"                                          /**< Host address of the server */
 #endif
-#define PORT             "12436"                                                /**< UDP port number of the server */
-#define TRUST_FILE_NAME  "../../certs/root_server_cert.pem"                     /**< DTLS trust file name */
-#define CERT_FILE_NAME   "../../certs/client_cert.pem"                          /**< DTLS certificate file name */
-#define KEY_FILE_NAME    "../../certs/client_privkey.pem"                       /**< DTLS key file name */
-#define CRL_FILE_NAME    ""                                                     /**< DTLS certificate revocation list file name */
-#define COMMON_NAME      "dummy/server"                                         /**< Common name of the server */
-#define SEP_URI_PATH     "separate"                                             /**< URI path option value to trigger a separate response from the server */
+#define PORT               "12436"                                              /**< UDP port number of the server */
+#define TRUST_FILE_NAME    "../../certs/root_server_cert.pem"                   /**< DTLS trust file name */
+#define CERT_FILE_NAME     "../../certs/client_cert.pem"                        /**< DTLS certificate file name */
+#define KEY_FILE_NAME      "../../certs/client_privkey.pem"                     /**< DTLS key file name */
+#define CRL_FILE_NAME      ""                                                   /**< DTLS certificate revocation list file name */
+#define COMMON_NAME        "dummy/server"                                       /**< Common name of the server */
+#define SEP_URI_PATH1      "sep"                                                /**< First URI path option value required to trigger a separate response from the server */
+#define SEP_URI_PATH1_LEN  3                                                    /**< Length of the first URI path option value required to trigger a separate response from the server */
+#define SEP_URI_PATH2      "uri"                                                /**< Second URI path option value required to trigger a separate response from the server */
+#define SEP_URI_PATH2_LEN  3                                                    /**< Length of the second URI path option value required to trigger a separate response from the server */
+#define SEP_URI_PATH3      "path"                                               /**< Third URI path option value required to trigger a separate response from the server */
+#define SEP_URI_PATH3_LEN  4                                                    /**< Length of the third URI path option value required to trigger a separate response from the server */
 
 /**
  *  @brief Message option test data structure
@@ -158,10 +163,14 @@ test_coap_client_data_t test1_data =
 };
 
 #define TEST2_NUM_MSG      1
-#define TEST2_REQ_OP1_LEN  8
-#define TEST2_NUM_OPS      1
+#define TEST2_REQ_OP1_LEN  SEP_URI_PATH1_LEN
+#define TEST2_REQ_OP2_LEN  SEP_URI_PATH2_LEN
+#define TEST2_REQ_OP3_LEN  SEP_URI_PATH3_LEN
+#define TEST2_NUM_OPS      3
 
-char test2_req_op1_val[TEST2_REQ_OP1_LEN + 1] = SEP_URI_PATH;
+char test2_req_op1_val[TEST2_REQ_OP1_LEN + 1] = SEP_URI_PATH1;
+char test2_req_op2_val[TEST2_REQ_OP2_LEN + 1] = SEP_URI_PATH2;
+char test2_req_op3_val[TEST2_REQ_OP3_LEN + 1] = SEP_URI_PATH3;
 
 test_coap_client_msg_op_t test2_req_ops[TEST2_NUM_OPS] =
 {
@@ -169,6 +178,16 @@ test_coap_client_msg_op_t test2_req_ops[TEST2_NUM_OPS] =
         .num = COAP_MSG_URI_PATH,
         .len = TEST2_REQ_OP1_LEN,
         .val = test2_req_op1_val
+    },
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST2_REQ_OP2_LEN,
+        .val = test2_req_op2_val
+    },
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST2_REQ_OP3_LEN,
+        .val = test2_req_op3_val
     }
 };
 
@@ -344,10 +363,14 @@ test_coap_client_data_t test4_data =
 };
 
 #define TEST5_NUM_MSG      2
-#define TEST5_REQ_OP1_LEN  8
-#define TEST5_NUM_OPS      1
+#define TEST5_REQ_OP1_LEN  SEP_URI_PATH1_LEN
+#define TEST5_REQ_OP2_LEN  SEP_URI_PATH2_LEN
+#define TEST5_REQ_OP3_LEN  SEP_URI_PATH3_LEN
+#define TEST5_NUM_OPS      3
 
-char test5_req_op1_val[TEST5_REQ_OP1_LEN + 1] = SEP_URI_PATH;
+char test5_req_op1_val[TEST5_REQ_OP1_LEN + 1] = SEP_URI_PATH1;
+char test5_req_op2_val[TEST5_REQ_OP2_LEN + 1] = SEP_URI_PATH2;
+char test5_req_op3_val[TEST5_REQ_OP3_LEN + 1] = SEP_URI_PATH3;
 
 test_coap_client_msg_op_t test5_req_ops[TEST5_NUM_OPS] =
 {
@@ -355,6 +378,16 @@ test_coap_client_msg_op_t test5_req_ops[TEST5_NUM_OPS] =
         .num = COAP_MSG_URI_PATH,
         .len = TEST5_REQ_OP1_LEN,
         .val = test5_req_op1_val
+    },
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST5_REQ_OP2_LEN,
+        .val = test5_req_op2_val
+    },
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST5_REQ_OP3_LEN,
+        .val = test5_req_op3_val
     }
 };
 

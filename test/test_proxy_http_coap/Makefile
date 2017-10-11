@@ -1,19 +1,16 @@
 ifeq ($(http_ip6),y)
-EXTRA_CFLAGS += -DSOCK_IP6
+HTTP_IP6_CFLAGS = -DSOCK_IP6
 endif
-
 ifeq ($(coap_ip6),y)
-EXTRA_CFLAGS += -DCOAP_IP6
+COAP_IP6_CFLAGS += -DCOAP_IP6
 endif
-
 I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
 S2=../../proxy/common/src
 I3=../../proxy/http_coap/include
 S3=../../proxy/http_coap/src
-
-CC = gcc
+CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
          -I$(I2) \
@@ -22,8 +19,9 @@ CFLAGS = -Wall \
          -DCOAP_PROXY \
          -DCOAP_DTLS_EN \
          -DCONNECTION_STATS
-CFLAGS += $(EXTRA_CFLAGS)
-LD = gcc
+CFLAGS += $(HTTP_IP6_CFLAGS)
+CFLAGS += $(COAP_IP6_CFLAGS)
+LD_ ?= gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
@@ -65,62 +63,62 @@ LIBS = -lpthread \
        -lnettle \
        -lhogweed \
        -lgmp
-PROG = proxy
+PROG = test_proxy_http_coap
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
 
 proxy.o: $(S3)/proxy.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S3)/proxy.c
+	$(CC_) $(CFLAGS) -c $(S3)/proxy.c
 
 coap_client.o: $(S1)/coap_client.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S1)/coap_client.c
+	$(CC_) $(CFLAGS) -c $(S1)/coap_client.c
 
 coap_msg.o: $(S1)/coap_msg.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S1)/coap_msg.c
+	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
 
 listener.o: $(S3)/listener.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S3)/listener.c
+	$(CC_) $(CFLAGS) -c $(S3)/listener.c
 
 connection.o: $(S3)/connection.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S3)/connection.c
+	$(CC_) $(CFLAGS) -c $(S3)/connection.c
 
 param.o: $(S3)/param.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S3)/param.c
+	$(CC_) $(CFLAGS) -c $(S3)/param.c
 
 http_msg.o: $(S2)/http_msg.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/http_msg.c
+	$(CC_) $(CFLAGS) -c $(S2)/http_msg.c
 
 uri.o: $(S2)/uri.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/uri.c
+	$(CC_) $(CFLAGS) -c $(S2)/uri.c
 
 cross.o: $(S2)/cross.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/cross.c
+	$(CC_) $(CFLAGS) -c $(S2)/cross.c
 
 tls.o: $(S2)/tls.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/tls.c
+	$(CC_) $(CFLAGS) -c $(S2)/tls.c
 
 sock.o: $(S2)/sock.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/sock.c
+	$(CC_) $(CFLAGS) -c $(S2)/sock.c
 
 tls_sock.o: $(S2)/tls_sock.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/tls_sock.c
+	$(CC_) $(CFLAGS) -c $(S2)/tls_sock.c
 
 config.o: $(S2)/config.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/config.c
+	$(CC_) $(CFLAGS) -c $(S2)/config.c
 
 data_buf.o: $(S2)/data_buf.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/data_buf.c
+	$(CC_) $(CFLAGS) -c $(S2)/data_buf.c
 
 util.o: $(S2)/util.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/util.c
+	$(CC_) $(CFLAGS) -c $(S2)/util.c
 
 thread.o: $(S2)/thread.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/thread.c
+	$(CC_) $(CFLAGS) -c $(S2)/thread.c
 
 coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S1)/coap_log.c
+	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)

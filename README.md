@@ -235,7 +235,69 @@ The client, server and proxy applications will pick up the new keys automaticall
 Validation History
 ==================
 
-0.4-tinydtls
+v0.5-tinydtls
+------------
+
+HP Pavilion
+-----------
+Ubuntu 16.04
+
+Linux 4.10.0-37-generic #41~16.04.1-Ubuntu SMP Fri Oct 6 22:42:59 UTC 2017 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.5.15
+
+tinydtls 0.8.6
+
+Raspberry Pi model B
+--------------------
+Raspbian stretch
+
+Linux raspberrypi 4.9.41+ #1023 Tue Aug 8 15:47:12 BST 2017 armv6l GNU/Linux
+
+GnuTLS 3.5.15
+
+tinydtls 0.8.6
+
+BeagleBone Black
+----------------
+Debian 9.1
+
+Linux beaglebone 4.4.88-ti-r125 #1 SMP Thu Sep 21 19:23:24 UTC 2017 armv7l GNU/Linux
+
+GnuTLS 3.5.8
+
+tinydtls 0.8.6
+
+
+v0.5
+----
+
+HP Pavilion
+-----------
+Ubuntu 16.04
+
+Linux 4.10.0-37-generic #41~16.04.1-Ubuntu SMP Fri Oct 6 22:42:59 UTC 2017 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.5.15
+
+Raspberry Pi model B
+--------------------
+Raspbian stretch
+
+Linux raspberrypi 4.9.41+ #1023 Tue Aug 8 15:47:12 BST 2017 armv6l GNU/Linux
+
+GnuTLS 3.5.15
+
+BeagleBone Black
+----------------
+Debian 9.1
+
+Linux beaglebone 4.4.88-ti-r125 #1 SMP Thu Sep 21 19:23:24 UTC 2017 armv7l GNU/Linux
+
+GnuTLS 3.5.8
+
+
+v0.4-tinydtls
 ------------
 
 HP Pavilion
@@ -261,7 +323,7 @@ Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_6
 GnuTLS 3.3.8
 
 
-0.3-tinydtls
+v0.3-tinydtls
 ------------
 
 BeagleBone Black
