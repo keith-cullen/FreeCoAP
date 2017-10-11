@@ -1724,6 +1724,7 @@ static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
             if (val_len > sizeof(val_buf) - 1)
                 val_len = sizeof(val_buf) - 1;
             memcpy(val_buf, val, val_len);
+            memset(val_buf + val_len, 0, sizeof(val_buf) - val_len);
             strncpy(p, val_buf, len);
             add = (val_len < len) ? val_len : len;
             p += add;

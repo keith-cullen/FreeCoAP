@@ -4,12 +4,12 @@ I2=../../proxy/common/include
 S2=../../proxy/common/src
 T1=..
 
-CC = gcc
+CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
          -I$(I2) \
          -I$(T1)
-LD = gcc
+LD_ ?= gcc
 LDFLAGS =
 INCS = $(I2)/uri.h \
        $(T1)/test.h
@@ -21,16 +21,16 @@ PROG = test_uri
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
 
 test_uri.o: test_uri.c $(INCS)
-	$(CC) $(CFLAGS) -c test_uri.c
+	$(CC_) $(CFLAGS) -c test_uri.c
 
 uri.o: $(S2)/uri.c $(INCS)
-	$(CC) $(CFLAGS) -c $(S2)/uri.c
+	$(CC_) $(CFLAGS) -c $(S2)/uri.c
 
 test.o: $(T1)/test.c $(INCS)
-	$(CC) $(CFLAGS) -c $(T1)/test.c
+	$(CC_) $(CFLAGS) -c $(T1)/test.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)
