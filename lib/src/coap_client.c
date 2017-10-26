@@ -303,6 +303,7 @@ static ssize_t coap_client_dtls_send(coap_client_t *client, const char *buf, siz
     }
     if (ret < 0)
     {
+        coap_log_error("Failed to send to server");
         return -1;
     }
     return len;
@@ -342,6 +343,7 @@ static ssize_t coap_client_dtls_recv(coap_client_t *client, char *buf, size_t le
     }
     if (ret < 0)
     {
+        coap_log_error("Failed to receive from server");
         return -1;
     }
     if (client->app_start == NULL)
