@@ -250,6 +250,8 @@ static int coap_server_trans_dtls_listen_timeout(coap_server_trans_t *trans, uns
  *
  *  This is a call-back function that the
  *  GnuTLS library uses to receive data.
+ *  To report an error, it sets errno and
+ *  returns -1.
  *
  *  @param[in,out] data Pointer to a transaction structure
  *  @param[out] buf Pointer to a buffer
@@ -288,7 +290,8 @@ static ssize_t coap_server_trans_dtls_pull_func(gnutls_transport_ptr_t data, voi
  *  @brief Wait for receive data from the client
  *
  *  This is a call-back function that the GnuTLS
- *  library uses to wait for receive data.
+ *  library uses to wait for receive data. To
+ *  report an error, it sets errno and returns -1.
  *
  *  @param[in,out] data Pointer to a transaction structure
  *  @param[in] ms Timeout in msec
@@ -317,6 +320,7 @@ static int coap_server_trans_dtls_pull_timeout_func(gnutls_transport_ptr_t data,
     }
     if (ret < 0)
     {
+        /* errno has been set by coap_server_trans_dtls_listen_timeout */
         return -1;
     }
     client_sin_len = sizeof(client_sin);
@@ -338,7 +342,9 @@ static int coap_server_trans_dtls_pull_timeout_func(gnutls_transport_ptr_t data,
  *  @brief Send data to the client
  *
  *  This is a call-back function that the
- *  GnuTLS library uses to send data.
+ *  GnuTLS library uses to send data. To
+ *  report an error, it sets errno and
+ *  returns -1.
  *
  *  @param[in] data Pointer to a transaction structure
  *  @param[in] buf Pointer to a buffer
@@ -544,15 +550,15 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
     ret = gnutls_credentials_set(trans->session, GNUTLS_CRD_CERTIFICATE, server->cred);
     if (ret != GNUTLS_E_SUCCESS)
     {
-        gnutls_deinit(trans->session);
         coap_log_error("Failed to assign credentials to DTLS session");
+        gnutls_deinit(trans->session);
         return -1;
     }
     ret = gnutls_priority_set(trans->session, server->priority);
     if (ret != GNUTLS_E_SUCCESS)
     {
-        gnutls_deinit(trans->session);
         coap_log_error("Failed to assign priorities to DTLS session");
+        gnutls_deinit(trans->session);
         return -1;
     }
     gnutls_transport_set_ptr(trans->session, trans);
@@ -567,8 +573,8 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
     ret = coap_server_trans_dtls_handshake(trans);
     if (ret < 0)
     {
-        gnutls_deinit(trans->session);
         coap_log_warn("Failed to complete DTLS handshake");
+        gnutls_deinit(trans->session);
         return ret;
     }
 #ifdef COAP_CLIENT_AUTH
@@ -896,6 +902,7 @@ static ssize_t coap_server_trans_send(coap_server_trans_t *trans, coap_msg_t *ms
     }
     if (num < 0)
     {
+        coap_log_error("Failed to send to client");
         return -1;
     }
 #else
@@ -992,6 +999,7 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
     }
     if (num < 0)
     {
+        coap_log_error("Failed to receive from client");
         return -1;
     }
 #else
@@ -1354,9 +1362,9 @@ static int coap_server_dtls_create(coap_server_t *server,
         ret = gnutls_certificate_set_x509_trust_file(server->cred, trust_file_name, GNUTLS_X509_FMT_PEM);
         if (ret == 0)
         {
+            coap_log_error("Failed to assign X.509 trust file to DTLS credentials");
             gnutls_certificate_free_credentials(server->cred);
             gnutls_global_deinit();
-            coap_log_error("Failed to assign X.509 trust file to DTLS credentials");
             return -1;
         }
     }
@@ -1365,45 +1373,45 @@ static int coap_server_dtls_create(coap_server_t *server,
         ret = gnutls_certificate_set_x509_crl_file(server->cred, crl_file_name, GNUTLS_X509_FMT_PEM);
         if (ret < 0)
         {
+            coap_log_error("Failed to assign X.509 certificate revocation list to DTLS credentials");
             gnutls_certificate_free_credentials(server->cred);
             gnutls_global_deinit();
-            coap_log_error("Failed to assign X.509 certificate revocation list to DTLS credentials");
             return -1;
         }
     }
     ret = gnutls_certificate_set_x509_key_file(server->cred, cert_file_name, key_file_name, GNUTLS_X509_FMT_PEM);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to assign X.509 certificate file and key file to DTLS credentials");
         gnutls_certificate_free_credentials(server->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to assign X.509 certificate file and key file to DTLS credentials");
         return -1;
     }
     ret = gnutls_dh_params_init(&server->dh_params);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to initialise Diffie-Hellman parameters for DTLS credentials");
         gnutls_certificate_free_credentials(server->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to initialise Diffie-Hellman parameters for DTLS credentials");
         return -1;
     }
     ret = gnutls_dh_params_generate2(server->dh_params, COAP_SERVER_DTLS_NUM_DH_BITS);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to generate Diffie-Hellman parameters for DTLS credentials");
         gnutls_dh_params_deinit(server->dh_params);
         gnutls_certificate_free_credentials(server->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to generate Diffie-Hellman parameters for DTLS credentials");
         return -1;
     }
     gnutls_certificate_set_dh_params(server->cred, server->dh_params);
     ret = gnutls_priority_init(&server->priority, COAP_SERVER_DTLS_PRIORITIES, NULL);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to initialise priorities for DTLS session");
         gnutls_dh_params_deinit(server->dh_params);
         gnutls_certificate_free_credentials(server->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to initialise priorities for DTLS session");
         return -1;
     }
     return 0;
