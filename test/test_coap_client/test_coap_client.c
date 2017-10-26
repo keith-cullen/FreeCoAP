@@ -968,7 +968,11 @@ static test_result_t exchange(coap_client_t *client, test_coap_client_msg_t *tes
     ret = coap_client_exchange(client, req, resp);
     if (ret < 0)
     {
-        coap_log_error("%s", strerror(-ret));
+        if (ret != -1)
+        {
+            /* a return value of -1 indicates a DTLS failure which has already been logged */
+            coap_log_error("%s", strerror(-ret));
+        }
         return FAIL;
     }
 
@@ -1119,7 +1123,11 @@ static test_result_t test_exchange_func(test_data_t data)
 #endif
     if (ret < 0)
     {
-        coap_log_error("%s", strerror(-ret));
+        if (ret != -1)
+        {
+            /* a return value of -1 indicates a DTLS failure which has already been logged */
+            coap_log_error("%s", strerror(-ret));
+        }
         return FAIL;
     }
 
