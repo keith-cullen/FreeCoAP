@@ -114,6 +114,8 @@ static int coap_client_dtls_listen_timeout(coap_client_t *client, unsigned ms)
  *
  *  This is a call-back function that the
  *  GnuTLS library uses to receive data.
+ *  To report an error, it sets errno and
+ *  returns -1.
  *
  *  @param[in,out] data Pointer to a client structure
  *  @param[out] buf Pointer to a buffer
@@ -135,7 +137,8 @@ static ssize_t coap_client_dtls_pull_func(gnutls_transport_ptr_t data, void *buf
  *  @brief Wait for receive data from the server
  *
  *  This is a call-back function that the GnuTLS
- *  library uses to wait for receive data.
+ *  library uses to wait for receive data. To
+ *  report an error, it sets errno and returns -1.
  *
  *  @param[in] data Pointer to a client structure
  *  @param[in] ms Timeout in msec
@@ -159,6 +162,7 @@ static int coap_client_dtls_pull_timeout_func(gnutls_transport_ptr_t data, unsig
     }
     if (ret < 0)
     {
+	/* errno has been set by coap_client_dtls_listen_timeout */
         return -1;
     }
     return recv(client->sd, buf, sizeof(buf), MSG_PEEK);
@@ -168,7 +172,9 @@ static int coap_client_dtls_pull_timeout_func(gnutls_transport_ptr_t data, unsig
  *  @brief Send data to the server
  *
  *  This is a call-back function that the
- *  GnuTLS library uses to send data.
+ *  GnuTLS library uses to send data. To
+ *  report an error, it sets errno and
+ *  returns -1.
  *
  *  @param[in] data Pointer to a client structure
  *  @param[in] buf Pointer to a buffer
@@ -385,8 +391,8 @@ static int coap_client_dtls_create(coap_client_t *client,
     ret = gnutls_certificate_allocate_credentials(&client->cred);
     if (ret != GNUTLS_E_SUCCESS)
     {
-        gnutls_global_deinit();
         coap_log_error("Failed to allocate DTLS credentials");
+        gnutls_global_deinit();
         return -1;
     }
     if ((trust_file_name != NULL) && (strlen(trust_file_name) != 0))
@@ -394,9 +400,9 @@ static int coap_client_dtls_create(coap_client_t *client,
         ret = gnutls_certificate_set_x509_trust_file(client->cred, trust_file_name, GNUTLS_X509_FMT_PEM);
         if (ret == 0)
         {
+            coap_log_error("Failed to assign X.509 trust file to DTLS credentials");
             gnutls_certificate_free_credentials(client->cred);
             gnutls_global_deinit();
-            coap_log_error("Failed to assign X.509 trust file to DTLS credentials");
             return -1;
         }
     }
@@ -405,55 +411,55 @@ static int coap_client_dtls_create(coap_client_t *client,
         ret = gnutls_certificate_set_x509_crl_file(client->cred, crl_file_name, GNUTLS_X509_FMT_PEM);
         if (ret < 0)
         {
+            coap_log_error("Failed to assign X.509 certificate revocation list to DTLS credentials");
             gnutls_certificate_free_credentials(client->cred);
             gnutls_global_deinit();
-            coap_log_error("Failed to assign X.509 certificate revocation list to DTLS credentials");
             return -1;
         }
     }
     ret = gnutls_certificate_set_x509_key_file(client->cred, cert_file_name, key_file_name, GNUTLS_X509_FMT_PEM);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to assign X.509 certificate file and key file to DTLS credentials");
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to assign X.509 certificate file and key file to DTLS credentials");
         return -1;
     }
     ret = gnutls_priority_init(&client->priority, COAP_CLIENT_DTLS_PRIORITIES, NULL);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to initialise priorities for DTLS session");
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to initialise priorities for DTLS session");
         return -1;
     }
     ret = gnutls_init(&client->session, GNUTLS_CLIENT | GNUTLS_DATAGRAM | GNUTLS_NONBLOCK);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to initialise DTLS session");
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to initialise DTLS session");
         return -1;
     }
     ret = gnutls_credentials_set(client->session, GNUTLS_CRD_CERTIFICATE, client->cred);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to assign credentials to DTLS session");
         gnutls_deinit(client->session);
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to assign credentials to DTLS session");
         return -1;
     }
     ret = gnutls_priority_set(client->session, client->priority);
     if (ret != GNUTLS_E_SUCCESS)
     {
+        coap_log_error("Failed to assign priorities to DTLS session");
         gnutls_deinit(client->session);
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        coap_log_error("Failed to assign priorities to DTLS session");
         return -1;
     }
     gnutls_transport_set_ptr(client->session, client);
@@ -465,11 +471,11 @@ static int coap_client_dtls_create(coap_client_t *client,
     ret = coap_client_dtls_handshake(client);
     if (ret < 0)
     {
+        coap_log_warn("Failed to complete DTLS handshake");
         gnutls_deinit(client->session);
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
         gnutls_global_deinit();
-        coap_log_warn("Failed to complete DTLS handshake");
         return ret;
     }
     ret = coap_client_dtls_verify_peer_cert(client, common_name);
@@ -793,6 +799,7 @@ static ssize_t coap_client_send(coap_client_t *client, coap_msg_t *msg)
     }
     if (num < 0)
     {
+        coap_log_error("Failed to send to server");
         return -1;
     }
 #else
@@ -881,6 +888,7 @@ static ssize_t coap_client_recv(coap_client_t *client, coap_msg_t *msg)
     }
     if (num < 0)
     {
+        coap_log_error("Failed to receive from server");
         return -1;
     }
 #else
