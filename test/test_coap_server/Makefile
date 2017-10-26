@@ -39,9 +39,6 @@ test_coap_server.o: test_coap_server.c $(INCS)
 coap_server.o: $(S1)/coap_server.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_server.c
 
-coap_server_dtls.o: $(S1)/coap_server_dtls.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_server_dtls.c
-
 coap_msg.o: $(S1)/coap_msg.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
 
