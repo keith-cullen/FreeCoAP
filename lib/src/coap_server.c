@@ -248,14 +248,14 @@ static int coap_server_trans_dtls_listen_timeout(coap_server_trans_t *trans, uns
 /**
  *  @brief Send encrypted data to the network
  *
+ *  This is a callback function that tinydtls uses
+ *  to send data. To report an error it returns -1
+ *  and sets errno.
+ *
  *  @param[in] ctx Pointer to a DTLS context structure
  *  @param[in] sess Pointer to a DTLS session structure
  *  @param[in] data Pointer to a buffer
  *  @param[in] len Length of the buffer
- *
- *  This is a callback function that tinydtls uses
- *  to send data. To report an error it returns -1
- *  and sets errno.
  *
  *  @returns Number of bytes sent or error code
  *  @retval >=0 Number of bytes sent
@@ -1709,45 +1709,10 @@ int coap_server_add_sep_resp_uri_path(coap_server_t *server, const char *str)
  */ 
 static int coap_server_get_resp_type(coap_server_t *server, coap_msg_t *msg)
 {
-    coap_msg_op_t *op = NULL;
-    size_t val_len = 0;
-    size_t add = 0;
-    size_t len = 0;
-    char val_buf[COAP_MSG_OP_URI_PATH_MAX_LEN] = {0};
     char buf[COAP_MSG_OP_URI_PATH_MAX_LEN] = {0};
-    char *val = NULL;
-    char *p = NULL;
     int match = 0;
 
-    p = buf;
-    len = sizeof(buf) - 1;
-    op = coap_msg_get_first_op(msg);
-    while (op != NULL)
-    {
-        if (coap_msg_op_get_num(op) == COAP_MSG_URI_PATH)
-        {
-            strncpy(p, "/", len);
-            add = (1 < len) ? 1 : len;
-            p += add;
-            len -= add;
-
-            val = coap_msg_op_get_val(op);
-            val_len = coap_msg_op_get_len(op);
-            if (val_len > sizeof(val_buf) - 1)
-                val_len = sizeof(val_buf) - 1;
-            memcpy(val_buf, val, val_len);
-            memset(val_buf + val_len, 0, sizeof(val_buf) - val_len);
-            strncpy(p, val_buf, len);
-            add = (val_len < len) ? val_len : len;
-            p += add;
-            len -= add;
-        }
-        op = coap_msg_op_get_next(op);
-    }
-    if (p == buf)
-    {
-        buf[0] = '/';
-    }
+    coap_msg_uri_path_to_str(msg, buf, sizeof(buf));
     match = coap_server_path_list_match(&server->sep_list, buf);
     return match ? COAP_SERVER_SEPARATE : COAP_SERVER_PIGGYBACKED;
 }
