@@ -99,7 +99,7 @@ typedef enum
 coap_msg_class_t;
 
 /**
- *  @brief Code detail enumeration
+ *  @brief Request code detail enumeration
  */
 typedef enum
 {
@@ -452,5 +452,16 @@ ssize_t coap_msg_format(coap_msg_t *msg, char *buf, size_t len);
  *  @retval <0 Error
  */
 int coap_msg_copy(coap_msg_t *dst, coap_msg_t *src);
+
+/**
+ *  @brief Convert the URI path in a message to a string representation
+ *
+ *  @param[in] msg Pointer to a message structure
+ *  @param[out] buf Pointer to a buffer to hold the string
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns The number of bytes that would be written to the buffer it was large enough
+ */
+size_t coap_msg_uri_path_to_str(coap_msg_t *msg, char *buf, size_t len);
 
 #endif
