@@ -1106,3 +1106,49 @@ int coap_msg_copy(coap_msg_t *dst, coap_msg_t *src)
     }
     return 0;
 }
+
+size_t coap_msg_uri_path_to_str(coap_msg_t *msg, char *buf, size_t len)
+{
+    coap_msg_op_t *op = NULL;
+    size_t n = 0;
+    size_t m = 0;
+    size_t c = 0;
+    char *p = NULL;
+
+    if (len == 0)
+    {
+        return 0;
+    }
+    memset(buf, 0, len);
+    p = buf;
+    n = len - 1;
+    op = coap_msg_get_first_op(msg);
+    while (op != NULL)
+    {
+        if (coap_msg_op_get_num(op) == COAP_MSG_URI_PATH)
+        {
+            m = 1;
+            c += m;
+            if (m > n)
+                m = n;
+            memcpy(p, "/", m);
+            p += m;
+            n -= m;
+
+            m = coap_msg_op_get_len(op);
+            c += m;
+            if (m > n)
+                m = n;
+            memcpy(p, coap_msg_op_get_val(op), m);
+            p += m;
+            n -= m;
+        }
+        op = coap_msg_op_get_next(op);
+    }
+    if ((p == buf) && (len > 1))
+    {
+        *p = '/';
+        c = 1;
+    }
+    return c;
+}

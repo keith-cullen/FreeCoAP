@@ -422,7 +422,7 @@ static int server_handle_non_blockwise(coap_server_t *server, coap_msg_t *req, c
     if (ret < 0)
     {
         coap_log_error("Failed to add payload to response message");
-        return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
+        return ret;
     }
     return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
 }

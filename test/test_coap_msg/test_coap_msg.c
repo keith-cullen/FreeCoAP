@@ -69,6 +69,7 @@ typedef struct
     const char *recognize_desc;                                                 /**< Test description for the recognize test */
     const char *check_critical_desc;                                            /**< Test description for the check critical options test */
     const char *check_unsafe_desc;                                              /**< Test description for the check unsafe options test */
+    const char *uri_path_to_str_desc;                                           /**< Test description for the URI path to string representation test */
     ssize_t parse_ret;                                                          /**< Expected return value for the parse function */
     int set_type_ret;                                                           /**< Expected return value for the set type function */
     int set_code_ret;                                                           /**< Expected return value for the set code function */
@@ -81,6 +82,7 @@ typedef struct
     int *recognize_ret;                                                         /**< Expected return value for the recognize function */
     unsigned check_critical_ops_ret;                                            /**< Expected return value for the check critical options function */
     unsigned check_unsafe_ops_ret;                                              /**< Expected return value for the check unsafe options function */
+    size_t uri_path_to_str_ret;                                                 /**< Expected return value for the URI path to string function */
     char *buf;                                                                  /**< Buffer containing a message */
     size_t buf_len;                                                             /**< Length of the buffer containing a message */
     unsigned ver;                                                               /**< CoAP version */
@@ -148,6 +150,7 @@ test_coap_msg_data_t test1_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -160,6 +163,7 @@ test_coap_msg_data_t test1_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test1_buf,
     .buf_len = TEST1_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -223,6 +227,7 @@ test_coap_msg_data_t test2_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -235,6 +240,7 @@ test_coap_msg_data_t test2_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test2_buf,
     .buf_len = TEST2_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -272,6 +278,7 @@ test_coap_msg_data_t test3_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -284,6 +291,7 @@ test_coap_msg_data_t test3_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test3_buf,
     .buf_len = TEST3_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -346,6 +354,7 @@ test_coap_msg_data_t test4_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -358,6 +367,7 @@ test_coap_msg_data_t test4_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test4_buf,
     .buf_len = TEST4_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -392,6 +402,7 @@ test_coap_msg_data_t test5_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -404,6 +415,7 @@ test_coap_msg_data_t test5_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test5_buf,
     .buf_len = TEST5_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -463,6 +475,7 @@ test_coap_msg_data_t test6_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -475,6 +488,7 @@ test_coap_msg_data_t test6_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test6_buf,
     .buf_len = TEST6_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -508,6 +522,7 @@ test_coap_msg_data_t test7_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -520,6 +535,7 @@ test_coap_msg_data_t test7_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test7_buf,
     .buf_len = TEST7_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -550,6 +566,7 @@ test_coap_msg_data_t test8_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -562,6 +579,7 @@ test_coap_msg_data_t test8_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test8_buf,
     .buf_len = TEST8_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -628,6 +646,7 @@ test_coap_msg_data_t test9_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -640,6 +659,7 @@ test_coap_msg_data_t test9_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test9_buf,
     .buf_len = TEST9_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -706,6 +726,7 @@ test_coap_msg_data_t test10_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -718,6 +739,7 @@ test_coap_msg_data_t test10_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test10_buf,
     .buf_len = TEST10_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -784,6 +806,7 @@ test_coap_msg_data_t test11_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -796,6 +819,7 @@ test_coap_msg_data_t test11_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test11_buf,
     .buf_len = TEST11_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -862,6 +886,7 @@ test_coap_msg_data_t test12_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -874,6 +899,7 @@ test_coap_msg_data_t test12_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test12_buf,
     .buf_len = TEST12_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -940,6 +966,7 @@ test_coap_msg_data_t test13_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -952,6 +979,7 @@ test_coap_msg_data_t test13_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test13_buf,
     .buf_len = TEST13_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1018,6 +1046,7 @@ test_coap_msg_data_t test14_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1030,6 +1059,7 @@ test_coap_msg_data_t test14_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test14_buf,
     .buf_len = TEST14_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1096,6 +1126,7 @@ test_coap_msg_data_t test15_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1108,6 +1139,7 @@ test_coap_msg_data_t test15_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test15_buf,
     .buf_len = TEST15_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1174,6 +1206,7 @@ test_coap_msg_data_t test16_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1186,6 +1219,7 @@ test_coap_msg_data_t test16_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test16_buf,
     .buf_len = TEST16_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1216,6 +1250,7 @@ test_coap_msg_data_t test17_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EINVAL,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1228,6 +1263,7 @@ test_coap_msg_data_t test17_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test17_buf,
     .buf_len = TEST17_BUF_LEN,
     .ver = 0,
@@ -1258,6 +1294,7 @@ test_coap_msg_data_t test18_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1270,6 +1307,7 @@ test_coap_msg_data_t test18_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test18_buf,
     .buf_len = TEST18_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1300,6 +1338,7 @@ test_coap_msg_data_t test19_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1312,6 +1351,7 @@ test_coap_msg_data_t test19_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test19_buf,
     .buf_len = TEST19_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1345,6 +1385,7 @@ test_coap_msg_data_t test20_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1357,6 +1398,7 @@ test_coap_msg_data_t test20_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test20_buf,
     .buf_len = TEST20_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1390,6 +1432,7 @@ test_coap_msg_data_t test21_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1402,6 +1445,7 @@ test_coap_msg_data_t test21_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test21_buf,
     .buf_len = TEST21_BUF_LEN,
     .ver = 0,
@@ -1435,6 +1479,7 @@ test_coap_msg_data_t test22_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1447,6 +1492,7 @@ test_coap_msg_data_t test22_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test22_buf,
     .buf_len = TEST22_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1481,6 +1527,7 @@ test_coap_msg_data_t test23_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1493,6 +1540,7 @@ test_coap_msg_data_t test23_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test23_buf,
     .buf_len = TEST23_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -1525,6 +1573,7 @@ test_coap_msg_data_t test24_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1537,6 +1586,7 @@ test_coap_msg_data_t test24_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test24_buf,
     .buf_len = TEST24_BUF_LEN,
     .ver = 0,
@@ -1569,6 +1619,7 @@ test_coap_msg_data_t test25_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1581,6 +1632,7 @@ test_coap_msg_data_t test25_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test25_buf,
     .buf_len = TEST25_BUF_LEN,
     .ver = 0,
@@ -1612,6 +1664,7 @@ test_coap_msg_data_t test26_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1624,6 +1677,7 @@ test_coap_msg_data_t test26_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test26_buf,
     .buf_len = TEST26_BUF_LEN,
     .ver = 0,
@@ -1654,6 +1708,7 @@ test_coap_msg_data_t test27_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1666,6 +1721,7 @@ test_coap_msg_data_t test27_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test27_buf,
     .buf_len = TEST27_BUF_LEN,
     .ver = 0,
@@ -1696,6 +1752,7 @@ test_coap_msg_data_t test28_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EBADMSG,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1708,6 +1765,7 @@ test_coap_msg_data_t test28_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test28_buf,
     .buf_len = TEST28_BUF_LEN,
     .ver = 0,
@@ -1959,6 +2017,7 @@ test_coap_msg_data_t test29_data =
     .recognize_desc = "test 67: Recognize option numbers",
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -1971,6 +2030,7 @@ test_coap_msg_data_t test29_data =
     .recognize_ret = test29_recognize_ret,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2033,6 +2093,7 @@ test_coap_msg_data_t test30_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 68: Check recognized elective options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2045,6 +2106,7 @@ test_coap_msg_data_t test30_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2107,6 +2169,7 @@ test_coap_msg_data_t test31_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 69: Check recognized elective and recognized critical options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2119,6 +2182,7 @@ test_coap_msg_data_t test31_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2181,6 +2245,7 @@ test_coap_msg_data_t test32_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 70: Check recognized elective and recognized critical options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2193,6 +2258,7 @@ test_coap_msg_data_t test32_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2255,6 +2321,7 @@ test_coap_msg_data_t test33_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 71: Check recognized elective and recognized critical options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2267,6 +2334,7 @@ test_coap_msg_data_t test33_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2329,6 +2397,7 @@ test_coap_msg_data_t test34_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 72: Check recognized and unrecognized elective options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2341,6 +2410,7 @@ test_coap_msg_data_t test34_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2403,6 +2473,7 @@ test_coap_msg_data_t test35_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 73: Check recognized and unrecognized elective options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2415,6 +2486,7 @@ test_coap_msg_data_t test35_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2477,6 +2549,7 @@ test_coap_msg_data_t test36_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 74: Check recognized and unrecognized elective options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2489,6 +2562,7 @@ test_coap_msg_data_t test36_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2551,6 +2625,7 @@ test_coap_msg_data_t test37_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 75: Check recognized elective and unrecognized critical options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2563,6 +2638,7 @@ test_coap_msg_data_t test37_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0x61,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2625,6 +2701,7 @@ test_coap_msg_data_t test38_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 76: Check recognized elective and unrecognized critical options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2637,6 +2714,7 @@ test_coap_msg_data_t test38_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0x63,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2699,6 +2777,7 @@ test_coap_msg_data_t test39_data =
     .recognize_desc = NULL,
     .check_critical_desc = "test 77: Check recognized elective and unrecognized critical options",
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2711,6 +2790,7 @@ test_coap_msg_data_t test39_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0x65,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2773,6 +2853,7 @@ test_coap_msg_data_t test40_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 78: Check recognized safe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2785,6 +2866,7 @@ test_coap_msg_data_t test40_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2847,6 +2929,7 @@ test_coap_msg_data_t test41_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 79: Check recognized safe and recognized unsafe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2859,6 +2942,7 @@ test_coap_msg_data_t test41_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2921,6 +3005,7 @@ test_coap_msg_data_t test42_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 80: Check recognized safe and recognized unsafe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -2933,6 +3018,7 @@ test_coap_msg_data_t test42_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -2995,6 +3081,7 @@ test_coap_msg_data_t test43_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 81: Check recognized safe and recognized unsafe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3007,6 +3094,7 @@ test_coap_msg_data_t test43_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3069,6 +3157,7 @@ test_coap_msg_data_t test44_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 82: Check recognized and unrecognized safe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3081,6 +3170,7 @@ test_coap_msg_data_t test44_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3143,6 +3233,7 @@ test_coap_msg_data_t test45_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 83: Check recognized and unrecognized safe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3155,6 +3246,7 @@ test_coap_msg_data_t test45_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3217,6 +3309,7 @@ test_coap_msg_data_t test46_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 84: Check recognized and unrecognized safe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3229,6 +3322,7 @@ test_coap_msg_data_t test46_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3291,6 +3385,7 @@ test_coap_msg_data_t test47_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 85: Check recognized safe and unrecognized unsafe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3303,6 +3398,7 @@ test_coap_msg_data_t test47_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0x62,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3365,6 +3461,7 @@ test_coap_msg_data_t test48_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 86: Check recognized safe and unrecognized unsafe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3377,6 +3474,7 @@ test_coap_msg_data_t test48_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0x63,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3439,6 +3537,7 @@ test_coap_msg_data_t test49_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = "test 87: Check recognized safe and unrecognized unsafe options",
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3451,6 +3550,7 @@ test_coap_msg_data_t test49_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0x66,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3558,6 +3658,7 @@ test_coap_msg_data_t test50_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3570,6 +3671,7 @@ test_coap_msg_data_t test50_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = test50_buf,
     .buf_len = TEST50_BUF_LEN,
     .ver = COAP_MSG_VER,
@@ -3665,6 +3767,7 @@ test_coap_msg_data_t test51_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3677,6 +3780,7 @@ test_coap_msg_data_t test51_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3772,6 +3876,7 @@ test_coap_msg_data_t test52_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = -EINVAL,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3784,6 +3889,7 @@ test_coap_msg_data_t test52_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3867,6 +3973,7 @@ test_coap_msg_data_t test53_data =
     .recognize_desc = NULL,
     .check_critical_desc = NULL,
     .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = NULL,
     .parse_ret = 0,
     .set_type_ret = 0,
     .set_code_ret = 0,
@@ -3879,6 +3986,7 @@ test_coap_msg_data_t test53_data =
     .recognize_ret = NULL,
     .check_critical_ops_ret = 0,
     .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 0,
     .buf = NULL,
     .buf_len = 0,
     .ver = 0,
@@ -3890,6 +3998,181 @@ test_coap_msg_data_t test53_data =
     .token_len = 0,
     .ops = test53_ops,
     .num_ops = TEST53_NUM_OPS,
+    .payload = NULL,
+    .payload_len = 0
+};
+
+#define TEST54_BUF_LEN  64
+#define TEST54_OP1_LEN  4
+#define TEST54_NUM_OPS  1
+
+char test54_buf[TEST54_BUF_LEN] = "/path";
+char test54_op1_val[TEST54_OP1_LEN + 1] = "path";
+test_coap_msg_op_t test54_ops[TEST54_NUM_OPS] =
+{
+    [0] =
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST54_OP1_LEN,
+        .val = test54_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    }
+};
+
+test_coap_msg_data_t test54_data =
+{
+    .parse_desc = NULL,
+    .format_desc = NULL,
+    .copy_desc = NULL,
+    .recognize_desc = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = "test 93: convert the URI path in a message to a string representation",
+    .parse_ret = 0,
+    .set_type_ret = 0,
+    .set_code_ret = 0,
+    .set_msg_id_ret = 0,
+    .set_token_ret = 0,
+    .add_op_ret = 0,
+    .set_payload_ret = 0,
+    .format_ret = 0,
+    .copy_ret = 0,
+    .recognize_ret = NULL,
+    .check_critical_ops_ret = 0,
+    .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 5,
+    .buf = test54_buf,
+    .buf_len = TEST54_BUF_LEN,
+    .ver = COAP_MSG_VER,
+    .type = COAP_MSG_NON,
+    .code_class = 0x2,
+    .code_detail = 0x4,
+    .msg_id = 0x1234,
+    .token = NULL,
+    .token_len = 0,
+    .ops = test54_ops,
+    .num_ops = TEST54_NUM_OPS,
+    .payload = NULL,
+    .payload_len = 0
+};
+
+#define TEST55_BUF_LEN  64
+#define TEST55_OP1_LEN  4
+#define TEST55_OP2_LEN  2
+#define TEST55_OP3_LEN  8
+#define TEST55_NUM_OPS  3
+
+char test55_buf[TEST55_BUF_LEN] = "/path/to/resource";
+char test55_op1_val[TEST55_OP1_LEN + 1] = "path";
+char test55_op2_val[TEST55_OP2_LEN + 1] = "to";
+char test55_op3_val[TEST55_OP3_LEN + 1] = "resource";
+test_coap_msg_op_t test55_ops[TEST55_NUM_OPS] =
+{
+    [0] =
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST55_OP1_LEN,
+        .val = test55_op1_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    },
+    [1] =
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST55_OP2_LEN,
+        .val = test55_op2_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    },
+    [2] =
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST55_OP3_LEN,
+        .val = test55_op3_val,
+        .block_num = 0,
+        .block_more = 0,
+        .block_size = 0
+    }
+};
+
+test_coap_msg_data_t test55_data =
+{
+    .parse_desc = NULL,
+    .format_desc = NULL,
+    .copy_desc = NULL,
+    .recognize_desc = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = "test 94: convert the URI path in a message to a string representation",
+    .parse_ret = 0,
+    .set_type_ret = 0,
+    .set_code_ret = 0,
+    .set_msg_id_ret = 0,
+    .set_token_ret = 0,
+    .add_op_ret = 0,
+    .set_payload_ret = 0,
+    .format_ret = 0,
+    .copy_ret = 0,
+    .recognize_ret = NULL,
+    .check_critical_ops_ret = 0,
+    .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 17,
+    .buf = test55_buf,
+    .buf_len = TEST55_BUF_LEN,
+    .ver = COAP_MSG_VER,
+    .type = COAP_MSG_NON,
+    .code_class = 0x2,
+    .code_detail = 0x4,
+    .msg_id = 0x1234,
+    .token = NULL,
+    .token_len = 0,
+    .ops = test55_ops,
+    .num_ops = TEST55_NUM_OPS,
+    .payload = NULL,
+    .payload_len = 0
+};
+
+#define TEST56_BUF_LEN  64
+
+char test56_buf[TEST56_BUF_LEN] = "/";
+
+test_coap_msg_data_t test56_data =
+{
+    .parse_desc = NULL,
+    .format_desc = NULL,
+    .copy_desc = NULL,
+    .recognize_desc = NULL,
+    .check_critical_desc = NULL,
+    .check_unsafe_desc = NULL,
+    .uri_path_to_str_desc = "test 95: convert the URI path in a message to a string representation",
+    .parse_ret = 0,
+    .set_type_ret = 0,
+    .set_code_ret = 0,
+    .set_msg_id_ret = 0,
+    .set_token_ret = 0,
+    .add_op_ret = 0,
+    .set_payload_ret = 0,
+    .format_ret = 0,
+    .copy_ret = 0,
+    .recognize_ret = NULL,
+    .check_critical_ops_ret = 0,
+    .check_unsafe_ops_ret = 0,
+    .uri_path_to_str_ret = 1,
+    .buf = test56_buf,
+    .buf_len = TEST56_BUF_LEN,
+    .ver = COAP_MSG_VER,
+    .type = COAP_MSG_NON,
+    .code_class = 0x2,
+    .code_detail = 0x4,
+    .msg_id = 0x1234,
+    .token = NULL,
+    .token_len = 0,
+    .ops = NULL,
+    .num_ops = 0,
     .payload = NULL,
     .payload_len = 0
 };
@@ -4449,7 +4732,7 @@ static test_result_t test_check_unsafe_ops_func(test_data_t data)
 }
 
 /**
- *  @brief Parse Block1 and Block2 option values
+ *  @brief Parse Block1 and Block2 option values test fucntion
  *
  *  @param[in] data Pointer to a message test structure
  *
@@ -4488,7 +4771,7 @@ static test_result_t test_parse_block_op_func(test_data_t data)
 }
 
 /**
- *  @brief Format Block1 and Block2 option values
+ *  @brief Format Block1 and Block2 option values test function
  *
  *  @param[in] data Pointer to a message test structure
  *
@@ -4528,6 +4811,73 @@ static test_result_t test_format_block_op_func(test_data_t data)
             }
         }
     }
+    return result;
+}
+
+/**
+ *  @brief Convert the URI path in a message to a string representation test function
+ *
+ *  @param[in] data Pointer to a message test structure
+ *
+ *  @returns Test result
+ */
+static test_result_t test_uri_path_to_str_func(test_data_t data)
+{
+    test_coap_msg_data_t *test_data = (test_coap_msg_data_t *)data;
+    test_result_t result = PASS;
+    coap_msg_t msg = {0};
+    size_t num = 0;
+    char tmp[test_data->buf_len];
+    int ret = 0;
+    int i = 0;
+
+    printf("%s\n", test_data->uri_path_to_str_desc);
+
+    coap_msg_create(&msg);
+    ret = coap_msg_set_type(&msg, test_data->type);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&msg);
+        return FAIL;
+    }
+    ret = coap_msg_set_code(&msg, test_data->code_class, test_data->code_detail);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&msg);
+        return FAIL;
+    }
+    ret = coap_msg_set_msg_id(&msg, test_data->msg_id);
+    if (ret < 0)
+    {
+        coap_msg_destroy(&msg);
+        return FAIL;
+    }
+    for (i = 0; i < test_data->num_ops; i++)
+    {
+        ret = coap_msg_add_op(&msg, test_data->ops[i].num, test_data->ops[i].len, test_data->ops[i].val);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return FAIL;
+        }
+    }
+    num = coap_msg_format(&msg, tmp, sizeof(tmp));
+    if (num < 0)
+    {
+        coap_msg_destroy(&msg);
+        return FAIL;
+    }
+    ret = coap_msg_uri_path_to_str(&msg, tmp, test_data->buf_len);
+    if (ret != test_data->uri_path_to_str_ret)
+    {
+        coap_msg_destroy(&msg);
+        return FAIL;
+    }
+    if (strcmp(tmp, test_data->buf) != 0)
+    {
+        result = FAIL;
+    }
+    coap_msg_destroy(&msg);
     return result;
 }
 
@@ -4631,7 +4981,10 @@ int main(void)
                       {test_parse_block_op_func,     &test51_data},
                       {test_parse_block_op_func,     &test52_data},
                       {test_format_block_op_func,    &test51_data},
-                      {test_format_block_op_func,    &test53_data}
+                      {test_format_block_op_func,    &test53_data},
+                      {test_uri_path_to_str_func,    &test54_data},
+                      {test_uri_path_to_str_func,    &test55_data},
+                      {test_uri_path_to_str_func,    &test56_data}
     };
     unsigned num_tests = DIM(tests);
     unsigned num_pass = 0;

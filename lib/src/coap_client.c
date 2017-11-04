@@ -162,7 +162,7 @@ static int coap_client_dtls_pull_timeout_func(gnutls_transport_ptr_t data, unsig
     }
     if (ret < 0)
     {
-	/* errno has been set by coap_client_dtls_listen_timeout */
+        /* errno has been set by coap_client_dtls_listen_timeout */
         return -1;
     }
     return recv(client->sd, buf, sizeof(buf), MSG_PEEK);
