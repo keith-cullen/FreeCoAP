@@ -51,7 +51,7 @@
 #define PORT                "12436"                                             /**< UDP port number of the server */
 #define PUB_KEY_FILE_NAME   "../../raw_keys/client_pub_key.txt"                 /**< ECDSA public key file name */
 #define PRIV_KEY_FILE_NAME  "../../raw_keys/client_priv_key.txt"                /**< ECDSA private key file name */
-#define ACCESS_FILE_NAME     "../../raw_keys/client_access.txt"                 /**< ECDSA public key access control list file name */
+#define ACCESS_FILE_NAME    "../../raw_keys/client_access.txt"                  /**< ECDSA public key access control list file name */
 #define KEY_LEN             32                                                  /**< Length in bytes of the ECDSA keys*/
 #define SEP_URI_PATH1       "sep"                                               /**< First URI path option value required to trigger a separate response from the server */
 #define SEP_URI_PATH1_LEN   3                                                   /**< Length of the first URI path option value required to trigger a separate response from the server */
