@@ -46,8 +46,46 @@ tinydtls
     - X.509 certificates (RFC 7252 section 9.1.3.3)
 
 
-Build and Test Instructions
-===========================
+Sample Applications
+===================
+
+To run the CoAP client and CoAP server sample applications with CoAP/IPv4
+-------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/server
+
+$ make
+
+$ ./server 0.0.0.0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/client
+
+$ make
+
+$ ./client 127.0.0.1 10000
+
+To run the CoAP client and CoAP server sample applications with CoAP/IPv6
+-------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/server
+
+$ make ip6=y
+
+$ ./server ::0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/client
+
+$ make ip6=y
+
+$ ./client ::1 10000
+
+
+Test Applications
+=================
 
 To test the message/parser formatter
 ------------------------------------
