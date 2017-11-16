@@ -65,7 +65,7 @@ int main(int argc, char **argv)
                         COMMON_NAME);
     if (ret < 0)
     {
-	return EXIT_FAILURE;
+        return EXIT_FAILURE;
     }
     while (1)
     {
