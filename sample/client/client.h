@@ -41,8 +41,8 @@ int client_init(const char *priv_key_file_name,
                 const char *pub_key_file_name,
                 const char *access_file_name);
 int client_create(client_t *client,
-		  const char *host,
-		  const char *port);
+                  const char *host,
+                  const char *port);
 void client_destroy(client_t *client);
 int client_get_time(client_t *client, char *buf, size_t len);
 

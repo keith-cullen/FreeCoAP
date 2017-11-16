@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     ret = server_init(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
     if (ret < 0)
     {
-	return EXIT_FAILURE;
+        return EXIT_FAILURE;
     }
     ret = server_create(&server,
                         argv[1],
