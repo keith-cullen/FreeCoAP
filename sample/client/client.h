@@ -39,13 +39,13 @@ client_t;
 
 int client_init(void);
 int client_create(client_t *client,
-		  const char *host,
-		  const char *port,
-		  const char *key_file_name,
-		  const char *cert_file_name,
-		  const char *trust_file_name,
-		  const char *crl_file_name,
-		  const char *common_name);
+                  const char *host,
+                  const char *port,
+                  const char *key_file_name,
+                  const char *cert_file_name,
+                  const char *trust_file_name,
+                  const char *crl_file_name,
+                  const char *common_name);
 void client_destroy(client_t *client);
 int client_get_time(client_t *client, char *buf, size_t len);
 

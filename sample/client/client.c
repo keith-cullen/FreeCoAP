@@ -51,29 +51,29 @@ int client_init(void)
 }
 
 int client_create(client_t *client,
-		  const char *host,
-		  const char *port,
-		  const char *key_file_name,
-		  const char *cert_file_name,
-		  const char *trust_file_name,
-		  const char *crl_file_name,
-		  const char *common_name)
+                  const char *host,
+                  const char *port,
+                  const char *key_file_name,
+                  const char *cert_file_name,
+                  const char *trust_file_name,
+                  const char *crl_file_name,
+                  const char *common_name)
 {
     int ret = 0;
 
     memset(client, 0, sizeof(client_t));
     ret = coap_client_create(&client->coap_client,
-			     host,
-			     port,
-			     key_file_name,
-			     cert_file_name,
-			     trust_file_name,
-			     crl_file_name,
-			     common_name);
+                             host,
+                             port,
+                             key_file_name,
+                             cert_file_name,
+                             trust_file_name,
+                             crl_file_name,
+                             common_name);
     if (ret < 0)
     {
-	coap_log_error("%s", strerror(-ret));
-	memset(client, 0, sizeof(client_t));
+        coap_log_error("%s", strerror(-ret));
+        memset(client, 0, sizeof(client_t));
         return ret;
     }
     return 0;
