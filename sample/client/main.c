@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     ret = client_create(&client, argv[1], argv[2]);
     if (ret < 0)
     {
-	return EXIT_FAILURE;
+        return EXIT_FAILURE;
     }
     while (1)
     {

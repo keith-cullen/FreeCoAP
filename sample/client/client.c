@@ -55,15 +55,15 @@ int client_init(const char *priv_key_file_name,
 }
 
 int client_create(client_t *client,
-		  const char *host,
-		  const char *port)
+                  const char *host,
+                  const char *port)
 {
     int ret = 0;
 
     memset(client, 0, sizeof(client_t));
     ret = coap_client_create(&client->coap_client,
-			     host,
-			     port,
+                             host,
+                             port,
                              raw_keys_get_ecdsa_priv_key(),
                              raw_keys_get_ecdsa_pub_key_x(),
                              raw_keys_get_ecdsa_pub_key_y(),
@@ -73,8 +73,8 @@ int client_create(client_t *client,
                              RAW_KEYS_ECDSA_KEY_LEN);
     if (ret < 0)
     {
-	coap_log_error("%s", strerror(-ret));
-	memset(client, 0, sizeof(client_t));
+        coap_log_error("%s", strerror(-ret));
+        memset(client, 0, sizeof(client_t));
         return ret;
     }
     return 0;
