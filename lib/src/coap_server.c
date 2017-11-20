@@ -574,6 +574,7 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
     if (ret < 0)
     {
         coap_log_warn("Failed to complete DTLS handshake");
+        gnutls_deinit(trans->session);
         /*
          * return -1 to indicate DTLS error (as expected from coap_server_trans_create)
          * otherwise the server stops completely
