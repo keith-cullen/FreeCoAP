@@ -871,7 +871,9 @@ static ssize_t coap_client_recv(coap_client_t *client, coap_msg_t *msg)
 
 #ifdef COAP_DTLS_EN
     errno = 0;
-    num = gnutls_record_recv(client->session, buf, sizeof(buf));
+    do {
+        num = gnutls_record_recv(client->session, buf, sizeof(buf));
+    } while (num == GNUTLS_E_INTERRUPTED);
     if (errno != 0)
     {
         return -errno;
@@ -1404,6 +1406,11 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
             return ret;
         }
         num = coap_client_recv(client, resp);
+        
+        if (num == -EAGAIN) {
+            /* there's nothing to read now; try again later */
+            continue;
+        }
         if (num < 0)
         {
             return num;

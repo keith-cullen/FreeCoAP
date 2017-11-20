@@ -574,8 +574,12 @@ static int coap_server_trans_dtls_create(coap_server_trans_t *trans)
     if (ret < 0)
     {
         coap_log_warn("Failed to complete DTLS handshake");
-        gnutls_deinit(trans->session);
-        return ret;
+        /*
+         * return -1 to indicate DTLS error (as expected from coap_server_trans_create)
+         * otherwise the server stops completely
+         */
+        return -1;
+
     }
 #ifdef COAP_CLIENT_AUTH
     ret = coap_server_trans_dtls_verify_peer_cert(trans);
@@ -982,7 +986,9 @@ static ssize_t coap_server_trans_recv(coap_server_trans_t *trans, coap_msg_t *ms
 
 #ifdef COAP_DTLS_EN
     errno = 0;
-    num = gnutls_record_recv(trans->session, buf, sizeof(buf));
+    do {
+        num = gnutls_record_recv(trans->session, buf, sizeof(buf));
+    } while(num == GNUTLS_E_INTERRUPTED);
     if (errno != 0)
     {
         return -errno;
@@ -1863,6 +1869,11 @@ static int coap_server_exchange(coap_server_t *server)
     /* receive message */
     coap_msg_create(&recv_msg);
     num = coap_server_trans_recv(trans, &recv_msg);
+    if (num == -EAGAIN) {
+        /* there's nothing to read now; try again later */
+        coap_msg_destroy(&recv_msg);
+        return 0;
+    }
     if (num < 0)
     {
         coap_msg_destroy(&recv_msg);
@@ -2114,7 +2125,7 @@ int coap_server_run(coap_server_t *server)
             return ret;
         }
         ret = coap_server_exchange(server);
-        if (ret < 0)
+        if (ret < 0 && ret != -EAGAIN)
         {
             if ((ret == -ETIMEDOUT) || (ret == -ECONNRESET))
             {
