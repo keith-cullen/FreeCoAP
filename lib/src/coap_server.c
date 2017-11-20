@@ -1889,9 +1889,16 @@ static int coap_server_exchange(coap_server_t *server)
         {
             /* message deduplication */
             /* acknowledge the (confirmable) request again */
-            /* do not send the response again */
+            /* do not send the response again if it was not piggybacked */
             coap_log_info("Received duplicate confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
-            ret = coap_server_trans_send_ack(trans, &recv_msg);
+            resp_type = coap_server_get_resp_type(server, &recv_msg);
+            if (resp_type == COAP_SERVER_SEPARATE) {
+                /* do not send the response again */
+                ret = coap_server_trans_send_ack(trans, &recv_msg);
+            } else {
+                /* re-send piggybacked response */
+                ret = coap_server_trans_send(trans, &trans->resp);
+            }
             coap_msg_destroy(&recv_msg);
             if (ret < 0)
             {
