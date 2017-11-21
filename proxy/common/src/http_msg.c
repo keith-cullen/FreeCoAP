@@ -272,6 +272,14 @@ static ssize_t http_msg_parse_start(http_msg_t *msg, char *str)
 
     for (i = 0; i < HTTP_MSG_NUM_START; i++)
     {
+	/* 
+	 * Removing unnecessary '/' (e.g. when using cURL)
+	 */
+	if(*next == '/')
+	{
+	    next++;
+	}
+
         start = next;
         if (i < HTTP_MSG_NUM_START - 1)
         {
@@ -347,6 +355,16 @@ static ssize_t http_msg_parse_headers(http_msg_t *msg, char *str)
             return -EBADMSG;
         }
         *value++ = '\0';
+
+	/*
+	 * Skip 'Accept' header since it's not supported
+         * (common header in many HTTP applications)
+         */
+	if(strcmp("Accept", name) == 0)
+	{
+	    continue;
+	}
+
         ret = http_msg_list_add(&msg->header, http_msg_trim_ws(name), http_msg_trim_ws(value));
         if (ret < 0)
         {
