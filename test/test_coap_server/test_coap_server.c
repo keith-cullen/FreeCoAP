@@ -272,7 +272,8 @@ static int server_handle_blockwise(coap_server_t *server, coap_msg_t *req, coap_
     unsigned block_num = 0;
     unsigned start = 0;
     unsigned len = 0;
-    char block_val[3] = {0};
+    char *block_val = NULL;
+    int block_len = 0;
     int ret = 0;
 
     /* determine method */
@@ -318,13 +319,28 @@ static int server_handle_blockwise(coap_server_t *server, coap_msg_t *req, coap_
         memcpy(blockwise_buf + start, payload, len);
 
         /* response */
-        ret = coap_msg_op_format_block_val(block_val, 1, block_num, 0, block_size);
+
+        /* 
+         * determine the size of block val. depeneding on block num.
+         * this avoids unnecessary overhead (maximum is 3 bytes)
+         * https://tools.ietf.org/html/rfc7959#section-2.2
+         */
+        if(block_num < 16)
+            block_len = 1;
+        else if (block_num < 4096)
+            block_len = 2;
+        else
+            block_len=3;
+        block_val = (char *) malloc(block_len);
+
+        ret = coap_msg_op_format_block_val(block_val, block_len, block_num, 0, block_size);
         if (ret < 0)
         {
             coap_log_error("Failed to format Block1 option value, num:%d, size:%d", block_num, block_size);
             return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
         }
         ret = coap_msg_add_op(resp, COAP_MSG_BLOCK1, ret, block_val);
+        free(block_val);
         if (ret < 0)
         {
             coap_log_error("Failed to add Block1 option to response message");
@@ -361,13 +377,28 @@ static int server_handle_blockwise(coap_server_t *server, coap_msg_t *req, coap_
         }
 
         /* response */
-        ret = coap_msg_op_format_block_val(block_val, 1, block_num, block_more, block_size);
+
+        /* 
+         * determine the size of block val. depeneding on block num.
+         * this avoids unnecessary overhead (maximum is 3 bytes)
+         * https://tools.ietf.org/html/rfc7959#section-2.2
+         */
+        if(block_num < 16)
+            block_len = 1;
+        else if (block_num < 4096)
+            block_len = 2;
+        else
+            block_len=3;
+        block_val = (char *) malloc(block_len);
+
+        ret = coap_msg_op_format_block_val(block_val, block_len, block_num, block_more, block_size);
         if (ret < 0)
         {
             coap_log_error("Failed to format Block2 option value");
             return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
         }
         ret = coap_msg_add_op(resp, COAP_MSG_BLOCK2, ret, block_val);
+        free(block_val);
         if (ret < 0)
         {
             coap_log_error("Failed to add Block2 option to response message");
