@@ -47,6 +47,10 @@
 #define COAP_SERVER_ADDR_BUF_LEN      128                                       /**< Buffer length for host addresses */
 #define COAP_SERVER_DIAG_PAYLOAD_LEN  128                                       /**< Buffer length for diagnostic payloads */
 
+#define coap_server_trans_get_req(tran)   (&(trans)->req)                       /**< Get the last request message received for this transaction */
+#define coap_server_trans_get_resp(tran)  (&(trans)->resp)                      /**< Get the last response message sent for this transaction */
+
+
 /**
  *  @brief Response type enumeration
  */

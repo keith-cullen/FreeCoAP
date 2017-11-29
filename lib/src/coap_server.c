@@ -1821,6 +1821,7 @@ static int coap_server_exchange(coap_server_t *server)
 {
     coap_ipv_sockaddr_in_t client_sin = {0};
     coap_server_trans_t *trans = NULL;
+    coap_msg_t *prev_resp_msg = NULL;
     coap_msg_t recv_msg = {0};
     coap_msg_t send_msg = {0};
     socklen_t client_sin_len = 0;
@@ -1876,15 +1877,30 @@ static int coap_server_exchange(coap_server_t *server)
         if (coap_msg_get_type(&recv_msg) == COAP_MSG_CON)
         {
             /* message deduplication */
-            /* acknowledge the (confirmable) request again */
-            /* do not send the response again */
             coap_log_info("Received duplicate confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
-            ret = coap_server_trans_send_ack(trans, &recv_msg);
-            coap_msg_destroy(&recv_msg);
-            if (ret < 0)
+            resp_type = coap_server_get_resp_type(server, &recv_msg);
+            if (resp_type == COAP_SERVER_SEPARATE)
             {
-                coap_server_trans_destroy(trans);
-                return ret;
+                /* send another acknowledgement */
+                ret = coap_server_trans_send_ack(trans, &recv_msg);
+                coap_msg_destroy(&recv_msg);
+                if (ret < 0)
+                {
+                    coap_server_trans_destroy(trans);
+                    return ret;
+                }
+            }
+            else
+            {
+                /* send the previous piggy-backed response */
+                prev_resp_msg = coap_server_trans_get_resp(trans);
+                num = coap_server_trans_send(trans, prev_resp_msg);
+                coap_msg_destroy(&recv_msg);
+                if (num < 0)
+                {
+                    coap_server_trans_destroy(trans);
+                    return ret;
+                }
             }
             return 0;
         }
@@ -1892,7 +1908,6 @@ static int coap_server_exchange(coap_server_t *server)
         {
             /* message deduplication */
             /* do not acknowledge the (non-confirmable) request again */
-            /* do not send the response again */
             coap_log_info("Received duplicate non-confirmable request from address %s and port %u", trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
             coap_msg_destroy(&recv_msg);
             return 0;
