@@ -27,12 +27,13 @@
 
 #include <string.h>
 #include <errno.h>
-#include <gnutls/gnutls.h>
 #include <time.h>
 #include "server.h"
 #include "coap_msg.h"
 #include "coap_log.h"
+#ifdef COAP_DTLS_EN
 #include "raw_keys.h"
+#endif
 
 #define SERVER_URI_PATH_BUF_LEN  32
 #define SERVER_PAYLOAD_BUF_LEN   32  /* ctime_r writes to a buffer which must be at least 26 bytes */
@@ -113,9 +114,12 @@ int server_init(const char *priv_key_file_name,
                 const char *pub_key_file_name,
                 const char *access_file_name)
 {
+#ifdef COAP_DTLS_EN
     int ret = 0;
+#endif
 
     coap_log_set_level(COAP_LOG_DEBUG);
+#ifdef COAP_DTLS_EN
     ret = raw_keys_load(priv_key_file_name,
                         pub_key_file_name,
                         access_file_name);
@@ -124,6 +128,7 @@ int server_init(const char *priv_key_file_name,
         coap_log_error("Unable to load raw public keys");
         return ret;
     }
+#endif
     return 0;
 }
 
@@ -134,6 +139,7 @@ int server_create(server_t *server,
     int ret = 0;
 
     memset(server, 0, sizeof(server_t));
+#ifdef COAP_DTLS_EN
     ret = coap_server_create(&server->coap_server,
                              server_handle,
                              host,
@@ -145,6 +151,12 @@ int server_create(server_t *server,
                              raw_keys_get_ecdsa_access_y(),
                              raw_keys_get_ecdsa_access_num(),
                              RAW_KEYS_ECDSA_KEY_LEN);
+#else
+    ret = coap_server_create(&server->coap_server,
+                             server_handle,
+                             host,
+                             port);
+#endif
     if (ret < 0)
     {
         if (ret != -1)

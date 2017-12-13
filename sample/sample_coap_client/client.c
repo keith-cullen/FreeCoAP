@@ -27,11 +27,12 @@
 
 #include <string.h>
 #include <errno.h>
-#include <gnutls/gnutls.h>
 #include "client.h"
 #include "coap_msg.h"
 #include "coap_log.h"
+#ifdef COAP_DTLS_EN
 #include "raw_keys.h"
+#endif
 
 #define CLIENT_URI_PATH_BUF_LEN  32
 
@@ -40,9 +41,12 @@ int client_init(const char *priv_key_file_name,
                 const char *pub_key_file_name,
                 const char *access_file_name)
 {
+#ifdef COAP_DTLS_EN
     int ret = 0;
+#endif
 
     coap_log_set_level(COAP_LOG_DEBUG);
+#ifdef COAP_DTLS_EN
     ret = raw_keys_load(priv_key_file_name,
                         pub_key_file_name,
                         access_file_name);
@@ -51,6 +55,7 @@ int client_init(const char *priv_key_file_name,
         coap_log_error("Unable to load raw public keys");
         return ret;
     }
+#endif
     return 0;
 }
 
@@ -61,6 +66,7 @@ int client_create(client_t *client,
     int ret = 0;
 
     memset(client, 0, sizeof(client_t));
+#ifdef COAP_DTLS_EN
     ret = coap_client_create(&client->coap_client,
                              host,
                              port,
@@ -71,6 +77,11 @@ int client_create(client_t *client,
                              raw_keys_get_ecdsa_access_y(),
                              raw_keys_get_ecdsa_access_num(),
                              RAW_KEYS_ECDSA_KEY_LEN);
+#else
+    ret = coap_client_create(&client->coap_client,
+                             host,
+                             port);
+#endif
     if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));

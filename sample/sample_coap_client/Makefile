@@ -2,6 +2,7 @@ ifeq ($(ip6),y)
 IP6_CFLAGS = -DCOAP_IP6
 endif
 
+ifneq ($(dtls),n)
 D1 = ../../org.eclipse.tinydtls
 K1 = ../../test/raw_keys
 DTLS_CFLAGS = -DCOAP_DTLS_EN \
@@ -43,6 +44,7 @@ DTLS_OBJS = ccm.o \
             ecc.o \
             sha2.o \
             raw_keys.o
+endif
 
 I1 = ../../lib/include
 S1 = ../../lib/src
@@ -67,7 +69,7 @@ OBJS = main.o \
        coap_log.o
 OBJS += $(DTLS_OBJS)
 LIBS =
-PROG = client
+PROG = sample_coap_client
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
