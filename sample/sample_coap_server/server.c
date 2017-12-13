@@ -27,7 +27,9 @@
 
 #include <string.h>
 #include <errno.h>
+#ifdef COAP_DTLS_EN
 #include <gnutls/gnutls.h>
+#endif
 #include <time.h>
 #include "server.h"
 #include "coap_msg.h"
@@ -110,9 +112,12 @@ static int server_handle(coap_server_t *coap_server, coap_msg_t *req, coap_msg_t
 /* one-time initialisation */
 int server_init(void)
 {
+#ifdef COAP_DTLS_EN
     const char *gnutls_ver = NULL;
+#endif
 
     coap_log_set_level(COAP_LOG_DEBUG);
+#ifdef COAP_DTLS_EN
     gnutls_ver = gnutls_check_version(NULL);
     if (gnutls_ver == NULL)
     {
@@ -120,6 +125,7 @@ int server_init(void)
         return -1;
     }
     coap_log_info("GnuTLS version: %s", gnutls_ver);
+#endif
     return 0;
 }
 
@@ -134,6 +140,7 @@ int server_create(server_t *server,
     int ret = 0;
 
     memset(server, 0, sizeof(server_t));
+#ifdef COAP_DTLS_EN
     ret = coap_server_create(&server->coap_server,
                              server_handle,
                              host,
@@ -142,6 +149,12 @@ int server_create(server_t *server,
                              cert_file_name,
                              trust_file_name,
                              crl_file_name);
+#else
+    ret = coap_server_create(&server->coap_server,
+                             server_handle,
+                             host,
+                             port);
+#endif
     if (ret < 0)
     {
         if (ret != -1)

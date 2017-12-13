@@ -1,11 +1,13 @@
 ifeq ($(ip6),y)
 IP6_CFLAGS = -DCOAP_IP6
 endif
+ifneq ($(dtls),n)
 DTLS_CFLAGS = -DCOAP_DTLS_EN
 DTLS_LIBS = -lgmp \
             -lhogweed \
             -lnettle \
             -lgnutls
+endif
 I1 = ../../lib/include
 S1 = ../../lib/src
 CC_ ?= gcc
@@ -26,7 +28,7 @@ OBJS = main.o \
        coap_msg.o \
        coap_log.o
 LIBS = $(DTLS_LIBS)
-PROG = client
+PROG = sample_coap_client
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
