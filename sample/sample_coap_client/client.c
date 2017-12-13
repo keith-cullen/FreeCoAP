@@ -27,7 +27,9 @@
 
 #include <string.h>
 #include <errno.h>
+#ifdef COAP_DTLS_EN
 #include <gnutls/gnutls.h>
+#endif
 #include "client.h"
 #include "coap_msg.h"
 #include "coap_log.h"
@@ -37,9 +39,12 @@
 /* one-time initialisation */
 int client_init(void)
 {
+#ifdef COAP_DTLS_EN
     const char *gnutls_ver = NULL;
+#endif
 
     coap_log_set_level(COAP_LOG_DEBUG);
+#ifdef COAP_DTLS_EN
     gnutls_ver = gnutls_check_version(NULL);
     if (gnutls_ver == NULL)
     {
@@ -47,6 +52,7 @@ int client_init(void)
         return -1;
     }
     coap_log_info("GnuTLS version: %s", gnutls_ver);
+#endif
     return 0;
 }
 
@@ -62,6 +68,7 @@ int client_create(client_t *client,
     int ret = 0;
 
     memset(client, 0, sizeof(client_t));
+#ifdef COAP_DTLS_EN
     ret = coap_client_create(&client->coap_client,
                              host,
                              port,
@@ -70,6 +77,11 @@ int client_create(client_t *client,
                              trust_file_name,
                              crl_file_name,
                              common_name);
+#else
+    ret = coap_client_create(&client->coap_client,
+                             host,
+                             port);
+#endif
     if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));

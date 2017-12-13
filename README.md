@@ -46,6 +46,28 @@ tinydtls
     - X.509 certificates (RFC 7252 section 9.1.3.3)
 
 
+Autotools
+=========
+
+To generate a configure script
+------------------------------
+
+$ cd FreeCoAP
+
+$ autoreconf --install
+
+To build and install FreeCoAP as a library
+------------------------------------------
+
+$ configure
+
+$ make
+
+$ make install
+
+(Note: The FreeCoAP library built using this process requires GnuTLS and cannot be used without DTLS.)
+
+
 Sample Applications
 ===================
 

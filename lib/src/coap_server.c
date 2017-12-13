@@ -44,7 +44,6 @@
 #include <sys/socket.h>
 #include <sys/timerfd.h>
 #include <sys/select.h>
-#include <linux/types.h>
 #ifdef COAP_DTLS_EN
 #include <gnutls/x509.h>
 #endif
