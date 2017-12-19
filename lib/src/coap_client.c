@@ -54,10 +54,11 @@
 
 #ifdef COAP_DTLS_EN
 
-#define COAP_CLIENT_DTLS_MTU              COAP_MSG_MAX_BUF_LEN                  /**< Maximum transmission unit excluding the UDP and IPv6 headers */
-#define COAP_CLIENT_DTLS_RETRANS_TIMEOUT  100                                   /**< Retransmission timeout (msec) for the DTLS handshake */
-#define COAP_CLIENT_DTLS_TOTAL_TIMEOUT    5000                                  /**< Total timeout (msec) for the DTLS handshake */
-#define COAP_CLIENT_DTLS_PRIORITIES       "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
+#define COAP_CLIENT_DTLS_MTU                 COAP_MSG_MAX_BUF_LEN               /**< Maximum transmission unit excluding the UDP and IPv6 headers */
+#define COAP_CLIENT_DTLS_RETRANS_TIMEOUT     1000                               /**< Retransmission timeout (msec) for the DTLS handshake */
+#define COAP_CLIENT_DTLS_TOTAL_TIMEOUT       60000                              /**< Total timeout (msec) for the DTLS handshake */
+#define COAP_CLIENT_DTLS_HANDSHAKE_ATTEMPTS  60                                 /**< Maximum number of DTLS handshake attempts */
+#define COAP_CLIENT_DTLS_PRIORITIES          "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
                                                                                 /**< DTLS priorities */
 #endif
 
@@ -127,9 +128,15 @@ static int coap_client_dtls_listen_timeout(coap_client_t *client, unsigned ms)
 static ssize_t coap_client_dtls_pull_func(gnutls_transport_ptr_t data, void *buf, size_t len)
 {
     coap_client_t *client = NULL;
+    ssize_t num = 0;
 
     client = (coap_client_t *)data;
-    return recv(client->sd, buf, len, 0);
+    num = recv(client->sd, buf, len, 0);
+    if (num >= 0)
+    {
+        coap_log_debug("pulled %zd bytes", num);
+    }
+    return num;
 }
 
 /**
@@ -186,9 +193,15 @@ static int coap_client_dtls_pull_timeout_func(gnutls_transport_ptr_t data, unsig
 static ssize_t coap_client_dtls_push_func(gnutls_transport_ptr_t data, const void *buf, size_t len)
 {
     coap_client_t *client = NULL;
+    ssize_t num = 0;
 
     client = (coap_client_t *)data;
-    return sendto(client->sd, buf, len, 0, (struct sockaddr *)&client->server_sin, client->server_sin_len);
+    num = sendto(client->sd, buf, len, 0, (struct sockaddr *)&client->server_sin, client->server_sin_len);
+    if (num >= 0)
+    {
+        coap_log_debug("pushed %zd bytes", num);
+    }
+    return num;
 }
 
 /**
@@ -206,13 +219,16 @@ static int coap_client_dtls_handshake(coap_client_t *client)
     gnutls_mac_algorithm_t mac = 0;
     gnutls_kx_algorithm_t kx = 0;
     const char *cipher_suite = NULL;
+    unsigned timeout = 0;
     int ret = 0;
     int i = 0;
 
-    for (i = 0; i < COAP_CLIENT_DTLS_TOTAL_TIMEOUT / COAP_CLIENT_DTLS_RETRANS_TIMEOUT; i++)
+    coap_log_info("Initiating DTLS handshake");
+    for (i = 0; i < COAP_CLIENT_DTLS_HANDSHAKE_ATTEMPTS; i++)
     {
         errno = 0;
         ret = gnutls_handshake(client->session);
+        coap_log_debug("DTLS handshake result: %s", gnutls_strerror_name(ret));
         if ((errno != 0) && (errno != EAGAIN))
         {
             return -errno;
@@ -242,12 +258,18 @@ static int coap_client_dtls_handshake(coap_client_t *client)
         }
         if (ret != GNUTLS_E_AGAIN)
         {
+            coap_log_error("Failed to complete DTLS handshake");
             return -1;
         }
-        ret = coap_client_dtls_listen_timeout(client, COAP_CLIENT_DTLS_RETRANS_TIMEOUT);
-        if (ret < 0)
+        if (i < COAP_CLIENT_DTLS_HANDSHAKE_ATTEMPTS - 1)
         {
-            return ret;
+            timeout = gnutls_dtls_get_timeout(client->session);
+            coap_log_debug("Handshake timeout: %u msec", timeout);
+            ret = coap_client_dtls_listen_timeout(client, timeout);
+            if (ret < 0)
+            {
+                return ret;
+            }
         }
     }
     return -ETIMEDOUT;
@@ -370,7 +392,7 @@ static int coap_client_dtls_verify_peer_cert(coap_client_t *client, const char *
  *
  *  @returns Operation status
  *  @retval 0 Success
- *  @retval -1 Error
+ *  @retval <0 Error
  */
 static int coap_client_dtls_create(coap_client_t *client,
                                    const char *key_file_name,
@@ -470,7 +492,6 @@ static int coap_client_dtls_create(coap_client_t *client,
     ret = coap_client_dtls_handshake(client);
     if (ret < 0)
     {
-        coap_log_warn("Failed to complete DTLS handshake");
         gnutls_deinit(client->session);
         gnutls_priority_deinit(client->priority);
         gnutls_certificate_free_credentials(client->cred);
@@ -1137,7 +1158,7 @@ static int coap_client_listen_ack(coap_client_t *client, coap_msg_t *msg)
         }
         if (FD_ISSET(client->sd, &read_fds))
         {
-            return 0;
+            break;
         }
         if (FD_ISSET(client->timer_fd, &read_fds))
         {
@@ -1335,6 +1356,10 @@ static int coap_client_exchange_sep(coap_client_t *client, coap_msg_t *req, coap
             return ret;
         }
         num = coap_client_recv(client, resp);
+        if (num == -EAGAIN)
+        {
+            continue;
+        }
         if (num < 0)
         {
             return num;
@@ -1403,6 +1428,10 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
             return ret;
         }
         num = coap_client_recv(client, resp);
+        if (num == -EAGAIN)
+        {
+            continue;
+        }
         if (num < 0)
         {
             return num;
@@ -1481,6 +1510,10 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
             return ret;
         }
         num = coap_client_recv(client, resp);
+        if (num == -EAGAIN)
+        {
+            continue;
+        }
         if (num < 0)
         {
             return num;
