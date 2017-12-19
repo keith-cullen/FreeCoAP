@@ -125,14 +125,34 @@ int connection_init(void)
  */
 static int connection_coap_client_create(connection_t *con, uri_t *uri)
 {
-    int ret = 0;
+    int ret = 0, len = 0, host_len = 0, scope_len = 0;
+    char *host_and_scope = NULL, *uri_host = NULL, *uri_scope = NULL;
+
+    uri_host = uri_get_host(uri);
+    uri_scope = uri_get_scope(uri);
+    if (uri_scope != NULL) {
+        host_len = strlen(uri_host);
+        scope_len = strlen(uri_scope);
+        len = host_len + scope_len + 2; //'%' and '\0'
+        host_and_scope = calloc(len, 1);
+        if (host_and_scope == NULL){
+            perror("Error alloc host and scope");
+            return -ENOMEM;
+        }
+        memcpy(host_and_scope, uri_host, host_len);
+        *(host_and_scope + host_len) = '%';
+        memcpy((host_and_scope + host_len + 1), uri_scope, scope_len);
+        *(host_and_scope + len - 1) = '\0';
+    } else {
+        host_and_scope = uri_host;
+    }
 
     coap_log_info("[%u] <%u> %s Connecting to CoAP server host %s and port %s",
                   con->listener_index, con->con_index, con->addr,
                   uri_get_host(uri), uri_get_port(uri));
 
     ret = coap_client_create(&con->coap_client,
-                            uri_get_host(uri),
+                            host_and_scope,
                             uri_get_port(uri),
                             param_get_coap_client_key_file_name(con->param),
                             param_get_coap_client_cert_file_name(con->param),
@@ -143,7 +163,7 @@ static int connection_coap_client_create(connection_t *con, uri_t *uri)
     {
         coap_log_error("[%u] <%u> %s Failed to connect to CoAP server host %s and port %s: %s",
                        con->listener_index, con->con_index, con->addr,
-                       uri_get_host(uri), uri_get_port(uri),
+                       host_and_scope, uri_get_port(uri),
                        strerror(-ret));
         return ret;
     }

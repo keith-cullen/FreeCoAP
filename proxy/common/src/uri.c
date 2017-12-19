@@ -31,6 +31,7 @@
  *  @brief Source file for the FreeCoAP URI library
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -344,6 +345,8 @@ void uri_destroy(uri_t *uri)
         free(uri->query);
     if (uri->fragment != NULL)
         free(uri->fragment);
+    if (uri->scope != NULL)
+        free(uri->scope);
     memset(uri, 0, sizeof(uri_t));
 }
 
@@ -412,6 +415,7 @@ static int uri_parse_hier_part(uri_t *uri, char **q)
     char *path = NULL;
     char *p = NULL;
     char *r = NULL;
+    char *scope = NULL;
 
     if ((uri->userinfo != NULL)
      || (uri->host != NULL)
@@ -482,6 +486,13 @@ static int uri_parse_hier_part(uri_t *uri, char **q)
         }
         if (len > 1)
         {
+            scope = strchr(p, '%');
+            if(scope != NULL) {
+                len = scope - p + 1;
+                *scope = '\0';
+                scope++;
+            }
+
             uri->host = calloc(len, 1);
             if (uri->host == NULL)
             {
@@ -493,6 +504,18 @@ static int uri_parse_hier_part(uri_t *uri, char **q)
             {
                 uri_destroy(uri);
                 return -EBADMSG;
+            }
+            
+            if(scope != NULL) {
+                len = strlen(scope) + 1;
+                uri->scope = calloc(len, 1);
+                memcpy(uri->scope, scope, len);
+            }
+
+            if (uri->host == NULL)
+            {
+                uri_destroy(uri);
+                return -ENOMEM;
             }
         }
 

@@ -41,6 +41,7 @@
 #define uri_get_path(uri)      ((uri)->path)                                    /**< Get the path from a URI */
 #define uri_get_query(uri)     ((uri)->query)                                   /**< Get the query from a URI */
 #define uri_get_fragment(uri)  ((uri)->fragment)                                /**< Get the fragment from a URI */
+#define uri_get_scope(uri)     ((uri)->scope)                                   /**< Get the scope id from a URI */
 
 typedef struct
 {
@@ -51,6 +52,7 @@ typedef struct
     char *path;                                                                 /**< Path */
     char *query;                                                                /**< Query */
     char *fragment;                                                             /**< Fragment */
+    char *scope;                                                                /**< Scope id for link-local addr */
 }
 uri_t;
 
