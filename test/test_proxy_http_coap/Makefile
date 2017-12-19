@@ -4,6 +4,9 @@ endif
 ifeq ($(coap_ip6),y)
 COAP_IP6_CFLAGS += -DCOAP_IP6
 endif
+ifneq ($(dtls),n)
+COAP_DTLS_CFLAGS = -DCOAP_DTLS_EN
+endif
 I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
@@ -17,10 +20,10 @@ CFLAGS = -Wall \
          -I$(I3) \
          -DTLS_CLIENT_AUTH \
          -DCOAP_PROXY \
-         -DCOAP_DTLS_EN \
          -DCONNECTION_STATS
 CFLAGS += $(HTTP_IP6_CFLAGS)
 CFLAGS += $(COAP_IP6_CFLAGS)
+CFLAGS += $(COAP_DTLS_CFLAGS)
 LD_ ?= gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \

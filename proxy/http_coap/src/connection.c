@@ -131,6 +131,7 @@ static int connection_coap_client_create(connection_t *con, uri_t *uri)
                   con->listener_index, con->con_index, con->addr,
                   uri_get_host(uri), uri_get_port(uri));
 
+#ifdef COAP_DTLS_EN
     ret = coap_client_create(&con->coap_client,
                             uri_get_host(uri),
                             uri_get_port(uri),
@@ -139,6 +140,11 @@ static int connection_coap_client_create(connection_t *con, uri_t *uri)
                             param_get_coap_client_trust_file_name(con->param),
                             NULL,
                             NULL);
+#else
+    ret = coap_client_create(&con->coap_client,
+                            uri_get_host(uri),
+                            uri_get_port(uri));
+#endif
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to connect to CoAP server host %s and port %s: %s",
