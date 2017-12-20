@@ -56,11 +56,11 @@
 
 #ifdef COAP_DTLS_EN
 
-#define COAP_SERVER_DTLS_MTU              COAP_MSG_MAX_BUF_LEN                  /**< Maximum transmission unit excluding the UDP and IPv6 headers */
-#define COAP_SERVER_DTLS_RETRANS_TIMEOUT  100                                   /**< Retransmission timeout (msec) for the DTLS handshake */
-#define COAP_SERVER_DTLS_TOTAL_TIMEOUT    5000                                  /**< Total timeout (msec) for the DTLS handshake */
-#define COAP_SERVER_DTLS_NUM_DH_BITS      1024                                  /**< DTLS Diffie-Hellman key size */
-#define COAP_SERVER_DTLS_PRIORITIES       "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
+#define COAP_SERVER_DTLS_MTU                 COAP_MSG_MAX_BUF_LEN               /**< Maximum transmission unit excluding the UDP and IPv6 headers */
+#define COAP_SERVER_DTLS_HANDSHAKE_ATTEMPTS  60                                 /**< Maximum number of DTLS handshake attempts */
+#define COAP_SERVER_DTLS_RETRANS_TIMEOUT     1000                               /**< Retransmission timeout (msec) for the DTLS handshake */
+#define COAP_SERVER_DTLS_NUM_DH_BITS         1024                               /**< DTLS Diffie-Hellman key size */
+#define COAP_SERVER_DTLS_PRIORITIES          "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
                                                                                 /**< DTLS priorities */
 #endif
 
@@ -265,10 +265,16 @@ static int coap_server_trans_dtls_write(dtls_context_t *ctx, session_t *sess, ui
 {
     coap_server_trans_t *trans = NULL;
     coap_server_t *server = NULL;
+    ssize_t num = 0;
 
     trans = (coap_server_trans_t *)dtls_get_app_data(ctx);
     server = trans->server;
-    return sendto(server->sd, data, len, 0, (struct sockaddr *)&trans->client_sin, trans->client_sin_len);
+    num = sendto(server->sd, data, len, 0, (struct sockaddr *)&trans->client_sin, trans->client_sin_len);
+    if (num >= 0)
+    {
+        coap_log_debug("pushed %zd bytes", num);
+    }
+    return num;
 }
 
 /**
@@ -487,6 +493,7 @@ static ssize_t coap_server_trans_dtls_recv(coap_server_trans_t *trans, char *buf
     {
         return -errno;
     }
+    coap_log_debug("pulled %zd bytes", len);
     if ((client_sin_len != trans->client_sin_len)
      || (memcmp(&client_sin, &trans->client_sin, trans->client_sin_len) == 0))
     {
@@ -529,18 +536,22 @@ static ssize_t coap_server_trans_dtls_recv(coap_server_trans_t *trans, char *buf
  */
 static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
 {
+    unsigned timeout = 0;
     ssize_t num = 0;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
     int ret = 0;
     int i = 0;
 
-    for (i = 0; i < COAP_SERVER_DTLS_TOTAL_TIMEOUT / COAP_SERVER_DTLS_RETRANS_TIMEOUT; i++)
+    coap_log_info("Initiating DTLS handshake");
+    for (i = 0; i < COAP_SERVER_DTLS_HANDSHAKE_ATTEMPTS; i++)
     {
         if (trans->state != COAP_SERVER_DTLS_UNCONNECTED)
         {
             break;
         }
-        ret = coap_server_trans_dtls_listen_timeout(trans, COAP_SERVER_DTLS_RETRANS_TIMEOUT);
+        timeout = COAP_SERVER_DTLS_RETRANS_TIMEOUT;
+        coap_log_debug("Handshake timeout: %u msec", timeout);
+        ret = coap_server_trans_dtls_listen_timeout(trans, timeout);
         if (ret < 0)
         {
             return ret;
@@ -1773,6 +1784,11 @@ static int coap_server_exchange(coap_server_t *server)
     /* receive message */
     coap_msg_create(&recv_msg);
     num = coap_server_trans_recv(trans, &recv_msg);
+    if (num == -EAGAIN)
+    {
+        coap_msg_destroy(&recv_msg);
+        return 0;
+    }
     if (num < 0)
     {
         coap_msg_destroy(&recv_msg);
