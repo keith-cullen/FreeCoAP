@@ -55,9 +55,9 @@
 
 #ifdef COAP_DTLS_EN
 
-#define COAP_CLIENT_DTLS_RETRANS_TIMEOUT  100                                   /**< Retransmission timeout (msec) for the DTLS handshake */
-#define COAP_CLIENT_DTLS_TOTAL_TIMEOUT    5000                                  /**< Total timeout (msec) for the DTLS handshake */
-                                                                                /**< DTLS priorities */
+#define COAP_CLIENT_DTLS_HANDSHAKE_ATTEMPTS  60                                 /**< Maximum number of DTLS handshake attempts */
+#define COAP_CLIENT_DTLS_RETRANS_TIMEOUT     1000                               /**< Retransmission timeout (msec) for the DTLS handshake */
+
 #endif
 
 static int rand_init = 0;                                                       /**< Indicates whether or not the random number generator has been initialised */
@@ -122,9 +122,15 @@ static int coap_client_dtls_listen_timeout(coap_client_t *client, unsigned ms)
 static int coap_client_dtls_write(dtls_context_t *ctx, session_t *sess, uint8_t *data, size_t len)
 {
     coap_client_t *client = NULL;
+    ssize_t num = 0;
 
     client = (coap_client_t *)dtls_get_app_data(ctx);
-    return sendto(client->sd, data, len, 0, (struct sockaddr *)&client->server_sin, client->server_sin_len);
+    num = sendto(client->sd, data, len, 0, (struct sockaddr *)&client->server_sin, client->server_sin_len);
+    if (num >= 0)
+    {
+        coap_log_debug("pushed %zd bytes", num);
+    }
+    return num;
 }
 
 /**
@@ -329,6 +335,7 @@ static ssize_t coap_client_dtls_recv(coap_client_t *client, char *buf, size_t le
     {
         return -errno;
     }
+    coap_log_debug("pulled %zd bytes", len);
     client->app_start = NULL;
     client->app_len = 0;
     errno = 0;
@@ -365,23 +372,28 @@ static ssize_t coap_client_dtls_recv(coap_client_t *client, char *buf, size_t le
  */
 static int coap_client_dtls_handshake(coap_client_t *client)
 {
+    unsigned timeout = 0;
     ssize_t num = 0;
     char buf[COAP_MSG_MAX_BUF_LEN] = {0};
     int ret = 0;
     int i = 0;
 
+    coap_log_info("Initiating DTLS handshake");
     ret = dtls_connect(client->ctx, &client->sess);
     if (ret < 0)
     {
+        coap_log_error("Failed to complete DTLS handshake");
         return -1;
     }
-    for (i = 0; i < COAP_CLIENT_DTLS_TOTAL_TIMEOUT / COAP_CLIENT_DTLS_RETRANS_TIMEOUT; i++)
+    for (i = 0; i < COAP_CLIENT_DTLS_HANDSHAKE_ATTEMPTS; i++)
     {
         if (client->state != COAP_CLIENT_DTLS_UNCONNECTED)
         {
             break;
         }
-        ret = coap_client_dtls_listen_timeout(client, COAP_CLIENT_DTLS_RETRANS_TIMEOUT);
+        timeout = COAP_CLIENT_DTLS_RETRANS_TIMEOUT;
+        coap_log_debug("Handshake timeout: %u msec", timeout);
+        ret = coap_client_dtls_listen_timeout(client, timeout);
         if (ret < 0)
         {
             return ret;
@@ -458,7 +470,6 @@ static int coap_client_dtls_create(coap_client_t *client,
     ret = coap_client_dtls_handshake(client);
     if (ret < 0)
     {
-        coap_log_warn("Failed to complete DTLS handshake");
         dtls_free_context(client->ctx);
         return ret;
     }
@@ -1285,6 +1296,10 @@ static int coap_client_exchange_sep(coap_client_t *client, coap_msg_t *req, coap
             return ret;
         }
         num = coap_client_recv(client, resp);
+        if (num == -EAGAIN)
+        {
+            continue;
+        }
         if (num < 0)
         {
             return num;
@@ -1353,6 +1368,10 @@ static int coap_client_exchange_con(coap_client_t *client, coap_msg_t *req, coap
             return ret;
         }
         num = coap_client_recv(client, resp);
+        if (num == -EAGAIN)
+        {
+            continue;
+        }
         if (num < 0)
         {
             return num;
@@ -1431,6 +1450,10 @@ static int coap_client_exchange_non(coap_client_t *client, coap_msg_t *req, coap
             return ret;
         }
         num = coap_client_recv(client, resp);
+        if (num == -EAGAIN)
+        {
+            continue;
+        }
         if (num < 0)
         {
             return num;
