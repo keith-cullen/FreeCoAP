@@ -50,7 +50,6 @@
 #define coap_server_trans_get_req(tran)   (&(trans)->req)                       /**< Get the last request message received for this transaction */
 #define coap_server_trans_get_resp(tran)  (&(trans)->resp)                      /**< Get the last response message sent for this transaction */
 
-
 /**
  *  @brief Response type enumeration
  */
@@ -60,6 +59,16 @@ typedef enum
     COAP_SERVER_SEPARATE = 1                                                    /**< Separate response */
 }
 coap_server_resp_t;
+
+/**
+ *  @brief Forward declaration of transaction structure
+ */
+struct coap_server_trans;
+
+/**
+ *  @brief Server handler callback function pointer
+ */
+typedef int (* coap_server_handler_t)(struct coap_server_trans *, coap_msg_t *, coap_msg_t *);
 
 /**
  *  @brief URI path structure
@@ -114,7 +123,7 @@ typedef struct coap_server
     unsigned msg_id;                                                            /**< Last message ID value used in a response message */
     coap_server_path_list_t sep_list;                                           /**< List of URI paths that require separate responses */
     coap_server_trans_t trans[COAP_SERVER_NUM_TRANS];                           /**< Array of transaction structures */
-    int (* handle)(struct coap_server *, coap_msg_t *, coap_msg_t *);           /**< Call-back function to handle requests and generate responses */
+    coap_server_handler_t handle;                                               /**< Call-back function to handle requests and generate responses */
 #ifdef COAP_DTLS_EN
     gnutls_certificate_credentials_t cred;                                      /**< DTLS credentials */
     gnutls_priority_t priority;                                                 /**< DTLS priorities */
@@ -142,7 +151,7 @@ coap_server_t;
  *  @retval <0 Error
  */
 int coap_server_create(coap_server_t *server,
-                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       coap_server_handler_t handle,
                        const char *host,
                        const char *port,
                        const char *key_file_name,
@@ -165,7 +174,7 @@ int coap_server_create(coap_server_t *server,
  *  @retval <0 Error
  */
 int coap_server_create(coap_server_t *server,
-                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       coap_server_handler_t handle,
                        const char *host,
                        const char *port);
 
