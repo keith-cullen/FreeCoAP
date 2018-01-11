@@ -62,6 +62,16 @@ typedef enum
 coap_server_resp_t;
 
 /**
+ *  @brief Forward declaration of transaction structure
+ */
+struct coap_server_trans;
+
+/**
+ *  @brief Server handler callback function pointer
+ */
+typedef int (* coap_server_handler_t)(struct coap_server_trans *, coap_msg_t *, coap_msg_t *);
+
+/**
  *  @brief URI path structure
  */
 typedef struct coap_server_path
@@ -133,7 +143,7 @@ typedef struct coap_server
     unsigned msg_id;                                                            /**< Last message ID value used in a response message */
     coap_server_path_list_t sep_list;                                           /**< List of URI paths that require separate responses */
     coap_server_trans_t trans[COAP_SERVER_NUM_TRANS];                           /**< Array of transaction structures */
-    int (* handle)(struct coap_server *, coap_msg_t *, coap_msg_t *);           /**< Call-back function to handle requests and generate responses */
+    coap_server_handler_t handle;                                               /**< Call-back function to handle requests and generate responses */
 #ifdef COAP_DTLS_EN
     dtls_ecdsa_key_t ecdsa_key;                                                 /**< ECDSA keys */
     const unsigned char *ecdsa_access_x;                                        /**< Buffer containing the x components of the ECDSA access control list */
@@ -166,7 +176,7 @@ coap_server_t;
  *  @retval <0 Error
  */
 int coap_server_create(coap_server_t *server,
-                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       coap_server_handler_t handle,
                        const char *host,
                        const char *port,
                        const unsigned char *ecdsa_priv_key,
@@ -192,7 +202,7 @@ int coap_server_create(coap_server_t *server,
  *  @retval <0 Error
  */
 int coap_server_create(coap_server_t *server,
-                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       coap_server_handler_t handle,
                        const char *host,
                        const char *port);
 

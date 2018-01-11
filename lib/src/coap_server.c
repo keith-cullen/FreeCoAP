@@ -1358,7 +1358,7 @@ static void coap_server_dtls_init(coap_server_t *server,
 
 #ifdef COAP_DTLS_EN
 int coap_server_create(coap_server_t *server,
-                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       coap_server_handler_t handle,
                        const char *host,
                        const char *port,
                        const unsigned char *ecdsa_priv_key,
@@ -1370,7 +1370,7 @@ int coap_server_create(coap_server_t *server,
                        unsigned ecdsa_size)
 #else
 int coap_server_create(coap_server_t *server,
-                       int (* handle)(coap_server_t *, coap_msg_t *, coap_msg_t *),
+                       coap_server_handler_t handle,
                        const char *host,
                        const char *port)
 #endif
@@ -1934,7 +1934,7 @@ static int coap_server_exchange(coap_server_t *server)
     }
     else
     {
-        ret = (*server->handle)(server, &recv_msg, &send_msg);
+        ret = (*server->handle)(trans, &recv_msg, &send_msg);
     }
     if (ret < 0)
     {
