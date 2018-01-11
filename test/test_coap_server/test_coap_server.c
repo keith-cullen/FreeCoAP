@@ -203,7 +203,7 @@ static int server_parse_block_op(unsigned *num, unsigned *more, unsigned *size, 
  *  This function generates a response that contains an unsafe
  *  option. This is used to test the HTTP/CoAP proxy.
  *
- *  @param[in,out] server Pointer to a server structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] req Pointer to the request message
  *  @param[out] resp Pointer to the response message
  *
@@ -211,7 +211,7 @@ static int server_parse_block_op(unsigned *num, unsigned *more, unsigned *size, 
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int server_handle_unsafe(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
+static int server_handle_unsafe(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     unsigned code_detail = 0;
     unsigned code_class = 0;
@@ -254,7 +254,7 @@ static char blockwise_buf[BLOCKWISE_BUF_LEN] = {0};                             
  *  This function handles requests and responses that
  *  involve blockwise transfers.
  *
- *  @param[in,out] server Pointer to a server structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] req Pointer to the request message
  *  @param[out] resp Pointer to the response message
  *
@@ -262,7 +262,7 @@ static char blockwise_buf[BLOCKWISE_BUF_LEN] = {0};                             
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int server_handle_blockwise(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
+static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     const char *payload = NULL;
     unsigned code_detail = 0;
@@ -391,7 +391,7 @@ static int server_handle_blockwise(coap_server_t *server, coap_msg_t *req, coap_
  *  This function handles requests and responses that
  *  do not involve blockwise transfers.
  *
- *  @param[in,out] server Pointer to a server structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] req Pointer to the request message
  *  @param[out] resp Pointer to the response message
  *
@@ -399,7 +399,7 @@ static int server_handle_blockwise(coap_server_t *server, coap_msg_t *req, coap_
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int server_handle_non_blockwise(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
+static int server_handle_non_blockwise(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     unsigned code_detail = 0;
     unsigned code_class = 0;
@@ -436,7 +436,7 @@ static int server_handle_non_blockwise(coap_server_t *server, coap_msg_t *req, c
  *  The other fields are set by the server library when
  *  this function returns.
  *
- *  @param[in,out] server Pointer to a server structure
+ *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] req Pointer to the request message
  *  @param[out] resp Pointer to the response message
  *
@@ -444,21 +444,21 @@ static int server_handle_non_blockwise(coap_server_t *server, coap_msg_t *req, c
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int server_handle(coap_server_t *server, coap_msg_t *req, coap_msg_t *resp)
+static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     int ret = 0;
 
     if (server_match_uri_path(req, UNSAFE_URI_PATH))
     {
-        ret = server_handle_unsafe(server, req, resp);
+        ret = server_handle_unsafe(trans, req, resp);
     }
     if (server_match_uri_path(req, BLOCKWISE_URI_PATH))
     {
-        ret = server_handle_blockwise(server, req, resp);
+        ret = server_handle_blockwise(trans, req, resp);
     }
     else
     {
-        ret = server_handle_non_blockwise(server, req, resp);
+        ret = server_handle_non_blockwise(trans, req, resp);
     }
     if (ret < 0)
     {

@@ -38,7 +38,7 @@
 #define SERVER_URI_PATH_BUF_LEN  32
 #define SERVER_PAYLOAD_BUF_LEN   32  /* ctime_r writes to a buffer which must be at least 26 bytes */
 
-static int server_handle_time(coap_server_t *coap_server, coap_msg_t *req, coap_msg_t *resp)
+static int server_handle_time(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     unsigned code_detail = 0;
     time_t t = 0;
@@ -84,7 +84,7 @@ static int server_handle_time(coap_server_t *coap_server, coap_msg_t *req, coap_
     return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
 }
 
-static int server_handle(coap_server_t *coap_server, coap_msg_t *req, coap_msg_t *resp)
+static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     size_t n = 0;
     char uri_path_buf[SERVER_URI_PATH_BUF_LEN] = {0};
@@ -103,7 +103,7 @@ static int server_handle(coap_server_t *coap_server, coap_msg_t *req, coap_msg_t
     coap_log_info("Received request URI path: '%s'", uri_path_buf);
     if (strcmp(uri_path_buf, "/time") == 0)
     {
-        return server_handle_time(coap_server, req, resp);
+        return server_handle_time(trans, req, resp);
     }
     coap_log_warn("URI path not recognised");
     return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_NOT_FOUND);
