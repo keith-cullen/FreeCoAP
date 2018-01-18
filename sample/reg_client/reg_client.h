@@ -25,35 +25,28 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- *  @file coap_ipv.h
- *
- *  @brief Include file for the FreeCoAP IP Version (IPv4/IPv6) abstraction layer
- */
+#ifndef REG_CLIENT_H
+#define REG_CLIENT_H
 
-#ifndef COAP_IPV_H
-#define COAP_IPV_H
+#include <stddef.h>
+#include "coap_client.h"
 
-#include <netinet/in.h>
+typedef struct
+{
+    coap_client_t coap_client;
+}
+reg_client_t;
 
-#ifdef COAP_IP6
-
-#define COAP_IPV_AF_INET          AF_INET6
-#define COAP_IPV_INET_ADDRSTRLEN  INET6_ADDRSTRLEN
-#define COAP_IPV_SIN_ADDR         sin6_addr
-#define COAP_IPV_SIN_PORT         sin6_port
-
-typedef struct sockaddr_in6  coap_ipv_sockaddr_in_t;
-
-#else  /* COAP_IP4 */
-
-#define COAP_IPV_AF_INET          AF_INET
-#define COAP_IPV_INET_ADDRSTRLEN  INET_ADDRSTRLEN
-#define COAP_IPV_SIN_ADDR         sin_addr
-#define COAP_IPV_SIN_PORT         sin_port
-
-typedef struct sockaddr_in   coap_ipv_sockaddr_in_t;
-
-#endif  /* COAP_IP6 */
+int reg_client_init(void);
+int reg_client_create(reg_client_t *client,
+                      const char *host,
+                      const char *port,
+                      const char *key_file_name,
+                      const char *cert_file_name,
+                      const char *trust_file_name,
+                      const char *crl_file_name,
+                      const char *common_name);
+void reg_client_destroy(reg_client_t *client);
+int reg_client_register(reg_client_t *client, char *buf, size_t len);
 
 #endif
