@@ -31,18 +31,18 @@
 #include <gnutls/gnutls.h>
 #endif
 #include <time.h>
-#include "server.h"
+#include "time_server.h"
 #include "coap_msg.h"
 #include "coap_log.h"
 
-#define SERVER_URI_PATH_BUF_LEN  32
-#define SERVER_PAYLOAD_BUF_LEN   32  /* ctime_r writes to a buffer which must be at least 26 bytes */
+#define TIME_SERVER_URI_PATH_BUF_LEN  32
+#define TIME_SERVER_PAYLOAD_BUF_LEN   32  /* ctime_r writes to a buffer which must be at least 26 bytes */
 
-static int server_handle_time(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+static int time_server_handle_time(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     unsigned code_detail = 0;
     time_t t = 0;
-    char payload_buf[SERVER_PAYLOAD_BUF_LEN] = {0};
+    char payload_buf[TIME_SERVER_PAYLOAD_BUF_LEN] = {0};
     char *p = NULL;
     int ret = 0;
 
@@ -84,10 +84,10 @@ static int server_handle_time(coap_server_trans_t *trans, coap_msg_t *req, coap_
     return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
 }
 
-static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+static int time_server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     size_t n = 0;
-    char uri_path_buf[SERVER_URI_PATH_BUF_LEN] = {0};
+    char uri_path_buf[TIME_SERVER_URI_PATH_BUF_LEN] = {0};
 
     if (coap_msg_get_ver(req) != COAP_MSG_VER)
     {
@@ -103,14 +103,14 @@ static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t
     coap_log_info("Received request URI path: '%s'", uri_path_buf);
     if (strcmp(uri_path_buf, "/time") == 0)
     {
-        return server_handle_time(trans, req, resp);
+        return time_server_handle_time(trans, req, resp);
     }
     coap_log_warn("URI path not recognised");
     return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_NOT_FOUND);
 }
 
 /* one-time initialisation */
-int server_init(void)
+int time_server_init(void)
 {
 #ifdef COAP_DTLS_EN
     const char *gnutls_ver = NULL;
@@ -129,20 +129,20 @@ int server_init(void)
     return 0;
 }
 
-int server_create(server_t *server,
-                  const char *host,
-                  const char *port,
-                  const char *key_file_name,
-                  const char *cert_file_name,
-                  const char *trust_file_name,
-                  const char *crl_file_name)
+int time_server_create(time_server_t *server,
+                       const char *host,
+                       const char *port,
+                       const char *key_file_name,
+                       const char *cert_file_name,
+                       const char *trust_file_name,
+                       const char *crl_file_name)
 {
     int ret = 0;
 
-    memset(server, 0, sizeof(server_t));
+    memset(server, 0, sizeof(time_server_t));
 #ifdef COAP_DTLS_EN
     ret = coap_server_create(&server->coap_server,
-                             server_handle,
+                             time_server_handle,
                              host,
                              port,
                              key_file_name,
@@ -151,7 +151,7 @@ int server_create(server_t *server,
                              crl_file_name);
 #else
     ret = coap_server_create(&server->coap_server,
-                             server_handle,
+                             time_server_handle,
                              host,
                              port);
 #endif
@@ -162,19 +162,19 @@ int server_create(server_t *server,
             /* a return value of -1 indicates a DTLS failure which has already been logged */
             coap_log_error("%s", strerror(-ret));
         }
-        memset(server, 0, sizeof(server_t));
+        memset(server, 0, sizeof(time_server_t));
         return ret;
     }
     return ret;
 }
 
-void server_destroy(server_t *server)
+void time_server_destroy(time_server_t *server)
 {
     coap_server_destroy(&server->coap_server);
-    memset(server, 0, sizeof(server_t));
+    memset(server, 0, sizeof(time_server_t));
 }
 
-int server_run(server_t *server)
+int time_server_run(time_server_t *server)
 {
     int ret = 0;
 

@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "client.h"
+#include "time_client.h"
 
 #define KEY_FILE_NAME    "../../certs/client_privkey.pem"
 #define CERT_FILE_NAME   "../../certs/client_cert.pem"
@@ -39,45 +39,45 @@
 
 int main(int argc, char **argv)
 {
-    client_t client = {0};
+    time_client_t client = {0};
     char buf[BUF_LEN] = {0};
     int ret = 0;
 
     if (argc != 3)
     {
-        fprintf(stderr, "usage: client host port\n");
+        fprintf(stderr, "usage: time_client host port\n");
         fprintf(stderr, "    host: IP address or host name to connect to\n");
         fprintf(stderr, "    port: port number to connect to\n");
         return EXIT_FAILURE;
     }
-    ret = client_init();
+    ret = time_client_init();
     if (ret < 0)
     {
         return EXIT_FAILURE;
     }
-    ret = client_create(&client,
-                        argv[1],
-                        argv[2],
-                        KEY_FILE_NAME,
-                        CERT_FILE_NAME,
-                        TRUST_FILE_NAME,
-                        CRL_FILE_NAME,
-                        COMMON_NAME);
+    ret = time_client_create(&client,
+                             argv[1],
+                             argv[2],
+                             KEY_FILE_NAME,
+                             CERT_FILE_NAME,
+                             TRUST_FILE_NAME,
+                             CRL_FILE_NAME,
+                             COMMON_NAME);
     if (ret < 0)
     {
         return EXIT_FAILURE;
     }
     while (1)
     {
-        ret = client_get_time(&client, buf, sizeof(buf));
+        ret = time_client_get_time(&client, buf, sizeof(buf));
         if (ret < 0)
         {
-            client_destroy(&client);
+            time_client_destroy(&client);
             return EXIT_FAILURE;
         }
         printf("time: '%s'\n", buf);
         sleep(1);
     }
-    client_destroy(&client);
+    time_client_destroy(&client);
     return EXIT_SUCCESS;
 }
