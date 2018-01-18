@@ -25,24 +25,43 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SERVER_H
-#define SERVER_H
+#include <stdlib.h>
+#include <stdio.h>
+#include "time_server.h"
 
-#include "coap_server.h"
+#define PUB_KEY_FILE_NAME   "../../raw_keys/server_pub_key.txt"
+#define PRIV_KEY_FILE_NAME  "../../raw_keys/server_priv_key.txt"
+#define ACCESS_FILE_NAME    "../../raw_keys/server_access.txt"
 
-typedef struct
+int main(int argc, char **argv)
 {
-    coap_server_t coap_server;
+    time_server_t server = {0};
+    int ret = 0;
+
+    if (argc != 3)
+    {
+        fprintf(stderr, "usage: time_server host port\n");
+        fprintf(stderr, "    host: IP address or host name to listen on (0.0.0.0 to listen on all interfaces)\n");
+        fprintf(stderr, "    port: port number to listen on\n");
+        return EXIT_FAILURE;
+    }
+    ret = time_server_init(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
+    if (ret < 0)
+    {
+        return EXIT_FAILURE;
+    }
+    ret = time_server_create(&server,
+                             argv[1],
+                             argv[2]);
+    if (ret < 0)
+    {
+        return EXIT_FAILURE;
+    }
+    ret = time_server_run(&server);
+    time_server_destroy(&server);
+    if (ret < 0)
+    {
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
 }
-server_t;
-
-int server_init(const char *priv_key_file_name,
-                const char *pub_key_file_name,
-                const char *access_file_name);
-int server_create(server_t *server,
-                  const char *host,
-                  const char *port);
-void server_destroy(server_t *server);
-int server_run(server_t *server);
-
-#endif

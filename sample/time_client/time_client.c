@@ -27,17 +27,17 @@
 
 #include <string.h>
 #include <errno.h>
-#include "client.h"
+#include "time_client.h"
 #include "coap_msg.h"
 #include "coap_log.h"
 #ifdef COAP_DTLS_EN
 #include "raw_keys.h"
 #endif
 
-#define CLIENT_URI_PATH_BUF_LEN  32
+#define TIME_CLIENT_URI_PATH_BUF_LEN  32
 
 /* one-time initialisation */
-int client_init(const char *priv_key_file_name,
+int time_client_init(const char *priv_key_file_name,
                 const char *pub_key_file_name,
                 const char *access_file_name)
 {
@@ -59,13 +59,13 @@ int client_init(const char *priv_key_file_name,
     return 0;
 }
 
-int client_create(client_t *client,
+int time_client_create(time_client_t *client,
                   const char *host,
                   const char *port)
 {
     int ret = 0;
 
-    memset(client, 0, sizeof(client_t));
+    memset(client, 0, sizeof(time_client_t));
 #ifdef COAP_DTLS_EN
     ret = coap_client_create(&client->coap_client,
                              host,
@@ -85,25 +85,25 @@ int client_create(client_t *client,
     if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
-        memset(client, 0, sizeof(client_t));
+        memset(client, 0, sizeof(time_client_t));
         return ret;
     }
     return 0;
 }
 
-void client_destroy(client_t *client)
+void time_client_destroy(time_client_t *client)
 {
     coap_client_destroy(&client->coap_client);
-    memset(client, 0, sizeof(client_t));
+    memset(client, 0, sizeof(time_client_t));
 }
 
-int client_get_time(client_t *client, char *buf, size_t len)
+int time_client_get_time(time_client_t *client, char *buf, size_t len)
 {
     coap_msg_t resp = {0};
     coap_msg_t req = {0};
     size_t n = 0;
     char *p = NULL;
-    char uri_path_buf[CLIENT_URI_PATH_BUF_LEN] = {0};
+    char uri_path_buf[TIME_CLIENT_URI_PATH_BUF_LEN] = {0};
     int ret = 0;
 
     /* generate request */
