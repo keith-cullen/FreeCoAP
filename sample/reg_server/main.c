@@ -27,50 +27,41 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
-#include "time_client.h"
+#include "reg_server.h"
 
-#define PUB_KEY_FILE_NAME   "../../raw_keys/client_pub_key.txt"
-#define PRIV_KEY_FILE_NAME  "../../raw_keys/client_priv_key.txt"
-#define ACCESS_FILE_NAME    "../../raw_keys/client_access.txt"
-#define BUF_LEN             32
+#define PUB_KEY_FILE_NAME   "../../raw_keys/server_pub_key.txt"
+#define PRIV_KEY_FILE_NAME  "../../raw_keys/server_priv_key.txt"
+#define ACCESS_FILE_NAME    "../../raw_keys/server_access.txt"
 
 int main(int argc, char **argv)
 {
-    time_client_t client = {0};
-    char buf[BUF_LEN] = {0};
+    reg_server_t server = {0};
     int ret = 0;
 
     if (argc != 3)
     {
-        fprintf(stderr, "usage: time_client host port\n");
-        fprintf(stderr, "    host: IP address or host name to connect to\n");
-        fprintf(stderr, "    port: port number to connect to\n");
+        fprintf(stderr, "usage: reg_server host port\n");
+        fprintf(stderr, "    host: IP address or host name to listen on (0.0.0.0 to listen on all interfaces)\n");
+        fprintf(stderr, "    port: port number to listen on\n");
         return EXIT_FAILURE;
     }
-    ret = time_client_init(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
+    ret = reg_server_init(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
     if (ret < 0)
     {
         return EXIT_FAILURE;
     }
-    ret = time_client_create(&client,
-                             argv[1],
-                             argv[2]);
+    ret = reg_server_create(&server,
+                            argv[1],
+                            argv[2]);
     if (ret < 0)
     {
         return EXIT_FAILURE;
     }
-    while (1)
+    ret = reg_server_run(&server);
+    reg_server_destroy(&server);
+    if (ret < 0)
     {
-        ret = time_client_get_time(&client, buf, sizeof(buf));
-        if (ret < 0)
-        {
-            time_client_destroy(&client);
-            return EXIT_FAILURE;
-        }
-        printf("time: '%s'\n", buf);
-        sleep(1);
+        return EXIT_FAILURE;
     }
-    time_client_destroy(&client);
     return EXIT_SUCCESS;
 }

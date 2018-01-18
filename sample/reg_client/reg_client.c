@@ -27,19 +27,19 @@
 
 #include <string.h>
 #include <errno.h>
-#include "time_client.h"
+#include "reg_client.h"
 #include "coap_msg.h"
 #include "coap_log.h"
 #ifdef COAP_DTLS_EN
 #include "raw_keys.h"
 #endif
 
-#define TIME_CLIENT_URI_PATH_BUF_LEN  32
+#define REG_CLIENT_URI_PATH_BUF_LEN  32
 
 /* one-time initialisation */
-int time_client_init(const char *priv_key_file_name,
-                     const char *pub_key_file_name,
-                     const char *access_file_name)
+int reg_client_init(const char *priv_key_file_name,
+                    const char *pub_key_file_name,
+                    const char *access_file_name)
 {
 #ifdef COAP_DTLS_EN
     int ret = 0;
@@ -59,13 +59,13 @@ int time_client_init(const char *priv_key_file_name,
     return 0;
 }
 
-int time_client_create(time_client_t *client,
-                       const char *host,
-                       const char *port)
+int reg_client_create(reg_client_t *client,
+                      const char *host,
+                      const char *port)
 {
     int ret = 0;
 
-    memset(client, 0, sizeof(time_client_t));
+    memset(client, 0, sizeof(reg_client_t));
 #ifdef COAP_DTLS_EN
     ret = coap_client_create(&client->coap_client,
                              host,
@@ -85,36 +85,51 @@ int time_client_create(time_client_t *client,
     if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
-        memset(client, 0, sizeof(time_client_t));
+        memset(client, 0, sizeof(reg_client_t));
         return ret;
     }
     return 0;
 }
 
-void time_client_destroy(time_client_t *client)
+void reg_client_destroy(reg_client_t *client)
 {
     coap_client_destroy(&client->coap_client);
-    memset(client, 0, sizeof(time_client_t));
+    memset(client, 0, sizeof(reg_client_t));
 }
 
-int time_client_get_time(time_client_t *client, char *buf, size_t len)
+int reg_client_register(reg_client_t *client, char *buf, size_t len)
 {
     coap_msg_t resp = {0};
     coap_msg_t req = {0};
     size_t n = 0;
     char *p = NULL;
-    char uri_path_buf[TIME_CLIENT_URI_PATH_BUF_LEN] = {0};
+    char uri_path[REG_CLIENT_URI_PATH_BUF_LEN] = {0};
+    int created = 0;
     int ret = 0;
 
     /* generate request */
     coap_msg_create(&req);
     coap_msg_set_type(&req, COAP_MSG_CON);
-    coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_GET);
-    coap_log_info("Sending GET /time request");
-    ret = coap_msg_add_op(&req, COAP_MSG_URI_PATH, 4, "time");
+    coap_msg_set_code(&req, COAP_MSG_REQ, COAP_MSG_POST);
+    coap_log_info("Sending POST /client/id request with payload: '%s'", buf);
+    ret = coap_msg_add_op(&req, COAP_MSG_URI_PATH, 6, "client");
     if (ret < 0)
     {
         coap_log_error("Failed to set URI path in request message");
+        coap_msg_destroy(&req);
+        return ret;
+    }
+    ret = coap_msg_add_op(&req, COAP_MSG_URI_PATH, 2, "id");
+    if (ret < 0)
+    {
+        coap_log_error("Failed to set URI path in request message");
+        coap_msg_destroy(&req);
+        return ret;
+    }
+    ret = coap_msg_set_payload(&req, buf, strlen(buf));
+    if (ret < 0)
+    {
+        coap_log_error("Failed to set payload in request message");
         coap_msg_destroy(&req);
         return ret;
     }
@@ -143,7 +158,7 @@ int time_client_get_time(time_client_t *client, char *buf, size_t len)
         return -EBADMSG;
     }
     if ((coap_msg_get_code_class(&resp) != COAP_MSG_SUCCESS)
-     || (coap_msg_get_code_detail(&resp) != COAP_MSG_CONTENT))
+     || ((coap_msg_get_code_detail(&resp) != COAP_MSG_CREATED) && (coap_msg_get_code_detail(&resp) != COAP_MSG_CHANGED)))
     {
         coap_log_error("Received response message with invalid code class: %d, code detail: %d",
                        coap_msg_get_code_class(&resp), coap_msg_get_code_detail(&resp));
@@ -151,23 +166,31 @@ int time_client_get_time(time_client_t *client, char *buf, size_t len)
         coap_msg_destroy(&req);
         return -EBADMSG;
     }
-    n = coap_msg_uri_path_to_str(&resp, uri_path_buf, sizeof(uri_path_buf));
-    if ((n + 1) > sizeof(uri_path_buf))
+    created = coap_msg_get_code_detail(&resp) == COAP_MSG_CREATED;
+    n = coap_msg_uri_path_to_str(&resp, uri_path, sizeof(uri_path));
+    if ((n + 1) > sizeof(uri_path))
     {
-        coap_log_error("URI path buffer too small by %zd bytes", (n + 1) - sizeof(uri_path_buf));
+        coap_log_error("URI path buffer too small by %zd bytes", (n + 1) - sizeof(uri_path));
         coap_msg_destroy(&resp);
         coap_msg_destroy(&req);
         return -ENOSPC;
     }
-    if (strcmp(uri_path_buf, "/time") != 0)
+    if (strcmp(uri_path, "/client/id") != 0)
     {
-        coap_log_error("Received response message with invalid URI path: '%s'", uri_path_buf);
+        coap_log_error("Received response message with invalid URI path: '%s'", uri_path);
         coap_msg_destroy(&resp);
         coap_msg_destroy(&req);
         return -EBADMSG;
     }
     p = coap_msg_get_payload(&resp);
     n = coap_msg_get_payload_len(&resp);
+    if ((p == NULL) || (n == 0))
+    {
+        coap_log_error("Received response message with invalid payload");
+        coap_msg_destroy(&resp);
+        coap_msg_destroy(&req);
+        return -EBADMSG;
+    }
     if ((n + 1) > len)
     {
         coap_log_error("Payload buffer too small by %zd bytes", (n + 1) - len);
@@ -179,6 +202,12 @@ int time_client_get_time(time_client_t *client, char *buf, size_t len)
     memset(buf + n, 0, len - n);
     coap_msg_destroy(&resp);
     coap_msg_destroy(&req);
-    coap_log_info("Received response with payload: '%s'", buf);
+    if (strcmp(buf, "OK") != 0)
+    {
+        coap_log_error("Received response message with unexpected payload: '%s'", buf);
+        return -EBADMSG;
+    }
+    coap_log_info("Received %s %s response with payload: '%s'",
+                  created ? "CREATED" : "CHANGED", uri_path, buf);
     return n;
 }
