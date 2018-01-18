@@ -25,43 +25,25 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "server.h"
+#ifndef TIME_CLIENT_H
+#define TIME_CLIENT_H
 
-#define PUB_KEY_FILE_NAME   "../../raw_keys/server_pub_key.txt"
-#define PRIV_KEY_FILE_NAME  "../../raw_keys/server_priv_key.txt"
-#define ACCESS_FILE_NAME    "../../raw_keys/server_access.txt"
+#include <stddef.h>
+#include "coap_client.h"
 
-int main(int argc, char **argv)
+typedef struct
 {
-    server_t server = {0};
-    int ret = 0;
-
-    if (argc != 3)
-    {
-        fprintf(stderr, "usage: server host port\n");
-        fprintf(stderr, "    host: IP address or host name to listen on (0.0.0.0 to listen on all interfaces)\n");
-        fprintf(stderr, "    port: port number to listen on\n");
-        return EXIT_FAILURE;
-    }
-    ret = server_init(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
-    if (ret < 0)
-    {
-        return EXIT_FAILURE;
-    }
-    ret = server_create(&server,
-                        argv[1],
-                        argv[2]);
-    if (ret < 0)
-    {
-        return EXIT_FAILURE;
-    }
-    ret = server_run(&server);
-    server_destroy(&server);
-    if (ret < 0)
-    {
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
+    coap_client_t coap_client;
 }
+time_client_t;
+
+int time_client_init(const char *priv_key_file_name,
+                     const char *pub_key_file_name,
+                     const char *access_file_name);
+int time_client_create(time_client_t *client,
+                       const char *host,
+                       const char *port);
+void time_client_destroy(time_client_t *client);
+int time_client_get_time(time_client_t *client, char *buf, size_t len);
+
+#endif
