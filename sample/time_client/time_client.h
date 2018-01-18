@@ -25,48 +25,28 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "server.h"
+#ifndef TIME_CLIENT_H
+#define TIME_CLIENT_H
 
-#define KEY_FILE_NAME    "../../certs/server_privkey.pem"
-#define CERT_FILE_NAME   "../../certs/server_cert.pem"
-#define TRUST_FILE_NAME  "../../certs/root_client_cert.pem"
-#define CRL_FILE_NAME    ""
+#include <stddef.h>
+#include "coap_client.h"
 
-int main(int argc, char **argv)
+typedef struct
 {
-    server_t server = {0};
-    int ret = 0;
-
-    if (argc != 3)
-    {
-        fprintf(stderr, "usage: server host port\n");
-        fprintf(stderr, "    host: IP address or host name to listen on (0.0.0.0 to listen on all interfaces)\n");
-        fprintf(stderr, "    port: port number to listen on\n");
-        return EXIT_FAILURE;
-    }
-    ret = server_init();
-    if (ret < 0)
-    {
-        return EXIT_FAILURE;
-    }
-    ret = server_create(&server,
-                        argv[1],
-                        argv[2],
-                        KEY_FILE_NAME,
-                        CERT_FILE_NAME,
-                        TRUST_FILE_NAME,
-                        CRL_FILE_NAME);
-    if (ret < 0)
-    {
-        return EXIT_FAILURE;
-    }
-    ret = server_run(&server);
-    server_destroy(&server);
-    if (ret < 0)
-    {
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
+    coap_client_t coap_client;
 }
+time_client_t;
+
+int time_client_init(void);
+int time_client_create(time_client_t *client,
+                       const char *host,
+                       const char *port,
+                       const char *key_file_name,
+                       const char *cert_file_name,
+                       const char *trust_file_name,
+                       const char *crl_file_name,
+                       const char *common_name);
+void time_client_destroy(time_client_t *client);
+int time_client_get_time(time_client_t *client, char *buf, size_t len);
+
+#endif
