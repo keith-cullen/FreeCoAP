@@ -53,20 +53,22 @@ CFLAGS += $(IP6_CFLAGS)
 CFLAGS += $(DTLS_CFLAGS)
 LD_ ?= gcc
 LDFLAGS =
-INCS = time_server.h \
+INCS = reg_server.h \
+       registrar.h \
        $(I1)/coap_server.h \
        $(I1)/coap_msg.h \
        $(I1)/coap_log.h \
        $(I1)/coap_ipv.h
 INCS += $(DTLS_INCS)
 OBJS = main.o \
-       time_server.o \
+       reg_server.o \
+       registrar.o \
        coap_server.o \
        coap_msg.o \
        coap_log.o
 OBJS += $(DTLS_OBJS)
 LIBS =
-PROG = time_server
+PROG = reg_server
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
@@ -75,8 +77,11 @@ $(PROG): $(OBJS)
 main.o: main.c $(INCS)
 	$(CC_) $(CFLAGS) -c main.c
 
-time_server.o: time_server.c $(INCS)
-	$(CC_) $(CFLAGS) -c time_server.c
+reg_server.o: reg_server.c $(INCS)
+	$(CC_) $(CFLAGS) -c reg_server.c
+
+registrar.o: registrar.c $(INCS)
+	$(CC_) $(CFLAGS) -c registrar.c
 
 coap_server.o: $(S1)/coap_server.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_server.c

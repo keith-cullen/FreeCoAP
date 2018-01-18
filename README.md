@@ -17,6 +17,10 @@ An implementation of the CoAP protocol for GNU/Linux consisting of:
 
 - a HTTP client test application
 
+- CoAP client sample applications
+
+- CoAP server sample applications
+
 - more than 10,000 lines of unit test code
 
 Copyright (c) 2015 - 2017 Keith Cullen
@@ -49,39 +53,141 @@ tinydtls
 Sample Applications
 ===================
 
-To run the CoAP client and CoAP server sample applications with CoAP/IPv4
+To run the time_client and time_server sample applications with CoAP/IPv4
 -------------------------------------------------------------------------
 
-$ cd FreeCoAP/sample/server
+$ cd FreeCoAP/sample/time_server
 
-$ make
+$ make dtls=n
 
-$ ./server 0.0.0.0 10000
+$ ./time_server 0.0.0.0 10000
 
 (In a different terminal)
 
-$ cd FreeCoAP/sample/client
+$ cd FreeCoAP/sample/time_client
+
+$ make dtls=n
+
+$ ./time_client 127.0.0.1 10000
+
+To run the time_client and time_server sample applications with CoAP/DTLS/IPv4
+------------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/time_server
 
 $ make
 
-$ ./client 127.0.0.1 10000
-
-To run the CoAP client and CoAP server sample applications with CoAP/IPv6
--------------------------------------------------------------------------
-
-$ cd FreeCoAP/sample/server
-
-$ make ip6=y
-
-$ ./server ::0 10000
+$ ./time_server 0.0.0.0 10000
 
 (In a different terminal)
 
-$ cd FreeCoAP/sample/client
+$ cd FreeCoAP/sample/time_client
+
+$ make
+
+$ ./time_client 127.0.0.1 10000
+
+To run the time_client and time_server sample applications with CoAP/IPv6
+-------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/time_server
+
+$ make dtls=n ip6=y
+
+$ ./time_server ::0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/time_client
+
+$ make dtls=n ip6=y
+
+$ ./time_client ::1 10000
+
+To run the time_client and time_server sample applications with CoAP/DTLS/IPv6
+------------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/time_server
 
 $ make ip6=y
 
-$ ./client ::1 10000
+$ ./time_server ::0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/time_client
+
+$ make ip6=y
+
+$ ./time_client ::1 10000
+
+To run the reg_client and reg_server sample applications with CoAP/IPv4
+-----------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/reg_server
+
+$ make dtls=n
+
+$ ./reg_server 0.0.0.0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/reg_client
+
+$ make dtls=n
+
+$ ./reg_client 127.0.0.1 10000
+
+To run the reg_client and reg_server sample applications with CoAP/DTLS/IPv4
+----------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/reg_server
+
+$ make
+
+$ ./reg_server 0.0.0.0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/reg_client
+
+$ make
+
+$ ./reg_client 127.0.0.1 10000
+
+To run the reg_client and reg_server sample applications with CoAP/IPv6
+-----------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/reg_server
+
+$ make dtls=n ip6=y
+
+$ ./reg_server ::0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/reg_client
+
+$ make dtls=n ip6=y
+
+$ ./reg_client ::1 10000
+
+To run the reg_client and reg_server sample applications with CoAP/DTLS/IPv6
+----------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/reg_server
+
+$ make ip6=y
+
+$ ./reg_server ::0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/reg_client
+
+$ make ip6=y
+
+$ ./reg_client ::1 10000
 
 
 Test Applications

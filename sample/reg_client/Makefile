@@ -53,20 +53,20 @@ CFLAGS += $(IP6_CFLAGS)
 CFLAGS += $(DTLS_CFLAGS)
 LD_ ?= gcc
 LDFLAGS =
-INCS = time_server.h \
-       $(I1)/coap_server.h \
+INCS = reg_client.h \
+       $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
        $(I1)/coap_log.h \
        $(I1)/coap_ipv.h
 INCS += $(DTLS_INCS)
 OBJS = main.o \
-       time_server.o \
-       coap_server.o \
+       reg_client.o \
+       coap_client.o \
        coap_msg.o \
        coap_log.o
 OBJS += $(DTLS_OBJS)
 LIBS =
-PROG = time_server
+PROG = reg_client
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
@@ -75,11 +75,11 @@ $(PROG): $(OBJS)
 main.o: main.c $(INCS)
 	$(CC_) $(CFLAGS) -c main.c
 
-time_server.o: time_server.c $(INCS)
-	$(CC_) $(CFLAGS) -c time_server.c
+reg_client.o: reg_client.c $(INCS)
+	$(CC_) $(CFLAGS) -c reg_client.c
 
-coap_server.o: $(S1)/coap_server.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_server.c
+coap_client.o: $(S1)/coap_client.c $(INCS)
+	$(CC_) $(CFLAGS) -c $(S1)/coap_client.c
 
 coap_msg.o: $(S1)/coap_msg.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
@@ -123,7 +123,7 @@ ecc.o: $(D1)/ecc/ecc.c $(INCS)
 sha2.o: $(D1)/sha2/sha2.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(D1)/sha2/sha2.c
 
-raw_keys.o: $(K1)/raw_keys.c $(NCS)
+raw_keys.o: $(K1)/raw_keys.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(K1)/raw_keys.c
 
 clean:

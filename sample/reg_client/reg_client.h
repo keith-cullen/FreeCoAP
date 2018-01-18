@@ -25,52 +25,25 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include "time_client.h"
+#ifndef REG_CLIENT_H
+#define REG_CLIENT_H
 
-#define PUB_KEY_FILE_NAME   "../../raw_keys/client_pub_key.txt"
-#define PRIV_KEY_FILE_NAME  "../../raw_keys/client_priv_key.txt"
-#define ACCESS_FILE_NAME    "../../raw_keys/client_access.txt"
-#define BUF_LEN             32
+#include <stddef.h>
+#include "coap_client.h"
 
-int main(int argc, char **argv)
+typedef struct
 {
-    time_client_t client = {0};
-    char buf[BUF_LEN] = {0};
-    int ret = 0;
-
-    if (argc != 3)
-    {
-        fprintf(stderr, "usage: time_client host port\n");
-        fprintf(stderr, "    host: IP address or host name to connect to\n");
-        fprintf(stderr, "    port: port number to connect to\n");
-        return EXIT_FAILURE;
-    }
-    ret = time_client_init(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
-    if (ret < 0)
-    {
-        return EXIT_FAILURE;
-    }
-    ret = time_client_create(&client,
-                             argv[1],
-                             argv[2]);
-    if (ret < 0)
-    {
-        return EXIT_FAILURE;
-    }
-    while (1)
-    {
-        ret = time_client_get_time(&client, buf, sizeof(buf));
-        if (ret < 0)
-        {
-            time_client_destroy(&client);
-            return EXIT_FAILURE;
-        }
-        printf("time: '%s'\n", buf);
-        sleep(1);
-    }
-    time_client_destroy(&client);
-    return EXIT_SUCCESS;
+    coap_client_t coap_client;
 }
+reg_client_t;
+
+int reg_client_init(const char *priv_key_file_name,
+                    const char *pub_key_file_name,
+                    const char *access_file_name);
+int reg_client_create(reg_client_t *client,
+                      const char *host,
+                      const char *port);
+void reg_client_destroy(reg_client_t *client);
+int reg_client_register(reg_client_t *client, char *buf, size_t len);
+
+#endif

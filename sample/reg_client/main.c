@@ -27,8 +27,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
-#include "time_client.h"
+#include <string.h>
+#include "reg_client.h"
 
 #define PUB_KEY_FILE_NAME   "../../raw_keys/client_pub_key.txt"
 #define PRIV_KEY_FILE_NAME  "../../raw_keys/client_priv_key.txt"
@@ -37,40 +37,45 @@
 
 int main(int argc, char **argv)
 {
-    time_client_t client = {0};
+    reg_client_t client = {0};
+    size_t len = 0;
     char buf[BUF_LEN] = {0};
     int ret = 0;
 
-    if (argc != 3)
+    if (argc != 4)
     {
-        fprintf(stderr, "usage: time_client host port\n");
+        fprintf(stderr, "usage: reg_client host port client id\n");
         fprintf(stderr, "    host: IP address or host name to connect to\n");
         fprintf(stderr, "    port: port number to connect to\n");
+        fprintf(stderr, "    id: any opaque identifier to be sent to the server\n");
         return EXIT_FAILURE;
     }
-    ret = time_client_init(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
+    len = strlen(argv[3]);
+    if ((len + 1) > sizeof(buf))
+    {
+        fprintf(stderr, "error: id value too long (max %zd)\n", sizeof(buf) - 1);
+        return EXIT_FAILURE;
+    }
+    ret = reg_client_init(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
     if (ret < 0)
     {
         return EXIT_FAILURE;
     }
-    ret = time_client_create(&client,
-                             argv[1],
-                             argv[2]);
+    ret = reg_client_create(&client,
+                            argv[1],
+                            argv[2]);
     if (ret < 0)
     {
         return EXIT_FAILURE;
     }
-    while (1)
+    memcpy(buf, argv[3], len);
+    buf[len] = '\0';
+    ret = reg_client_register(&client, buf, sizeof(buf));
+    if (ret < 0)
     {
-        ret = time_client_get_time(&client, buf, sizeof(buf));
-        if (ret < 0)
-        {
-            time_client_destroy(&client);
-            return EXIT_FAILURE;
-        }
-        printf("time: '%s'\n", buf);
-        sleep(1);
+        reg_client_destroy(&client);
+        return EXIT_FAILURE;
     }
-    time_client_destroy(&client);
+    reg_client_destroy(&client);
     return EXIT_SUCCESS;
 }

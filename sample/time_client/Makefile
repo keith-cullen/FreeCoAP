@@ -1,7 +1,6 @@
 ifeq ($(ip6),y)
 IP6_CFLAGS = -DCOAP_IP6
 endif
-
 ifneq ($(dtls),n)
 D1 = ../../org.eclipse.tinydtls
 K1 = ../../test/raw_keys
@@ -45,10 +44,8 @@ DTLS_OBJS = ccm.o \
             sha2.o \
             raw_keys.o
 endif
-
 I1 = ../../lib/include
 S1 = ../../lib/src
-
 CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1)

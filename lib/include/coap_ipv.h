@@ -38,17 +38,19 @@
 
 #ifdef COAP_IP6
 
-#define COAP_IPV_AF_INET     AF_INET6
-#define COAP_IPV_SIN_ADDR    sin6_addr
-#define COAP_IPV_SIN_PORT    sin6_port
+#define COAP_IPV_AF_INET          AF_INET6
+#define COAP_IPV_INET_ADDRSTRLEN  INET6_ADDRSTRLEN
+#define COAP_IPV_SIN_ADDR         sin6_addr
+#define COAP_IPV_SIN_PORT         sin6_port
 
 typedef struct sockaddr_in6  coap_ipv_sockaddr_in_t;
 
 #else  /* COAP_IP4 */
 
-#define COAP_IPV_AF_INET     AF_INET
-#define COAP_IPV_SIN_ADDR    sin_addr
-#define COAP_IPV_SIN_PORT    sin_port
+#define COAP_IPV_AF_INET          AF_INET
+#define COAP_IPV_INET_ADDRSTRLEN  INET_ADDRSTRLEN
+#define COAP_IPV_SIN_ADDR         sin_addr
+#define COAP_IPV_SIN_PORT         sin_port
 
 typedef struct sockaddr_in   coap_ipv_sockaddr_in_t;
 
