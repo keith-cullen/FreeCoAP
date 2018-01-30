@@ -34,8 +34,8 @@
 #ifndef TLS_SOCK_H
 #define TLS_SOCK_H
 
-#include <string.h>         /* size_t */
-#include <unistd.h>         /* ssize_t */
+#include <stddef.h>         /* size_t */
+#include <sys/types.h>      /* ssize_t */
 #include <gnutls/gnutls.h>  /* gnutls_session_t */
 #include "sock.h"           /* error codes */
 #include "tls.h"            /* tls_init() */

@@ -42,7 +42,7 @@
 #include <sys/socket.h>
 #include <sys/timerfd.h>
 #include <sys/select.h>
-#include <linux/types.h>
+#include <sys/types.h>
 #include "coap_client.h"
 #include "coap_log.h"
 #ifdef COAP_DTLS_EN
