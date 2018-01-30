@@ -37,6 +37,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/types.h>
 #include "connection.h"
 #include "http_msg.h"
 #include "uri.h"
