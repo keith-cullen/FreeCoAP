@@ -50,6 +50,28 @@ tinydtls
     - X.509 certificates (RFC 7252 section 9.1.3.3)
 
 
+Autotools
+=========
+
+To generate a configure script
+------------------------------
+
+$ cd FreeCoAP
+
+$ autoreconf --install
+
+To build and install FreeCoAP as a library
+------------------------------------------
+
+$ configure
+
+$ make
+
+$ make install
+
+(Note: The FreeCoAP library built using this process requires GnuTLS and cannot be used without DTLS.)
+
+
 Sample Applications
 ===================
 
@@ -378,6 +400,32 @@ The client, server and proxy applications will pick up the new keys automaticall
 
 Validation History
 ==================
+
+v0.6-tinydtls
+------------
+
+HP Pavilion
+-----------
+Ubuntu 16.04
+
+Linux 4.13.0-32-generic #35~16.04.1-Ubuntu SMP Thu Jan 25 10:13:43 UTC 2018 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.5.15
+
+tinydtls 0.8.6
+
+
+v0.6
+----
+
+HP Pavilion
+-----------
+Ubuntu 16.04
+
+Linux 4.13.0-32-generic #35~16.04.1-Ubuntu SMP Thu Jan 25 10:13:43 UTC 2018 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.5.15
+
 
 v0.5-tinydtls
 ------------
