@@ -60,10 +60,12 @@ int main(int argc, char **argv)
                              CRL_FILE_NAME);
     if (ret < 0)
     {
+        time_server_deinit();
         return EXIT_FAILURE;
     }
     ret = time_server_run(&server);
     time_server_destroy(&server);
+    time_server_deinit();
     if (ret < 0)
     {
         return EXIT_FAILURE;

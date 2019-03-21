@@ -38,6 +38,7 @@ typedef struct
 reg_client_t;
 
 int reg_client_init(void);
+void reg_client_deinit(void);
 int reg_client_create(reg_client_t *client,
                       const char *host,
                       const char *port,

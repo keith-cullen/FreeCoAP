@@ -21,12 +21,14 @@ LD_ ?= gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
+       $(I1)/coap_mem.h \
        $(I1)/coap_log.h \
        $(I1)/coap_ipv.h \
        $(T1)/test.h
 OBJS = test_coap_client.o \
        coap_client.o \
        coap_msg.o \
+       coap_mem.o \
        coap_log.o \
        test.o
 LIBS = $(DTLS_LIBS)
@@ -44,6 +46,9 @@ coap_client.o: $(S1)/coap_client.c $(INCS)
 
 coap_msg.o: $(S1)/coap_msg.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
+
+coap_mem.o: $(S1)/coap_mem.c $(INCS)
+	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
 
 coap_log.o: $(S1)/coap_log.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c

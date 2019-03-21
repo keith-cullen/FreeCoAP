@@ -32,9 +32,14 @@
 #endif
 #include "reg_client.h"
 #include "coap_msg.h"
+#include "coap_mem.h"
 #include "coap_log.h"
 
 #define REG_CLIENT_URI_PATH_BUF_LEN  32
+#define REG_CLIENT_BIG_BUF_NUM       128
+#define REG_CLIENT_BIG_BUF_LEN       1024
+#define REG_CLIENT_SMALL_BUF_NUM     128
+#define REG_CLIENT_SMALL_BUF_LEN     256
 
 /* one-time initialisation */
 int reg_client_init(void)
@@ -42,18 +47,40 @@ int reg_client_init(void)
 #ifdef COAP_DTLS_EN
     const char *gnutls_ver = NULL;
 #endif
+    int ret = 0;
 
     coap_log_set_level(COAP_LOG_DEBUG);
+    ret = coap_mem_big_create(REG_CLIENT_BIG_BUF_NUM, REG_CLIENT_BIG_BUF_LEN);
+    if (ret != 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        return -1;
+    }
+    ret = coap_mem_small_create(REG_CLIENT_SMALL_BUF_NUM, REG_CLIENT_SMALL_BUF_LEN);
+    if (ret != 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        coap_mem_big_destroy();
+        return -1;
+    }
 #ifdef COAP_DTLS_EN
     gnutls_ver = gnutls_check_version(NULL);
     if (gnutls_ver == NULL)
     {
         coap_log_error("Unable to determine GnuTLS version");
+        coap_mem_small_destroy();
+        coap_mem_big_destroy();
         return -1;
     }
     coap_log_info("GnuTLS version: %s", gnutls_ver);
 #endif
     return 0;
+}
+
+void reg_client_deinit(void)
+{
+    coap_mem_small_destroy();
+    coap_mem_big_destroy();
 }
 
 int reg_client_create(reg_client_t *client,

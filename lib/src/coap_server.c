@@ -49,6 +49,7 @@
 #include <gnutls/x509.h>
 #endif
 #include "coap_server.h"
+#include "coap_mem.h"
 #include "coap_log.h"
 
 #define COAP_SERVER_ACK_TIMEOUT_SEC       2                                     /**< Minimum delay to wait before retransmitting a confirmable message */
@@ -83,17 +84,19 @@ static coap_server_path_t *coap_server_path_new(const char *str)
 {
     coap_server_path_t *path = NULL;
 
-    path = (coap_server_path_t *)malloc(sizeof(coap_server_path_t));
+    path = (coap_server_path_t *)coap_mem_small_alloc(sizeof(coap_server_path_t));
     if (path == NULL)
     {
         return NULL;
     }
-    path->str = strdup(str);
+    path->str = (char *)coap_mem_small_alloc(strlen(str) + 1);
     if (path->str == NULL)
     {
-        free(path);
+        coap_mem_small_free(path);
         return NULL;
     }
+    strncpy(path->str, str, coap_mem_small_get_len() - 1);
+    path->str[coap_mem_small_get_len() - 1] = '\0';
     path->next = NULL;
     return path;
 }
@@ -105,8 +108,8 @@ static coap_server_path_t *coap_server_path_new(const char *str)
  */
 static void coap_server_path_delete(coap_server_path_t *path)
 {
-    free(path->str);
-    free(path);
+    coap_mem_small_free(path->str);
+    coap_mem_small_free(path);
 }
 
 /**

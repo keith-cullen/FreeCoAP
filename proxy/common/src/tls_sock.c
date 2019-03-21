@@ -268,6 +268,7 @@ int tls_sock_handshake(tls_sock_t *s)
 {
     struct timeval tv = {0};
     fd_set readfds = {{0}};
+    fd_set errfds = {{0}};
     int ret = 0;
 
     /* tls handshake */
@@ -294,7 +295,9 @@ int tls_sock_handshake(tls_sock_t *s)
         }
         FD_ZERO(&readfds);
         FD_SET(s->sd, &readfds);
-        ret = select(s->sd + 1, &readfds, NULL, &readfds, &tv);
+        FD_ZERO(&errfds);
+        FD_SET(s->sd, &errfds);
+        ret = select(s->sd + 1, &readfds, NULL, &errfds, &tv);
         if (ret == 0)
         {
             return SOCK_TIMEOUT;
@@ -411,6 +414,7 @@ void tls_sock_close(tls_sock_t *s)
     struct timeval tv = {0};
     gnutls_datum_t datum = {0};
     fd_set readfds = {{0}};
+    fd_set errfds = {{0}};
     char addr[SOCK_INET_ADDRSTRLEN] = {0};
     int success = 0;
     int ret = 0;
@@ -441,7 +445,9 @@ void tls_sock_close(tls_sock_t *s)
         }
         FD_ZERO(&readfds);
         FD_SET(s->sd, &readfds);
-        ret = select(s->sd + 1, &readfds, NULL, &readfds, &tv);
+        FD_ZERO(&errfds);
+        FD_SET(s->sd, &errfds);
+        ret = select(s->sd + 1, &readfds, NULL, &errfds, &tv);
         if (ret <= 0)
         {
             break;
@@ -513,6 +519,7 @@ ssize_t tls_sock_read(tls_sock_t *s, void *buf, size_t len)
 {
     struct timeval tv = {0};
     fd_set readfds = {{0}};
+    fd_set errfds = {{0}};
     ssize_t num = 0;
     int ret = 0;
 
@@ -558,7 +565,9 @@ ssize_t tls_sock_read(tls_sock_t *s, void *buf, size_t len)
         }
         FD_ZERO(&readfds);
         FD_SET(s->sd, &readfds);
-        ret = select(s->sd + 1, &readfds, NULL, &readfds, &tv);
+        FD_ZERO(&errfds);
+        FD_SET(s->sd, &errfds);
+        ret = select(s->sd + 1, &readfds, NULL, &errfds, &tv);
         if (ret == 0)
         {
             return SOCK_TIMEOUT;
@@ -603,6 +612,7 @@ ssize_t tls_sock_write(tls_sock_t *s, void *buf, size_t len)
 {
     struct timeval tv = {0};
     fd_set writefds = {{0}};
+    fd_set errfds = {{0}};
     ssize_t num = 0;
     int ret = 0;
 
@@ -629,7 +639,9 @@ ssize_t tls_sock_write(tls_sock_t *s, void *buf, size_t len)
         }
         FD_ZERO(&writefds);
         FD_SET(s->sd, &writefds);
-        ret = select(s->sd + 1, NULL, &writefds, &writefds, &tv);
+        FD_ZERO(&errfds);
+        FD_SET(s->sd, &errfds);
+        ret = select(s->sd + 1, NULL, &writefds, &errfds, &tv);
         if (ret == 0)
         {
             return SOCK_TIMEOUT;

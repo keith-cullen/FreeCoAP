@@ -25,6 +25,7 @@ LD_ ?= gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
+       $(I1)/coap_mem.h \
        $(I1)/coap_log.h \
        $(I1)/coap_ipv.h \
        $(I3)/listener.h \
@@ -44,6 +45,8 @@ INCS = $(I1)/coap_client.h \
 OBJS = proxy.o \
        coap_client.o \
        coap_msg.o \
+       coap_mem.o \
+       coap_log.o \
        listener.o \
        connection.o \
        param.o \
@@ -56,8 +59,7 @@ OBJS = proxy.o \
        config.o \
        data_buf.o \
        util.o \
-       thread.o \
-       coap_log.o
+       thread.o
 LIBS = -lpthread \
        -lgnutls \
        -lnettle \
@@ -77,6 +79,12 @@ coap_client.o: $(S1)/coap_client.c $(INCS)
 
 coap_msg.o: $(S1)/coap_msg.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
+
+coap_mem.o: $(S1)/coap_mem.c $(INCS)
+	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
+
+coap_log.o: $(S1)/coap_log.c $(INCS)
+	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
 
 listener.o: $(S3)/listener.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S3)/listener.c
@@ -116,9 +124,6 @@ util.o: $(S2)/util.c $(INCS)
 
 thread.o: $(S2)/thread.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S2)/thread.c
-
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
 
 clean:
 	$(RM) $(PROG) $(OBJS)

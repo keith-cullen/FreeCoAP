@@ -38,6 +38,7 @@ typedef struct
 time_client_t;
 
 int time_client_init(void);
+void time_client_deinit(void);
 int time_client_create(time_client_t *client,
                        const char *host,
                        const char *port,
