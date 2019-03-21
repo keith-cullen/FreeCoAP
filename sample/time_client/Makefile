@@ -20,12 +20,14 @@ LDFLAGS =
 INCS = time_client.h \
        $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
+       $(I1)/coap_mem.h \
        $(I1)/coap_log.h \
        $(I1)/coap_ipv.h
 OBJS = main.o \
        time_client.o \
        coap_client.o \
        coap_msg.o \
+       coap_mem.o \
        coap_log.o
 LIBS = $(DTLS_LIBS)
 PROG = time_client
@@ -45,6 +47,9 @@ coap_client.o: $(S1)/coap_client.c $(INCS)
 
 coap_msg.o: $(S1)/coap_msg.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
+
+coap_mem.o: $(S1)/coap_mem.c $(INCS)
+	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
 
 coap_log.o: $(S1)/coap_log.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c

@@ -37,6 +37,7 @@ typedef struct
 time_server_t;
 
 int time_server_init(void);
+void time_server_deinit(void);
 int time_server_create(time_server_t *server,
                        const char *host,
                        const char *port,

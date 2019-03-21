@@ -39,6 +39,7 @@ typedef struct
 reg_server_t;
 
 int reg_server_init(void);
+void reg_server_deinit(void);
 int reg_server_create(reg_server_t *server,
                       const char *host,
                       const char *port,

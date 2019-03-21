@@ -47,6 +47,7 @@
 #include <gnutls/x509.h>
 #endif
 #include "coap_client.h"
+#include "coap_msg.h"
 #include "coap_log.h"
 
 #define COAP_CLIENT_ACK_TIMEOUT_SEC   2                                         /**< Minimum delay to wait before retransmitting a confirmable message */

@@ -73,6 +73,7 @@ int main(int argc, char **argv)
                             COMMON_NAME);
     if (ret < 0)
     {
+        reg_client_deinit();
         return EXIT_FAILURE;
     }
     memcpy(buf, argv[3], len);
@@ -81,8 +82,10 @@ int main(int argc, char **argv)
     if (ret < 0)
     {
         reg_client_destroy(&client);
+        reg_client_deinit();
         return EXIT_FAILURE;
     }
     reg_client_destroy(&client);
+    reg_client_deinit();
     return EXIT_SUCCESS;
 }
