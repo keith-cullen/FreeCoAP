@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <time.h>
+#include <unistd.h>
 #include "tls_sock.h"
 #include "sock.h"
 #include "tls.h"

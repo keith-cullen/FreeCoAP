@@ -37,6 +37,8 @@
 #include <errno.h>
 #include <getopt.h>
 #include "coap_client.h"
+#include "coap_msg.h"
+#include "coap_mem.h"
 #include "coap_log.h"
 #ifdef COAP_DTLS_EN
 #include "raw_keys.h"
@@ -59,6 +61,10 @@
 #define SEP_URI_PATH2_LEN   3                                                   /**< Length of the second URI path option value required to trigger a separate response from the server */
 #define SEP_URI_PATH3       "path"                                              /**< Third URI path option value required to trigger a separate response from the server */
 #define SEP_URI_PATH3_LEN   4                                                   /**< Length of the third URI path option value required to trigger a separate response from the server */
+#define BIG_BUF_NUM         128                                                 /**< Number of buffers in the big memory allocator */
+#define BIG_BUF_LEN         1024                                                /**< Length of each buffer in the big memory allocator */
+#define SMALL_BUF_NUM       128                                                 /**< Number of buffers in the small memory allocator */
+#define SMALL_BUF_LEN       256                                                 /**< Length of each buffer in the small memory allocator */
 
 /**
  *  @brief Message option test data structure
@@ -1239,11 +1245,26 @@ int main(int argc, char **argv)
     }
 
     coap_log_set_level(log_level);
+    ret = coap_mem_big_create(BIG_BUF_NUM, BIG_BUF_LEN);
+    if (ret != 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        return EXIT_FAILURE;
+    }
+    ret = coap_mem_small_create(SMALL_BUF_NUM, SMALL_BUF_LEN);
+    if (ret != 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        coap_mem_small_destroy();
+        return EXIT_FAILURE;
+    }
 
 #ifdef COAP_DTLS_EN
     ret = raw_keys_load(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
     if (ret < 0)
     {
+        coap_mem_small_destroy();
+        coap_mem_big_destroy();
         return EXIT_FAILURE;
     }
 #endif
@@ -1287,5 +1308,7 @@ int main(int argc, char **argv)
         num_pass = test_run(tests, num_tests);
     }
 
+    coap_mem_small_destroy();
+    coap_mem_big_destroy();
     return num_pass == num_tests ? EXIT_SUCCESS : EXIT_FAILURE;
 }

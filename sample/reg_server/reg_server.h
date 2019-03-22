@@ -41,6 +41,7 @@ reg_server_t;
 int reg_server_init(const char *priv_key_file_name,
                     const char *pub_key_file_name,
                     const char *access_file_name);
+void reg_server_deinit(void);
 int reg_server_create(reg_server_t *server,
                       const char *host,
                       const char *port);

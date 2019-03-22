@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include "coap_msg.h"
+#include "coap_mem.h"
 
 #define coap_msg_op_list_get_first(list)       ((list)->first)                  /**< Get the first option from an option linked-list */
 #define coap_msg_op_list_get_last(list)        ((list)->last)                   /**< Get the last option in an option linked-list */
@@ -183,17 +184,17 @@ static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, const char *va
 {
     coap_msg_op_t *op = NULL;
 
-    op = (coap_msg_op_t *)malloc(sizeof(coap_msg_op_t));
+    op = (coap_msg_op_t *)coap_mem_small_alloc(sizeof(coap_msg_op_t));
     if (op == NULL)
     {
         return NULL;
     }
     op->num = num;
     op->len = len;
-    op->val = (char *)malloc(len);
+    op->val = (char *)coap_mem_big_alloc(len);
     if (op->val == NULL)
     {
-        free(op);
+        coap_mem_big_free(op);
         return NULL;
     }
     memcpy(op->val, val, len);
@@ -208,8 +209,8 @@ static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, const char *va
  */
 static void coap_msg_op_delete(coap_msg_op_t *op)
 {
-    free(op->val);
-    free(op);
+    coap_mem_big_free(op->val);
+    coap_mem_small_free(op);
 }
 
 /**
@@ -344,7 +345,7 @@ void coap_msg_destroy(coap_msg_t *msg)
     coap_msg_op_list_destroy(&msg->op_list);
     if (msg->payload != NULL)
     {
-        free(msg->payload);
+        coap_mem_big_free(msg->payload);
     }
     memset(msg, 0, sizeof(coap_msg_t));
 }
@@ -671,7 +672,7 @@ static ssize_t coap_msg_parse_payload(coap_msg_t *msg, char *buf, size_t len)
     {
         return -EBADMSG;
     }
-    msg->payload = (char *)malloc(len);
+    msg->payload = (char *)coap_mem_big_alloc(len);
     if (msg->payload == NULL)
     {
         return -ENOMEM;
@@ -780,12 +781,12 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, size_t len)
     msg->payload_len = 0;
     if (msg->payload != NULL)
     {
-        free(msg->payload);
+        coap_mem_big_free(msg->payload);
         msg->payload = NULL;
     }
     if (len > 0)
     {
-        msg->payload = (char *)malloc(len);
+        msg->payload = (char *)coap_mem_big_alloc(len);
         if (msg->payload == NULL)
         {
             return -ENOMEM;
