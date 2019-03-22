@@ -40,6 +40,7 @@ reg_client_t;
 int reg_client_init(const char *priv_key_file_name,
                     const char *pub_key_file_name,
                     const char *access_file_name);
+void reg_client_deinit(void);
 int reg_client_create(reg_client_t *client,
                       const char *host,
                       const char *port);

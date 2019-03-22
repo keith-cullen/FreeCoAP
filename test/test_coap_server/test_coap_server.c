@@ -36,6 +36,8 @@
 #include <string.h>
 #include <errno.h>
 #include "coap_server.h"
+#include "coap_msg.h"
+#include "coap_mem.h"
 #include "coap_log.h"
 #ifdef COAP_DTLS_EN
 #include "raw_keys.h"
@@ -56,6 +58,10 @@
 #define BLOCKWISE_URI_PATH   "block"                                            /**< URI path that causes the server to use blockwise transfers */
 #define BLOCKWISE_BUF_LEN    40                                                 /**< Total length (in bytes) of the buffer used for blockwise transfers */
 #define BLOCK_SIZE           16                                                 /**< Size of an individual block in a blockwise transfer */
+#define BIG_BUF_NUM          128                                                /**< Number of buffers in the big memory allocator */
+#define BIG_BUF_LEN          1024                                               /**< Length of each buffer in the big memory allocator */
+#define SMALL_BUF_NUM        128                                                /**< Number of buffers in the small memory allocator */
+#define SMALL_BUF_LEN        256                                                /**< Length of each buffer in the small memory allocator */
 
 /**
  *  @brief Print a CoAP message
@@ -483,11 +489,26 @@ int main()
     int ret = 0;
 
     coap_log_set_level(COAP_LOG_DEBUG);
+    ret = coap_mem_big_create(BIG_BUF_NUM, BIG_BUF_LEN);
+    if (ret != 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        return EXIT_FAILURE;
+    }
+    ret = coap_mem_small_create(SMALL_BUF_NUM, SMALL_BUF_LEN);
+    if (ret != 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        coap_mem_small_destroy();
+        return EXIT_FAILURE;
+    }
 
 #ifdef COAP_DTLS_EN
     ret = raw_keys_load(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
     if (ret < 0)
     {
+        coap_mem_small_destroy();
+        coap_mem_big_destroy();
         return EXIT_FAILURE;
     }
     ret = coap_server_create(&server, server_handle, HOST, PORT,
@@ -509,6 +530,8 @@ int main()
             /* a return value of -1 indicates a DTLS failure which has already been logged */
             coap_log_error("%s", strerror(-ret));
         }
+        coap_mem_small_destroy();
+        coap_mem_big_destroy();
         return EXIT_FAILURE;
     }
     ret = coap_server_add_sep_resp_uri_path(&server, SEP_URI_PATH);
@@ -516,6 +539,8 @@ int main()
     {
         coap_log_error("%s", strerror(-ret));
         coap_server_destroy(&server);
+        coap_mem_small_destroy();
+        coap_mem_big_destroy();
         return EXIT_FAILURE;
     }
     ret = coap_server_run(&server);
@@ -527,8 +552,12 @@ int main()
             coap_log_error("%s", strerror(-ret));
         }
         coap_server_destroy(&server);
+        coap_mem_small_destroy();
+        coap_mem_big_destroy();
         return EXIT_FAILURE;
     }
     coap_server_destroy(&server);
+    coap_mem_small_destroy();
+    coap_mem_big_destroy();
     return EXIT_SUCCESS;
 }

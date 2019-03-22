@@ -40,6 +40,7 @@ time_client_t;
 int time_client_init(const char *priv_key_file_name,
                      const char *pub_key_file_name,
                      const char *access_file_name);
+void time_client_deinit(void);
 int time_client_create(time_client_t *client,
                        const char *host,
                        const char *port);

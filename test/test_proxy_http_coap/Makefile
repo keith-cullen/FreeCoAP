@@ -32,6 +32,7 @@ LD_ ?= gcc
 LDFLAGS =
 INCS = $(I1)/coap_client.h \
        $(I1)/coap_msg.h \
+       $(I1)/coap_mem.h \
        $(I1)/coap_log.h \
        $(I1)/coap_ipv.h \
        $(I3)/listener.h \
@@ -73,6 +74,7 @@ INCS = $(I1)/coap_client.h \
 OBJS = proxy.o \
        coap_client.o \
        coap_msg.o \
+       coap_mem.o \
        listener.o \
        connection.o \
        param.o \
@@ -119,6 +121,9 @@ coap_client.o: $(S1)/coap_client.c $(INCS)
 
 coap_msg.o: $(S1)/coap_msg.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
+
+coap_mem.o: $(S1)/coap_mem.c $(INCS)
+	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
 
 listener.o: $(S3)/listener.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S3)/listener.c

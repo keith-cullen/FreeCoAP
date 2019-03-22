@@ -38,11 +38,17 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include "coap_msg.h"
+#include "coap_mem.h"
 #include "coap_log.h"
 #include "test.h"
 
 #undef DEBUG
 #define DIM(x) (sizeof(x) / sizeof(x[0]))                                       /**< Calculate the size of an array */
+
+#define BIG_BUF_NUM    128                                                      /**< Number of buffers in the big memory allocator */
+#define BIG_BUF_LEN    1024                                                     /**< Length of each buffer in the big memory allocator */
+#define SMALL_BUF_NUM  128                                                      /**< Number of buffers in the small memory allocator */
+#define SMALL_BUF_LEN  256                                                      /**< Length of each buffer in the small memory allocator */
 
 /**
  *  @brief Message option test data structure
@@ -4988,9 +4994,24 @@ int main(void)
     };
     unsigned num_tests = DIM(tests);
     unsigned num_pass = 0;
+    int ret = 0;
 
     coap_log_set_level(COAP_LOG_ERROR);
+    ret = coap_mem_big_create(BIG_BUF_NUM, BIG_BUF_LEN);
+    if (ret != 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        return EXIT_FAILURE;
+    }
+    ret = coap_mem_small_create(SMALL_BUF_NUM, SMALL_BUF_LEN);
+    if (ret != 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        coap_mem_big_destroy();
+        return EXIT_FAILURE;
+    }
     num_pass = test_run(tests, num_tests);
-
+    coap_mem_small_destroy();
+    coap_mem_big_destroy();
     return num_pass == num_tests ? EXIT_SUCCESS : EXIT_FAILURE;
 }

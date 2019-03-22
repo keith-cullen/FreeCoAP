@@ -58,6 +58,7 @@ int main(int argc, char **argv)
                              argv[2]);
     if (ret < 0)
     {
+	time_client_deinit();
         return EXIT_FAILURE;
     }
     while (1)
@@ -66,11 +67,13 @@ int main(int argc, char **argv)
         if (ret < 0)
         {
             time_client_destroy(&client);
+            time_client_deinit();
             return EXIT_FAILURE;
         }
         printf("time: '%s'\n", buf);
         sleep(1);
     }
     time_client_destroy(&client);
+    time_client_deinit();
     return EXIT_SUCCESS;
 }
