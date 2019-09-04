@@ -47,8 +47,19 @@
 #define COAP_SERVER_ADDR_BUF_LEN      128                                       /**< Buffer length for host addresses */
 #define COAP_SERVER_DIAG_PAYLOAD_LEN  128                                       /**< Buffer length for diagnostic payloads */
 
-#define coap_server_trans_get_req(tran)   (&(trans)->req)                       /**< Get the last request message received for this transaction */
-#define coap_server_trans_get_resp(tran)  (&(trans)->resp)                      /**< Get the last response message sent for this transaction */
+#define coap_server_trans_get_type(trans)     ((trans)->type)                   /**< Get the type of transaction */
+#define coap_server_trans_get_req(tran)       (&(trans)->req)                   /**< Get the last request message received for this transaction */
+#define coap_server_trans_get_resp(tran)      (&(trans)->resp)                  /**< Get the last response message sent for this transaction */
+
+/**
+ *  @brief transaction type enumeration
+ */
+typedef enum
+{
+    COAP_SERVER_TRANS_SIMPLE = 0,                                               /**< Simple (i.e. non-blockwise) transaction */
+    COAP_SERVER_TRANS_BLOCKWISE_GET = 1                                         /**< Blockwise get transaction */
+}
+coap_server_trans_type_t;
 
 /**
  *  @brief Response type enumeration
@@ -98,6 +109,7 @@ struct coap_server;
 typedef struct coap_server_trans
 {
     int active;                                                                 /**< Flag to indicate if this transaction structure contains valid data */
+    coap_server_trans_type_t type;                                              /**< Transaction type */
     time_t last_use;                                                            /**< The time that this transaction structure was last used */
     int timer_fd;                                                               /**< Timer file descriptor */
     struct timespec timeout;                                                    /**< Timeout value */
@@ -107,6 +119,12 @@ typedef struct coap_server_trans
     char client_addr[COAP_SERVER_ADDR_BUF_LEN];                                 /**< String to hold the client address */
     coap_msg_t req;                                                             /**< Last request message received for this transaction */
     coap_msg_t resp;                                                            /**< Last response message sent for this transaction */
+    char *body;                                                                 /**< Pointer to a buffer to store the body of this trasaction (for blockwise transfers) */
+    size_t body_len;                                                            /**< Length of the body of this transaction */
+    unsigned block1_size;                                                       /**< Block1 size for blockwise transfers */
+    unsigned block2_size;                                                       /**< Block2 size for blockwise transfers */
+    size_t block_start;                                                         /**< Byte offset of the next block */
+    char block_uri[COAP_MSG_OP_URI_PATH_MAX_LEN + 1];                           /**< The URI for the current blockwise transfer */
     struct coap_server *server;                                                 /**< Pointer to the containing server structure */
 #ifdef COAP_DTLS_EN
     gnutls_session_t session;                                                   /**< DTLS session */
@@ -132,6 +150,33 @@ typedef struct coap_server
 }
 coap_server_t;
 
+/**
+ *  @brief Handle a library-level blockwise transfer
+ *
+ *  Configure the transaction structure to do a library-level
+ *  blockwise transfer. This function should be called by the
+ *  application from the handle callback function.
+ *
+ *  @param[in,out] trans Pointer to a transaction structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *  @param[in] block1_size Preferred block1 size
+ *  @param[in] block2_size Preferred block2 size
+ *  @param[in] body Buffer containing the body
+ *  @param[in] body_len length of the buffer
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+int coap_server_trans_handle_blockwise(coap_server_trans_t *trans,
+                                       coap_msg_t *req,
+                                       coap_msg_t *resp,
+                                       unsigned block1_size,
+                                       unsigned block2_size,
+                                       char *body,
+                                       size_t body_len);
+
 #ifdef COAP_DTLS_EN
 
 /**
@@ -139,8 +184,8 @@ coap_server_t;
  *
  *  @param[out] server Pointer to a server structure
  *  @param[in] handle Call-back function to handle client requests
- *  @param[in] host Pointer to a string containing the host address of the server
- *  @param[in] port Port number of the server
+ *  @param[in] host String containing the host address of the server
+ *  @param[in] port String containing the port number of the server
  *  @param[in] key_file_name String containing the DTLS key file name
  *  @param[in] cert_file_name String containing the DTLS certificate file name
  *  @param[in] trust_file_name String containing the DTLS trust file name
@@ -166,8 +211,8 @@ int coap_server_create(coap_server_t *server,
  *
  *  @param[out] server Pointer to a server structure
  *  @param[in] handle Call-back function to handle client requests
- *  @param[in] host Pointer to a string containing the host address of the server
- *  @param[in] port Port number of the server
+ *  @param[in] host String containing the host address of the server
+ *  @param[in] port String containing the port number of the server
  *
  *  @returns Operation status
  *  @retval 0 Success

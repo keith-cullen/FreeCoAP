@@ -37,41 +37,44 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-#define COAP_MSG_VER                           0x01                             /**< CoAP version */
-#define COAP_MSG_MAX_TOKEN_LEN                 8                                /**< Maximum token length */
-#define COAP_MSG_MAX_CODE_CLASS                7                                /**< Maximum code class */
-#define COAP_MSG_MAX_CODE_DETAIL               31                               /**< Maximum code detail */
-#define COAP_MSG_MAX_MSG_ID                    ((1 << 16) - 1)                  /**< Maximum message ID */
+#define COAP_MSG_VER                                0x01                        /**< CoAP version */
+#define COAP_MSG_MAX_TOKEN_LEN                      8                           /**< Maximum token length */
+#define COAP_MSG_MAX_CODE_CLASS                     7                           /**< Maximum code class */
+#define COAP_MSG_MAX_CODE_DETAIL                    31                          /**< Maximum code detail */
+#define COAP_MSG_MAX_MSG_ID                         ((1 << 16) - 1)             /**< Maximum message ID */
 
-#define COAP_MSG_OP_URI_PATH_MAX_LEN           256                              /**< Maximum buffer length for a reconstructed URI path */
-#define COAP_MSG_OP_MAX_BLOCK_VAL_LEN          3                                /**< Maximum buffer length for a Block1 or Block2 option value */
-#define COAP_MSG_OP_MAX_BLOCK_SIZE             (1 << 10)                        /**< Maximum block size for a Block1 or Block2 option */
-#define COAP_MSG_MAX_BUF_LEN                   1152                             /**< Maximum buffer length for header and payload */
+#define COAP_MSG_OP_URI_PATH_MAX_LEN                256                         /**< Maximum buffer length for a reconstructed URI path */
+#define COAP_MSG_OP_MAX_BLOCK_VAL_LEN               3                           /**< Maximum buffer length for a Block1 or Block2 option value */
+#define COAP_MSG_OP_MAX_BLOCK_SIZE                  (1 << 10)                   /**< Maximum block size for a Block1 or Block2 option */
+#define COAP_MSG_MAX_BUF_LEN                        1152                        /**< Maximum buffer length for header and payload */
 
-#define coap_msg_op_num_is_critical(num)       ((num) & 1)                      /**< Indicate if an option is critical */
-#define coap_msg_op_num_is_unsafe(num)         ((num) & 2)                      /**< Indicate if an option is unsafe to forward */
-#define coap_msg_op_num_no_cache_key(num)      ((num & 0x1e) == 0x1c)           /**< Indicate if an option is not part of the cache key */
+#define coap_msg_block_szx_to_size(szx)             (1 << ((szx) + 4)))         /**< Convert a block size exponent value to a size value */
+#define coap_msg_block_start_to_num(start, szx)     ((start) >> ((szx) + 4))    /**< Convert a start byte value to a block num value */
 
-#define coap_msg_op_get_num(op)                ((op)->num)                      /**< Get the option number from an option */
-#define coap_msg_op_set_num(op, num)           ((op)->num = (num))              /**< Set the option number in an option */
-#define coap_msg_op_get_len(op)                ((op)->len)                      /**< Get the option length from an option */
-#define coap_msg_op_set_len(op, len)           ((op)->len = (len))              /**< Set the option length in an option */
-#define coap_msg_op_get_val(op)                ((op)->val)                      /**< Get the option value from an option */
-#define coap_msg_op_set_val(op, val)           ((op)->val = (val))              /**< Set the option value in an option */
-#define coap_msg_op_get_next(op)               ((op)->next)                     /**< Get the next pointer from an option */
-#define coap_msg_op_set_next(op, next_op)      ((op)->next = (next_op))         /**< Set the next pointer in an option */
+#define coap_msg_op_num_is_critical(num)            ((num) & 1)                 /**< Indicate if an option is critical */
+#define coap_msg_op_num_is_unsafe(num)              ((num) & 2)                 /**< Indicate if an option is unsafe to forward */
+#define coap_msg_op_num_no_cache_key(num)           ((num & 0x1e) == 0x1c)      /**< Indicate if an option is not part of the cache key */
 
-#define coap_msg_get_ver(msg)                  ((msg)->ver)                     /**< Get the version from a message */
-#define coap_msg_get_type(msg)                 ((msg)->type)                    /**< Get the type from a message */
-#define coap_msg_get_token_len(msg)            ((msg)->token_len)               /**< Get the token length from a message */
-#define coap_msg_get_code_class(msg)           ((msg)->code_class)              /**< Get the code class from a message */
-#define coap_msg_get_code_detail(msg)          ((msg)->code_detail)             /**< Get the code detail from a message */
-#define coap_msg_get_msg_id(msg)               ((msg)->msg_id)                  /**< Get the message ID from message */
-#define coap_msg_get_token(msg)                ((msg)->token)                   /**< Get the token from a message */
-#define coap_msg_get_first_op(msg)             ((msg)->op_list.first)           /**< Get the first option from a message */
-#define coap_msg_get_payload(msg)              ((msg)->payload)                 /**< Get the payload from a message */
-#define coap_msg_get_payload_len(msg)          ((msg)->payload_len)             /**< Get the payload length from a message */
-#define coap_msg_is_empty(msg)                 (((msg)->code_class == 0) && ((msg)->code_detail == 0))
+#define coap_msg_op_get_num(op)                     ((op)->num)                 /**< Get the option number from an option */
+#define coap_msg_op_set_num(op, num)                ((op)->num = (num))         /**< Set the option number in an option */
+#define coap_msg_op_get_len(op)                     ((op)->len)                 /**< Get the option length from an option */
+#define coap_msg_op_set_len(op, len)                ((op)->len = (len))         /**< Set the option length in an option */
+#define coap_msg_op_get_val(op)                     ((op)->val)                 /**< Get the option value from an option */
+#define coap_msg_op_set_val(op, val)                ((op)->val = (val))         /**< Set the option value in an option */
+#define coap_msg_op_get_next(op)                    ((op)->next)                /**< Get the next pointer from an option */
+#define coap_msg_op_set_next(op, next_op)           ((op)->next = (next_op))    /**< Set the next pointer in an option */
+
+#define coap_msg_get_ver(msg)                       ((msg)->ver)                /**< Get the version from a message */
+#define coap_msg_get_type(msg)                      ((msg)->type)               /**< Get the type from a message */
+#define coap_msg_get_token_len(msg)                 ((msg)->token_len)          /**< Get the token length from a message */
+#define coap_msg_get_code_class(msg)                ((msg)->code_class)         /**< Get the code class from a message */
+#define coap_msg_get_code_detail(msg)               ((msg)->code_detail)        /**< Get the code detail from a message */
+#define coap_msg_get_msg_id(msg)                    ((msg)->msg_id)             /**< Get the message ID from message */
+#define coap_msg_get_token(msg)                     ((msg)->token)              /**< Get the token from a message */
+#define coap_msg_get_first_op(msg)                  ((msg)->op_list.first)      /**< Get the first option from a message */
+#define coap_msg_get_payload(msg)                   ((msg)->payload)            /**< Get the payload from a message */
+#define coap_msg_get_payload_len(msg)               ((msg)->payload_len)        /**< Get the payload length from a message */
+#define coap_msg_is_empty(msg)                      (((msg)->code_class == 0) && ((msg)->code_detail == 0))
                                                                                 /**< Indicate if a message is empty */
 
 /**
@@ -235,6 +238,17 @@ coap_msg_t;
 int coap_msg_op_num_is_recognized(unsigned num);
 
 /**
+ *  @brief Calculate block size exponent from block size
+ *
+ *  @param[in] size Block size
+ *
+ *  @returns Block size exponent or error code
+ *  @retval >=0 Block size exponent
+ *  @retval <0 Error
+ */
+int coap_msg_op_calc_block_szx(unsigned size);
+
+/**
  *  @brief Parse Block1 or Block2 option value
  *
  *  @param[out] num Pointer to Block number
@@ -252,8 +266,8 @@ int coap_msg_op_parse_block_val(unsigned *num, unsigned *more, unsigned *size, c
 /**
  *  @brief Format Block1 or Block2 option value
  *
- *  @param[out] val Pointer to option value
- *  @param[in] len Length of option value
+ *  @param[out] val Pointer to a buffer to store the option value
+ *  @param[in] len Length of the buffer
  *  @param[in] num Block number
  *  @param[in] more More value
  *  @param[in] size Block size
@@ -267,7 +281,7 @@ int coap_msg_op_format_block_val(char *val, unsigned len, unsigned num, unsigned
 /**
  *  @brief Generate a random string of bytes
  *
- *  @param[out] buf Pointer to the buffer to store the random string
+ *  @param[out] buf Pointer to a buffer to store the random string
  *  @param[in] len Length of the buffer
  */
 void coap_msg_gen_rand_str(char *buf, size_t len);
@@ -331,7 +345,24 @@ unsigned coap_msg_check_unsafe_ops(coap_msg_t *msg);
  *  @retval 0 Success
  *  @retval <0 Error
  */
+
 int coap_msg_parse_type_msg_id(char *buf, size_t len, unsigned *type, unsigned *msg_id);
+
+/**
+ *  @brief Find and parse a Block1 or Block2 option in a message
+ *
+ *  @param[out] num Pointer to Block number
+ *  @param[out] more Pointer to More value
+ *  @param[out] size Pointer to Block size (in bytes)
+ *  @param[in] msg Pointer to a message
+ *  @param[in] type Block option type: COAP_MSG_BLOCK1 or COAP_MSG_BLOCK2
+ *
+ *  @returns Operation status
+ *  @retval 1 Block option not found
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+int coap_msg_parse_block_op(unsigned *num, unsigned *more, unsigned *size, coap_msg_t *msg, int type);
 
 /**
  *  @brief Parse a message
@@ -397,7 +428,7 @@ int coap_msg_set_msg_id(coap_msg_t *msg, unsigned msg_id);
 int coap_msg_set_token(coap_msg_t *msg, char *buf, size_t len);
 
 /**
- *  @brief Add a token to a message structure
+ *  @brief Add an option to a message structure
  *
  *  @param[in,out] msg Pointer to a message structure
  *  @param[in] num Option number

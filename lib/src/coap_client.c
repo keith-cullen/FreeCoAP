@@ -1627,3 +1627,127 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     }
     return -EINVAL;
 }
+
+ssize_t coap_client_exchange_blockwise(coap_client_t *client,
+                                       coap_msg_t *req, coap_msg_t *resp,
+                                       unsigned block1_size, unsigned block2_size,
+                                       char *body, size_t body_len)
+{
+    coap_msg_t msg = {0};
+    unsigned payload_len = 0;
+    unsigned block2_more = 0;
+    unsigned block2_num = 0;
+    unsigned block2_len = 0;
+    size_t block2_start = 0;
+    char block2_val[COAP_MSG_OP_MAX_BLOCK_VAL_LEN] = {0};
+    int block2_szx = -1;
+    int ret = 0;
+
+    if (block2_size > 0)
+    {
+        ret = coap_msg_op_calc_block_szx(block2_size);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        block2_szx = ret;
+    }
+    coap_msg_create(&msg);
+    if ((coap_msg_get_code_class(req) == COAP_MSG_REQ)
+     && (coap_msg_get_code_detail(req) == COAP_MSG_GET))
+    {
+        /* use a block2 option to control the size of the blocks in the response */
+        if (block2_size == 0)
+        {
+            return -EINVAL;
+        }
+        while (1)
+        {
+            /* copy the request message so we can add a block2 option */
+            ret = coap_msg_copy(&msg, req);
+            if (ret < 0)
+            {
+                return ret;
+            }
+            block2_num = coap_msg_block_start_to_num(block2_start, block2_szx);
+            block2_more = 0;  /* more must be zero for this use case */
+            ret = coap_msg_op_format_block_val(block2_val, sizeof(block2_val), block2_num, block2_more, block2_size);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return ret;
+            }
+            block2_len = ret;
+            ret = coap_msg_add_op(&msg, COAP_MSG_BLOCK2, block2_len, block2_val);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return ret;
+            }
+            /* exchange with the server */
+            ret = coap_client_exchange(client, &msg, resp);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return ret;
+            }
+            if (!(coap_msg_get_code_class(resp) == COAP_MSG_SUCCESS))
+            {
+                coap_msg_destroy(&msg);
+                return -EBADMSG;
+            }
+            if ((coap_msg_get_code_detail(resp) != COAP_MSG_CONTENT)
+             && (coap_msg_get_code_detail(resp) != COAP_MSG_CONTINUE))
+            {
+                coap_msg_destroy(&msg);
+                return -EBADMSG;
+            }
+            /* inspect the block2 option in the response */
+            ret = coap_msg_parse_block_op(&block2_num, &block2_more, &block2_size, resp, COAP_MSG_BLOCK2);
+            if (ret != 0)
+            {
+                coap_msg_destroy(&msg);
+                return -EBADMSG;
+            }
+            /* check that the received block is the next one in sequence */
+            if (block2_num * block2_size != block2_start)
+            {
+                coap_msg_destroy(&msg);
+                return -EBADMSG;
+            }
+            /* recalculate the block size exponent */
+            ret = coap_msg_op_calc_block_szx(block2_size);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return -EBADMSG;
+            }
+            block2_szx = ret;
+            /* check that the payload in the response has the correct size */
+            payload_len = coap_msg_get_payload_len(resp);
+            if ((block2_more) && (block2_size != payload_len))
+            {
+                coap_msg_destroy(&msg);
+                return -EBADMSG;
+            }
+            /* check for potential buffer overrun */
+            if (block2_start + payload_len > body_len)
+            {
+                coap_msg_destroy(&msg);
+                return -ENOSPC;
+            }
+            /* copy the payload data from the response */
+            memcpy(body + block2_start, coap_msg_get_payload(resp), payload_len);
+            block2_start += payload_len;
+            if (block2_more == 0)
+            {
+                coap_msg_destroy(&msg);
+                return block2_start;  /* success */
+            }
+            coap_msg_reset(&msg);
+            coap_msg_reset(resp);
+        }
+    }
+    coap_msg_destroy(&msg);
+    return -EINVAL;
+}

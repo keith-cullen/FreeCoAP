@@ -37,7 +37,7 @@
 #include "coap_log.h"
 
 #define PARAM_DEF_PORT                                "4430"
-#define PARAM_DEF_MAX_LOG_LEVEL                       "debug"
+#define PARAM_DEF_MAX_LOG_LEVEL                       "info"
 #define PARAM_DEF_HTTP_SERVER_TRUST_FILE_NAME         "http_server_trust.pem"   /**< TLS trust file name */
 #define PARAM_DEF_HTTP_SERVER_CERT_FILE_NAME          "http_server_cert.pem"    /**< TLS certificate file name*/
 #define PARAM_DEF_HTTP_SERVER_KEY_FILE_NAME           "http_server_privkey.pem" /**< TLS key file name */

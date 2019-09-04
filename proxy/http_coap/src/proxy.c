@@ -45,14 +45,16 @@
 #include "coap_mem.h"
 #include "coap_log.h"
 
-#define DEF_MAX_LOG_LEVEL  COAP_LOG_DEBUG                                       /**< Default maximum log level */
+#define DEF_MAX_LOG_LEVEL  COAP_LOG_INFO                                        /**< Default maximum log level */
 #define CONFIG_FILE_NAME   "proxy.conf"                                         /**< Configuration file name */
 #define SOCKET_TIMEOUT     120                                                  /**< Timeout for TLS/IPv6 socket operations */
 #define SOCKET_BACKLOG     10                                                   /**< Backlog queue size for the listening TLS/IPv6 socket */
-#define BIG_BUF_NUM        128                                                  /**< Number of buffers in the big memory allocator */
-#define BIG_BUF_LEN        1024                                                 /**< Length of each buffer in the big memory allocator */
 #define SMALL_BUF_NUM      128                                                  /**< Number of buffers in the small memory allocator */
 #define SMALL_BUF_LEN      256                                                  /**< Length of each buffer in the small memory allocator */
+#define MEDIUM_BUF_NUM     128                                                  /**< Number of buffers in the medium memory allocator */
+#define MEDIUM_BUF_LEN     1024                                                 /**< Length of each buffer in the medium memory allocator */
+#define LARGE_BUF_NUM      32                                                   /**< Number of buffers in the large memory allocator */
+#define LARGE_BUF_LEN      8192                                                 /**< Length of each buffer in the large memory allocator */
 
 int go = 1;                                                                     /**< Global variable used to indicate to the listener module to run or stop */
 
@@ -171,25 +173,20 @@ int main(int argc, char **argv)
     /*
      * from here on error messages are written to the log file
      */
-    ret = coap_mem_big_create(BIG_BUF_NUM, BIG_BUF_LEN);
-    if (ret != 0)
+
+    ret = coap_mem_all_create(SMALL_BUF_NUM, SMALL_BUF_LEN,
+                              MEDIUM_BUF_NUM, MEDIUM_BUF_LEN,
+                              LARGE_BUF_NUM, LARGE_BUF_LEN);
+    if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
-        return -1;
-    }
-    ret = coap_mem_small_create(SMALL_BUF_NUM, SMALL_BUF_LEN);
-    if (ret != 0)
-    {
-        coap_log_error("%s", strerror(-ret));
-        coap_mem_big_destroy();
-        return -1;
+        return EXIT_FAILURE;
     }
 
     ret = param_create(&param, config_file_name);
     if (ret < 0)
     {
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
 
@@ -200,8 +197,7 @@ int main(int argc, char **argv)
     {
         coap_log_error("Unable to determine GnuTLS version");
         param_destroy(&param);
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
     coap_log_info("GnuTLS version: %s", gnutls_ver);
@@ -212,8 +208,7 @@ int main(int argc, char **argv)
     {
         coap_log_error("Unable to initialise TLS library");
         param_destroy(&param);
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
 
@@ -226,8 +221,7 @@ int main(int argc, char **argv)
         coap_log_error("Unable to initialise TLS server");
         tls_deinit();
         param_destroy(&param);
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
 
@@ -238,8 +232,7 @@ int main(int argc, char **argv)
         tls_server_destroy(&server);
         tls_deinit();
         param_destroy(&param);
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
 
@@ -253,8 +246,7 @@ int main(int argc, char **argv)
         tls_server_destroy(&server);
         tls_deinit();
         param_destroy(&param);
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
 
@@ -265,8 +257,7 @@ int main(int argc, char **argv)
         tls_server_destroy(&server);
         tls_deinit();
         param_destroy(&param);
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
 
@@ -288,7 +279,6 @@ int main(int argc, char **argv)
     tls_server_destroy(&server);
     tls_deinit();
     param_destroy(&param);
-    coap_mem_small_destroy();
-    coap_mem_big_destroy();
+    coap_mem_all_destroy();
     return EXIT_SUCCESS;
 }

@@ -137,4 +137,28 @@ void coap_client_destroy(coap_client_t *client);
  **/
 int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *resp);
 
+/**
+ *  @brief Exchange with the server using blockwise transfers
+ *
+ *  This function sets the message ID and token fields of
+ *  the request message overriding any values set by the
+ *  calling function.
+ *
+ *  @param[in,out] client Pointer to a client structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *  @param[in] block1_size Block1 size
+ *  @param[in] block2_size Block2 size
+ *  @param[in] body Pointer to a buffer to hold the body
+ *  @param[in] body_len Length of the buffer to hold the body
+ *
+ *  @returns Operation status
+ *  @retval >0 Length of the data sent/received
+ *  @retval <0 Error
+ **/
+ssize_t coap_client_exchange_blockwise(coap_client_t *client,
+                                       coap_msg_t *req, coap_msg_t *resp,
+                                       unsigned block1_size, unsigned block2_size,
+                                       char *body, size_t body_len);
+
 #endif
