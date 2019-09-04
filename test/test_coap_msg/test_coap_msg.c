@@ -45,10 +45,12 @@
 #undef DEBUG
 #define DIM(x) (sizeof(x) / sizeof(x[0]))                                       /**< Calculate the size of an array */
 
-#define BIG_BUF_NUM    128                                                      /**< Number of buffers in the big memory allocator */
-#define BIG_BUF_LEN    1024                                                     /**< Length of each buffer in the big memory allocator */
-#define SMALL_BUF_NUM  128                                                      /**< Number of buffers in the small memory allocator */
-#define SMALL_BUF_LEN  256                                                      /**< Length of each buffer in the small memory allocator */
+#define SMALL_BUF_NUM   128                                                     /**< Number of buffers in the small memory allocator */
+#define SMALL_BUF_LEN   256                                                     /**< Length of each buffer in the small memory allocator */
+#define MEDIUM_BUF_NUM  128                                                     /**< Number of buffers in the medium memory allocator */
+#define MEDIUM_BUF_LEN  1024                                                    /**< Length of each buffer in the medium memory allocator */
+#define LARGE_BUF_NUM   32                                                      /**< Number of buffers in the large memory allocator */
+#define LARGE_BUF_LEN   8192                                                    /**< Length of each buffer in the large memory allocator */
 
 /**
  *  @brief Message option test data structure
@@ -4291,7 +4293,7 @@ static test_result_t test_parse_func(test_data_t data)
     {
         result = FAIL;
     }
-    if (test_data->parse_ret != 0)
+    if (test_data->parse_ret < 0)
     {
         coap_msg_destroy(&msg);
         return result;
@@ -4399,7 +4401,7 @@ static test_result_t test_format_func(test_data_t data)
     {
         result = FAIL;
     }
-    if (test_data->set_type_ret != 0)
+    if (test_data->set_type_ret < 0)
     {
         coap_msg_destroy(&msg);
         return result;
@@ -4409,7 +4411,7 @@ static test_result_t test_format_func(test_data_t data)
     {
         result = FAIL;
     }
-    if (test_data->set_code_ret != 0)
+    if (test_data->set_code_ret < 0)
     {
         coap_msg_destroy(&msg);
         return result;
@@ -4419,7 +4421,7 @@ static test_result_t test_format_func(test_data_t data)
     {
         result = FAIL;
     }
-    if (test_data->set_msg_id_ret != 0)
+    if (test_data->set_msg_id_ret < 0)
     {
         coap_msg_destroy(&msg);
         return result;
@@ -4431,7 +4433,7 @@ static test_result_t test_format_func(test_data_t data)
         {
             result = FAIL;
         }
-        if (test_data->set_token_ret != 0)
+        if (test_data->set_token_ret < 0)
         {
             coap_msg_destroy(&msg);
             return result;
@@ -4457,7 +4459,7 @@ static test_result_t test_format_func(test_data_t data)
         {
             result = FAIL;
         }
-        if (test_data->set_payload_ret != 0)
+        if (test_data->set_payload_ret < 0)
         {
             coap_msg_destroy(&msg);
             return result;
@@ -4551,7 +4553,7 @@ static test_result_t test_copy_func(test_data_t data)
     {
         result = FAIL;
     }
-    if (test_data->copy_ret != 0)
+    if (test_data->copy_ret < 0)
     {
         coap_msg_destroy(&dst);
         coap_msg_destroy(&src);
@@ -4685,7 +4687,7 @@ static test_result_t test_check_critical_ops_func(test_data_t data)
     for (i = 0; i < test_data->num_ops; i++)
     {
         ret = coap_msg_add_op(&msg, test_data->ops[i].num, test_data->ops[i].len, test_data->ops[i].val);
-        if (ret != 0)
+        if (ret < 0)
         {
             result = FAIL;
             break;
@@ -4722,7 +4724,7 @@ static test_result_t test_check_unsafe_ops_func(test_data_t data)
     for (i = 0; i < test_data->num_ops; i++)
     {
         ret = coap_msg_add_op(&msg, test_data->ops[i].num, test_data->ops[i].len, test_data->ops[i].val);
-        if (ret != 0)
+        if (ret < 0)
         {
             result = FAIL;
             break;
@@ -4799,7 +4801,7 @@ static test_result_t test_format_block_op_func(test_data_t data)
                                            test_data->ops[i].block_num,
                                            test_data->ops[i].block_more,
                                            test_data->ops[i].block_size);
-        if (test_data->format_ret != 0)
+        if (test_data->format_ret < 0)
         {
             /* check error cases */
             if (ret != test_data->format_ret)
@@ -4997,21 +4999,15 @@ int main(void)
     int ret = 0;
 
     coap_log_set_level(COAP_LOG_ERROR);
-    ret = coap_mem_big_create(BIG_BUF_NUM, BIG_BUF_LEN);
-    if (ret != 0)
+    ret = coap_mem_all_create(SMALL_BUF_NUM, SMALL_BUF_LEN,
+                              MEDIUM_BUF_NUM, MEDIUM_BUF_LEN,
+                              LARGE_BUF_NUM, LARGE_BUF_LEN);
+    if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
-        return EXIT_FAILURE;
-    }
-    ret = coap_mem_small_create(SMALL_BUF_NUM, SMALL_BUF_LEN);
-    if (ret != 0)
-    {
-        coap_log_error("%s", strerror(-ret));
-        coap_mem_big_destroy();
         return EXIT_FAILURE;
     }
     num_pass = test_run(tests, num_tests);
-    coap_mem_small_destroy();
-    coap_mem_big_destroy();
+    coap_mem_all_destroy();
     return num_pass == num_tests ? EXIT_SUCCESS : EXIT_FAILURE;
 }

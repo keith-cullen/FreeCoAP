@@ -45,24 +45,32 @@
 #include "coap_log.h"
 #include "test.h"
 
-#define SERVER_COMMON_NAME  "dummy/server"                                      /**< Expected common name in the proxy's certificate */
+#define SERVER_COMMON_NAME              "dummy/server"                          /**< Expected common name in the proxy's certificate */
 #ifdef SOCK_IP6
-#define PROXY_HOST          "::1"                                               /**< Host address of the proxy */
+#define PROXY_HOST                      "::1"                                   /**< Host address of the proxy */
 #else
-#define PROXY_HOST          "127.0.0.1"                                         /**< Host address of the proxy */
+#define PROXY_HOST                      "127.0.0.1"                             /**< Host address of the proxy */
 #endif
 #ifdef COAP_IP6
-#define SERVER_HOST         "[::1]"                                             /**< Host address of the server */
+#define SERVER_HOST                     "[::1]"                                 /**< Host address of the server */
 #else
-#define SERVER_HOST         "127.0.0.1"                                         /**< Host address of the server */
+#define SERVER_HOST                     "127.0.0.1"                             /**< Host address of the server */
 #endif
-#define PROXY_PORT          "12437"                                             /**< TCP port number of the proxy */
-#define TRUST_FILE_NAME     "../../certs/root_server_cert.pem"                  /**< TLS trust file name */
-#define CERT_FILE_NAME      "../../certs/client_cert.pem"                       /**< TLS certificate file name */
-#define KEY_FILE_NAME       "../../certs/client_privkey.pem"                    /**< TLS key file name */
-#define CRL_FILE_NAME       ""                                                  /**< TLS certificate revocation list file name */
-#define SOCKET_TIMEOUT      120                                                 /**< Timeout for TLS/IPv6 socket operations */
-#define RESP_BUF_LEN        1024                                                /**< Size of the buffer used to store responses */
+#define PROXY_PORT                      "12437"                                 /**< TCP port number of the proxy */
+#define TRUST_FILE_NAME                 "../../certs/root_server_cert.pem"      /**< TLS trust file name */
+#define CERT_FILE_NAME                  "../../certs/client_cert.pem"           /**< TLS certificate file name */
+#define KEY_FILE_NAME                   "../../certs/client_privkey.pem"        /**< TLS key file name */
+#define CRL_FILE_NAME                   ""                                      /**< TLS certificate revocation list file name */
+#define UNSAFE_URI_PATH                 "unsafe"                                /**< URI path that causes the server to include an unsafe option in the response */
+#define UNSAFE_URI_PATH_LEN             6                                       /**< Length of the URI path that causes the server to include an unsafe option in the response */
+#define SIMPLE_URI_PATH                 "simple"                                /**< URI path that causes the server to use simple (i.e. non-blockwise) transfers */
+#define SIMPLE_URI_PATH_LEN             6                                       /**< Length of the URI path that causes the server to use simple (i.e. non-blockwise) transfers */
+#define SIMPLE_GET_STR                  "Hello, Client!"                        /**< The text transferred in simple (i.e. non-blockwise) tansfers */
+#define SIMPLE_GET_STR_LEN              "14"                                    /**< Length of the text transferred in simple (i.e. non-blockwise) transfers */
+#define SIMPLE_POST_STR                 "Hello, Server!"                        /**< The text transferred in simple (i.e. non-blockwise) tansfers */
+#define SIMPLE_POST_STR_LEN             "14"                                    /**< Length of the text transferred in simple (i.e. non-blockwise) transfers */
+#define SOCKET_TIMEOUT                  120                                     /**< Timeout for TLS/IPv6 socket operations */
+#define RESP_BUF_LEN                    1024                                    /**< Size of the buffer used to store responses */
 
 /**
  *  @brief HTTP client test data structure
@@ -83,36 +91,30 @@ test_http_client_data_t;
 
 const char *test1_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
 const char *test1_name[TEST1_NUM_HEADERS] = {"Content-Length"};
-const char *test1_value[TEST1_NUM_HEADERS] = {"13"};
-const char test1_body[] = "Hello Client!";
+const char *test1_value[TEST1_NUM_HEADERS] = {SIMPLE_GET_STR_LEN};
 
 test_http_client_data_t test1_data =
 {
     .desc = "test 1: Send GET request",
-    .req_str = "GET coaps://"SERVER_HOST":12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://"SERVER_HOST":12436/"SIMPLE_URI_PATH"/ HTTP/1.1\r\nContent-Length: 0\r\n\r\n",
     .start = test1_start,
     .num_headers = TEST1_NUM_HEADERS,
     .name = test1_name,
     .value = test1_value,
-    .body = test1_body
+    .body = SIMPLE_GET_STR
 };
 
-#define TEST2_NUM_HEADERS  1
-
 const char *test2_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
-const char *test2_name[TEST2_NUM_HEADERS] = {"Content-Length"};
-const char *test2_value[TEST2_NUM_HEADERS] = {"13"};
-const char test2_body[] = "Hello Client!";
 
 test_http_client_data_t test2_data =
 {
     .desc = "test 2: Send double POST request",
-    .req_str = "POST coaps://"SERVER_HOST":12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nRequest=Hello",
+    .req_str = "POST coaps://"SERVER_HOST":12436/"SIMPLE_URI_PATH" HTTP/1.1\r\nContent-Length: "SIMPLE_POST_STR_LEN"\r\n\r\n"SIMPLE_POST_STR,
     .start = test2_start,
-    .num_headers = TEST2_NUM_HEADERS,
-    .name = test2_name,
-    .value = test2_value,
-    .body = test2_body
+    .num_headers = 0,
+    .name = NULL,
+    .value = NULL,
+    .body = NULL
 };
 
 const char *test3_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "501", "Not Implemented"};
@@ -120,7 +122,7 @@ const char *test3_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "501", "Not Implement
 test_http_client_data_t test3_data =
 {
     .desc = "test 3: Send a request with an unsupported method",
-    .req_str = "CONNECT coaps://"SERVER_HOST":12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "CONNECT coaps://"SERVER_HOST":12436/"SIMPLE_URI_PATH" HTTP/1.1\r\nContent-Length: 12\r\n\r\nUnsupported!",
     .start = test3_start,
     .num_headers = 0,
     .name = NULL,
@@ -133,7 +135,7 @@ const char *test4_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "400", "Bad Request"}
 test_http_client_data_t test4_data =
 {
     .desc = "test 4: Send a request with an unsupported scheme in the request-URI",
-    .req_str = "GET dummy://"SERVER_HOST":12436/resource HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET dummy://"SERVER_HOST":12436/"SIMPLE_URI_PATH" HTTP/1.1\r\nContent-Length: 12\r\n\r\nUnsupported!",
     .start = test4_start,
     .num_headers = 0,
     .name = NULL,
@@ -146,7 +148,7 @@ const char *test5_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "406", "Not Acceptabl
 test_http_client_data_t test5_data =
 {
     .desc = "test 5: Send a request with an unsupported Accept header value",
-    .req_str = "GET coaps://"SERVER_HOST":12436/resource HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://"SERVER_HOST":12436/"SIMPLE_URI_PATH" HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 12\r\n\r\nUnsupported!",
     .start = test5_start,
     .num_headers = 0,
     .name = NULL,
@@ -159,7 +161,7 @@ const char *test6_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "502", "Bad Gateway"}
 test_http_client_data_t test6_data =
 {
     .desc = "test 6: Send a request that will invoke a response from the CoAP server with an unsafe option",
-    .req_str = "GET coaps://"SERVER_HOST":12436/unsafe HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello Server!",
+    .req_str = "GET coaps://"SERVER_HOST":12436/"UNSAFE_URI_PATH" HTTP/1.1\r\nContent-Length: 7\r\n\r\nUnsafe!",
     .start = test6_start,
     .num_headers = 0,
     .name = NULL,

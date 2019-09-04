@@ -88,6 +88,23 @@ int coap_msg_op_num_is_recognized(unsigned num)
     return 0;
 }
 
+int coap_msg_op_calc_block_szx(unsigned size)
+{
+    int szx = -EINVAL;
+
+    switch (size)
+    {
+    case (1 <<  4): szx = 0; break;
+    case (1 <<  5): szx = 1; break;
+    case (1 <<  6): szx = 2; break;
+    case (1 <<  7): szx = 3; break;
+    case (1 <<  8): szx = 4; break;
+    case (1 <<  9): szx = 5; break;
+    case (1 << 10): szx = 6; break;
+    }
+    return szx;
+}
+
 int coap_msg_op_parse_block_val(unsigned *num, unsigned *more, unsigned *size, const char *val, unsigned len)
 {
     switch (len)
@@ -120,19 +137,14 @@ int coap_msg_op_parse_block_val(unsigned *num, unsigned *more, unsigned *size, c
 int coap_msg_op_format_block_val(char *val, unsigned len, unsigned num, unsigned more, unsigned size)
 {
     unsigned szx = 0;
+    int ret = 0;
 
-    switch (size)
+    ret = coap_msg_op_calc_block_szx(size);
+    if (ret < 0)
     {
-    case (1 <<  4): szx = 0; break;
-    case (1 <<  5): szx = 1; break;
-    case (1 <<  6): szx = 2; break;
-    case (1 <<  7): szx = 3; break;
-    case (1 <<  8): szx = 4; break;
-    case (1 <<  9): szx = 5; break;
-    case (1 << 10): szx = 6; break;
-    default:
-        return -EINVAL;
+        return ret;
     }
+    szx = (unsigned)ret;
 
     switch (len)
     {
@@ -191,10 +203,10 @@ static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, const char *va
     }
     op->num = num;
     op->len = len;
-    op->val = (char *)coap_mem_big_alloc(len);
+    op->val = (char *)coap_mem_medium_alloc(len);
     if (op->val == NULL)
     {
-        coap_mem_big_free(op);
+        coap_mem_medium_free(op);
         return NULL;
     }
     memcpy(op->val, val, len);
@@ -209,7 +221,7 @@ static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, const char *va
  */
 static void coap_msg_op_delete(coap_msg_op_t *op)
 {
-    coap_mem_big_free(op->val);
+    coap_mem_medium_free(op->val);
     coap_mem_small_free(op);
 }
 
@@ -345,7 +357,7 @@ void coap_msg_destroy(coap_msg_t *msg)
     coap_msg_op_list_destroy(&msg->op_list);
     if (msg->payload != NULL)
     {
-        coap_mem_big_free(msg->payload);
+        coap_mem_medium_free(msg->payload);
     }
     memset(msg, 0, sizeof(coap_msg_t));
 }
@@ -643,6 +655,29 @@ static ssize_t coap_msg_parse_ops(coap_msg_t *msg, char *buf, size_t len)
     return p - buf;
 }
 
+int coap_msg_parse_block_op(unsigned *num, unsigned *more, unsigned *size, coap_msg_t *msg, int type)
+{
+    coap_msg_op_t *op = NULL;
+    unsigned op_num = 0;
+    unsigned op_len = 0;
+    char *op_val = NULL;
+
+    op = coap_msg_get_first_op(msg);
+    while (op != NULL)
+    {
+        op_num = coap_msg_op_get_num(op);
+        op_len = coap_msg_op_get_len(op);
+        op_val = coap_msg_op_get_val(op);
+        if (((op_num == COAP_MSG_BLOCK1) && (type == COAP_MSG_BLOCK1))
+         || ((op_num == COAP_MSG_BLOCK2) && (type == COAP_MSG_BLOCK2)))
+        {
+            return coap_msg_op_parse_block_val(num, more, size, op_val, op_len);
+        }
+        op = coap_msg_op_get_next(op);
+    }
+    return 1;  /* not found */
+}
+
 /**
  *  @brief Parse the payload in a message
  *
@@ -672,7 +707,7 @@ static ssize_t coap_msg_parse_payload(coap_msg_t *msg, char *buf, size_t len)
     {
         return -EBADMSG;
     }
-    msg->payload = (char *)coap_mem_big_alloc(len);
+    msg->payload = (char *)coap_mem_medium_alloc(len);
     if (msg->payload == NULL)
     {
         return -ENOMEM;
@@ -781,12 +816,12 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, size_t len)
     msg->payload_len = 0;
     if (msg->payload != NULL)
     {
-        coap_mem_big_free(msg->payload);
+        coap_mem_medium_free(msg->payload);
         msg->payload = NULL;
     }
     if (len > 0)
     {
-        msg->payload = (char *)coap_mem_big_alloc(len);
+        msg->payload = (char *)coap_mem_medium_alloc(len);
         if (msg->payload == NULL)
         {
             return -ENOMEM;

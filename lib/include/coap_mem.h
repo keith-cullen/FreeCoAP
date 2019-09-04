@@ -92,75 +92,6 @@ void *coap_mem_alloc(coap_mem_t *mem, size_t len);
  */
 void coap_mem_free(coap_mem_t *mem, void *buf);
 
-
-/**
- *  @brief Initialise the big memory allocator
- *
- *  @param[in] num Number of buffers
- *  @param[in] len Length of each buffer
- *
- *  @returns Operation status
- *  @retval 0 Success
- *  @retval <0 Error
- */
-int coap_mem_big_create(size_t num, size_t len);
-
-/**
- *  @brief Deinitialise the big memory allocator
- */
-void coap_mem_big_destroy(void);
-
-/**
- *  @brief Get the array of buffers in the big memory allocator
- *
- *  @returns Pointer to the array of buffers
- */
-char *coap_mem_big_get_buf(void);
-
-/**
- *  @brief Get the number of buffers in the big memory allocator
- *
- *  @returns Number of buffers
- */
-size_t coap_mem_big_get_num(void);
-
-/**
- *  @brief Get the length of each buffer in the big memory allocator
- *
- *  @returns Length of each buffer
- */
-size_t coap_mem_big_get_len(void);
-
-/**
- *  @brief Get the length of the active bitset from the big memory allocator
- *
- *  @returns Length of the active bitset from the big memory allocator
- */
-size_t coap_mem_big_get_active_len(void);
-
-/**
- *  @brief Get the active bitset from the big memory allocator
- *
- *  @returns the active bitset from the big memory allocator
- */
-char *coap_mem_big_get_active(void);
-
-/**
- *  @brief Allocate a buffer from the big memory allocator
- *
- *  @param[in] len Length of the buffer
- *
- *  @returns Pointer to a buffer or NULL
- */
-void *coap_mem_big_alloc(size_t len);
-
-/**
- *  @brief Return a buffer back to the big memory allocator
- *
- *  @param[in] buf Pointer to a buffer
- */
-void coap_mem_big_free(void *buf);
-
 /**
  *  @brief Initialise the small memory allocator
  *
@@ -228,5 +159,164 @@ void *coap_mem_small_alloc(size_t len);
  *  @param[in] buf Pointer to a buffer
  */
 void coap_mem_small_free(void *buf);
+
+/**
+ *  @brief Initialise the medium memory allocator
+ *
+ *  @param[in] num Number of buffers
+ *  @param[in] len Length of each buffer
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+int coap_mem_medium_create(size_t num, size_t len);
+
+/**
+ *  @brief Deinitialise the medium memory allocator
+ */
+void coap_mem_medium_destroy(void);
+
+/**
+ *  @brief Get the array of buffers in the medium memory allocator
+ *
+ *  @returns Pointer to the array of buffers
+ */
+char *coap_mem_medium_get_buf(void);
+
+/**
+ *  @brief Get the number of buffers in the medium memory allocator
+ *
+ *  @returns Number of buffers
+ */
+size_t coap_mem_medium_get_num(void);
+
+/**
+ *  @brief Get the length of each buffer in the medium memory allocator
+ *
+ *  @returns Length of each buffer
+ */
+size_t coap_mem_medium_get_len(void);
+
+/**
+ *  @brief Get the length of the active bitset from the medium memory allocator
+ *
+ *  @returns Length of the active bitset from the medium memory allocator
+ */
+size_t coap_mem_medium_get_active_len(void);
+
+/**
+ *  @brief Get the active bitset from the medium memory allocator
+ *
+ *  @returns the active bitset from the medium memory allocator
+ */
+char *coap_mem_medium_get_active(void);
+
+/**
+ *  @brief Allocate a buffer from the medium memory allocator
+ *
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns Pointer to a buffer or NULL
+ */
+void *coap_mem_medium_alloc(size_t len);
+
+/**
+ *  @brief Return a buffer back to the medium memory allocator
+ *
+ *  @param[in] buf Pointer to a buffer
+ */
+void coap_mem_medium_free(void *buf);
+
+/**
+ *  @brief Initialise the large memory allocator
+ *
+ *  @param[in] num Number of buffers
+ *  @param[in] len Length of each buffer
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+int coap_mem_large_create(size_t num, size_t len);
+
+/**
+ *  @brief Deinitialise the large memory allocator
+ */
+void coap_mem_large_destroy(void);
+
+/**
+ *  @brief Get the array of buffers in the large memory allocator
+ *
+ *  @returns Pointer to the array of buffers
+ */
+char *coap_mem_large_get_buf(void);
+
+/**
+ *  @brief Get the number of buffers in the large memory allocator
+ *
+ *  @returns Number of buffers
+ */
+size_t coap_mem_large_get_num(void);
+
+/**
+ *  @brief Get the length of each buffer in the large memory allocator
+ *
+ *  @returns Length of each buffer
+ */
+size_t coap_mem_large_get_len(void);
+
+/**
+ *  @brief Get the length of the active bitset from the large memory allocator
+ *
+ *  @returns Length of the active bitset from the large memory allocator
+ */
+size_t coap_mem_large_get_active_len(void);
+
+/**
+ *  @brief Get the active bitset from the large memory allocator
+ *
+ *  @returns the active bitset from the large memory allocator
+ */
+char *coap_mem_large_get_active(void);
+
+/**
+ *  @brief Allocate a buffer from the large memory allocator
+ *
+ *  @param[in] len Length of the buffer
+ *
+ *  @returns Pointer to a buffer or NULL
+ */
+void *coap_mem_large_alloc(size_t len);
+
+/**
+ *  @brief Return a buffer back to the large memory allocator
+ *
+ *  @param[in] buf Pointer to a buffer
+ */
+void coap_mem_large_free(void *buf);
+
+/**
+ *  @brief Initialise all memory allocators
+ *
+ *  @param[in] small_num Number of small buffers
+ *  @param[in] small_len Length of each small buffer
+ *  @param[in] medium_num Number of medium buffers
+ *  @param[in] medium_len Length of each medium buffer
+ *  @param[in] large_num Number of large buffers
+ *  @param[in] large_len Length of each large buffer
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+int coap_mem_all_create(size_t small_num, size_t small_len,
+                        size_t medium_num, size_t medium_len,
+                        size_t large_num, size_t large_len);
+
+/**
+ *  @brief Deinitialise all memory allocators
+ */
+void coap_mem_all_destroy(void);
 
 #endif

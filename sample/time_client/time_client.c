@@ -36,10 +36,12 @@
 #include "coap_log.h"
 
 #define TIME_CLIENT_URI_PATH_BUF_LEN  32
-#define TIME_CLIENT_BIG_BUF_NUM       128
-#define TIME_CLIENT_BIG_BUF_LEN       1024
-#define TIME_CLIENT_SMALL_BUF_NUM     128
-#define TIME_CLIENT_SMALL_BUF_LEN     1024
+#define TIME_CLIENT_SMALL_BUF_NUM     128                                       /**< Number of buffers in the small memory allocator */
+#define TIME_CLIENT_SMALL_BUF_LEN     256                                       /**< Length of each buffer in the small memory allocator */
+#define TIME_CLIENT_MEDIUM_BUF_NUM    128                                       /**< Number of buffers in the medium memory allocator */
+#define TIME_CLIENT_MEDIUM_BUF_LEN    1024                                      /**< Length of each buffer in the medium memory allocator */
+#define TIME_CLIENT_LARGE_BUF_NUM     32                                        /**< Number of buffers in the large memory allocator */
+#define TIME_CLIENT_LARGE_BUF_LEN     8192                                      /**< Length of each buffer in the large memory allocator */
 
 /* one-time initialisation */
 int time_client_init(void)
@@ -49,17 +51,12 @@ int time_client_init(void)
 #endif
     int ret = 0;
 
-    coap_log_set_level(COAP_LOG_DEBUG);
-    ret = coap_mem_big_create(TIME_CLIENT_BIG_BUF_NUM, TIME_CLIENT_BIG_BUF_LEN);
-    if (ret != 0)
+    coap_log_set_level(COAP_LOG_INFO);
+    ret = coap_mem_all_create(TIME_CLIENT_SMALL_BUF_NUM, TIME_CLIENT_SMALL_BUF_LEN,
+                              TIME_CLIENT_MEDIUM_BUF_NUM, TIME_CLIENT_MEDIUM_BUF_LEN,
+                              TIME_CLIENT_LARGE_BUF_NUM, TIME_CLIENT_LARGE_BUF_LEN);
+    if (ret < 0)
     {
-        coap_log_error("%s", strerror(-ret));
-        return -1;
-    }
-    ret = coap_mem_small_create(TIME_CLIENT_SMALL_BUF_NUM, TIME_CLIENT_SMALL_BUF_LEN);
-    if (ret != 0)
-    {
-        coap_mem_big_destroy();
         coap_log_error("%s", strerror(-ret));
         return -1;
     }
@@ -68,8 +65,7 @@ int time_client_init(void)
     if (gnutls_ver == NULL)
     {
         coap_log_error("Unable to determine GnuTLS version");
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return -1;
     }
     coap_log_info("GnuTLS version: %s", gnutls_ver);
@@ -79,8 +75,7 @@ int time_client_init(void)
 
 void time_client_deinit(void)
 {
-    coap_mem_small_destroy();
-    coap_mem_big_destroy();
+    coap_mem_all_destroy();
 }
 
 int time_client_create(time_client_t *client,

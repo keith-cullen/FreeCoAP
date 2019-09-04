@@ -36,12 +36,14 @@
 #include "coap_mem.h"
 #include "coap_log.h"
 
-#define REG_SERVER_PAYLOAD_LEN    32
-#define REG_SERVER_URI_PATH_LEN   32
-#define REG_SERVER_BIG_BUF_NUM    128
-#define REG_SERVER_BIG_BUF_LEN    1024
-#define REG_SERVER_SMALL_BUF_NUM  128
-#define REG_SERVER_SMALL_BUF_LEN  256
+#define REG_SERVER_URI_PATH_BUF_LEN  32
+#define REG_SERVER_PAYLOAD_LEN       32
+#define REG_SERVER_SMALL_BUF_NUM     128                                        /**< Number of buffers in the small memory allocator */
+#define REG_SERVER_SMALL_BUF_LEN     256                                        /**< Length of each buffer in the small memory allocator */
+#define REG_SERVER_MEDIUM_BUF_NUM    128                                        /**< Number of buffers in the medium memory allocator */
+#define REG_SERVER_MEDIUM_BUF_LEN    1024                                       /**< Length of each buffer in the medium memory allocator */
+#define REG_SERVER_LARGE_BUF_NUM     32                                         /**< Number of buffers in the large memory allocator */
+#define REG_SERVER_LARGE_BUF_LEN     8192                                       /**< Length of each buffer in the large memory allocator */
 
 static void reg_server_log_registrar(reg_server_t *server)
 {
@@ -148,7 +150,7 @@ static int reg_server_handle_client_id(coap_server_trans_t *trans, coap_msg_t *r
 static int reg_server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     size_t n = 0;
-    char uri_path[REG_SERVER_URI_PATH_LEN] = {0};
+    char uri_path[REG_SERVER_URI_PATH_BUF_LEN] = {0};
 
     if (coap_msg_get_ver(req) != COAP_MSG_VER)
     {
@@ -178,18 +180,13 @@ int reg_server_init(void)
 #endif
     int ret = 0;
 
-    coap_log_set_level(COAP_LOG_DEBUG);
-    ret = coap_mem_big_create(REG_SERVER_BIG_BUF_NUM, REG_SERVER_BIG_BUF_LEN);
-    if (ret != 0)
+    coap_log_set_level(COAP_LOG_INFO);
+    ret = coap_mem_all_create(REG_SERVER_SMALL_BUF_NUM, REG_SERVER_SMALL_BUF_LEN,
+                              REG_SERVER_MEDIUM_BUF_NUM, REG_SERVER_MEDIUM_BUF_LEN,
+                              REG_SERVER_LARGE_BUF_NUM, REG_SERVER_LARGE_BUF_LEN);
+    if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
-        return -1;
-    }
-    ret = coap_mem_small_create(REG_SERVER_SMALL_BUF_NUM, REG_SERVER_SMALL_BUF_LEN);
-    if (ret != 0)
-    {
-        coap_log_error("%s", strerror(-ret));
-        coap_mem_big_destroy();
         return -1;
     }
 #ifdef COAP_DTLS_EN
@@ -197,8 +194,7 @@ int reg_server_init(void)
     if (gnutls_ver == NULL)
     {
         coap_log_error("Unable to determine GnuTLS version");
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return -1;
     }
     coap_log_info("GnuTLS version: %s", gnutls_ver);
@@ -208,8 +204,7 @@ int reg_server_init(void)
 
 void reg_server_deinit(void)
 {
-    coap_mem_small_destroy();
-    coap_mem_big_destroy();
+    coap_mem_all_destroy();
 }
 
 int reg_server_create(reg_server_t *server,
