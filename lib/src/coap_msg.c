@@ -712,6 +712,7 @@ static ssize_t coap_msg_parse_payload(coap_msg_t *msg, char *buf, size_t len)
     {
         return -ENOMEM;
     }
+    memset(msg->payload, 0, coap_mem_medium_get_len());
     memcpy(msg->payload, p, len);
     msg->payload_len = len;
     p += len;
@@ -826,6 +827,7 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, size_t len)
         {
             return -ENOMEM;
         }
+        memset(msg->payload, 0, coap_mem_medium_get_len());
         memcpy(msg->payload, buf, len);
         msg->payload_len = len;
     }

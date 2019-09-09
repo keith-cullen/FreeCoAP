@@ -43,23 +43,34 @@
 #include "coap_msg.h"
 #include "coap_ipv.h"
 
-#define COAP_SERVER_NUM_TRANS         8                                         /**< Maximum number of active transactions per server */
-#define COAP_SERVER_ADDR_BUF_LEN      128                                       /**< Buffer length for host addresses */
-#define COAP_SERVER_DIAG_PAYLOAD_LEN  128                                       /**< Buffer length for diagnostic payloads */
+#define COAP_SERVER_NUM_TRANS               8                                   /**< Maximum number of active transactions per server */
+#define COAP_SERVER_ADDR_BUF_LEN            128                                 /**< Buffer length for host addresses */
+#define COAP_SERVER_DIAG_PAYLOAD_LEN        128                                 /**< Buffer length for diagnostic payloads */
 
-#define coap_server_trans_get_type(trans)     ((trans)->type)                   /**< Get the type of transaction */
-#define coap_server_trans_get_req(tran)       (&(trans)->req)                   /**< Get the last request message received for this transaction */
-#define coap_server_trans_get_resp(tran)      (&(trans)->resp)                  /**< Get the last response message sent for this transaction */
+#define coap_server_trans_get_type(trans)   ((trans)->type)                     /**< Get the type of transaction */
+#define coap_server_trans_get_req(tran)     (&(trans)->req)                     /**< Get the last request message received for this transaction */
+#define coap_server_trans_get_resp(tran)    (&(trans)->resp)                    /**< Get the last response message sent for this transaction */
 
 /**
- *  @brief transaction type enumeration
+ *  @brief Transaction type enumeration
  */
 typedef enum
 {
-    COAP_SERVER_TRANS_SIMPLE = 0,                                               /**< Simple (i.e. non-blockwise) transaction */
-    COAP_SERVER_TRANS_BLOCKWISE_GET = 1                                         /**< Blockwise get transaction */
+    COAP_SERVER_TRANS_REGULAR = 0,                                              /**< Regular (i.e. non-blockwise) transaction */
+    COAP_SERVER_TRANS_BLOCKWISE_GET = 1,                                        /**< Blockwise get transaction */
+    COAP_SERVER_TRANS_BLOCKWISE_PUT = 2                                         /**< Blockwise put transaction */
 }
 coap_server_trans_type_t;
+
+/**
+ *  @brief Blocwise effect
+ */
+typedef enum
+{
+    COAP_SERVER_TRANS_CREATE = 0,                                               /**< Flag to indicate that a PUT or POST library-level blockwise operation will create a resource */
+    COAP_SERVER_TRANS_CHANGE = 1                                                /**< Flag to indicate that a PUT or POST library-level blockwise operation will change a resource */
+}
+coap_server_trans_blockwise_effect_t;
 
 /**
  *  @brief Response type enumeration
@@ -77,9 +88,9 @@ coap_server_resp_t;
 struct coap_server_trans;
 
 /**
- *  @brief Server handler callback function pointer
+ *  @brief Server transaction handler callback function pointer
  */
-typedef int (* coap_server_handler_t)(struct coap_server_trans *, coap_msg_t *, coap_msg_t *);
+typedef int (* coap_server_trans_handler_t)(struct coap_server_trans *, coap_msg_t *, coap_msg_t *);
 
 /**
  *  @brief URI path structure
@@ -119,12 +130,15 @@ typedef struct coap_server_trans
     char client_addr[COAP_SERVER_ADDR_BUF_LEN];                                 /**< String to hold the client address */
     coap_msg_t req;                                                             /**< Last request message received for this transaction */
     coap_msg_t resp;                                                            /**< Last response message sent for this transaction */
-    char *body;                                                                 /**< Pointer to a buffer to store the body of this trasaction (for blockwise transfers) */
-    size_t body_len;                                                            /**< Length of the body of this transaction */
+    char *body;                                                                 /**< Buffer in the application to store the body of blockwise PUT and POST operations */
+    char *block_buf;                                                            /**< Pointer to a buffer for blockwise transfers */
+    size_t block_buf_len;                                                       /**< Length of the buffer for blockwise transfers */
     unsigned block1_size;                                                       /**< Block1 size for blockwise transfers */
     unsigned block2_size;                                                       /**< Block2 size for blockwise transfers */
-    size_t block_start;                                                         /**< Byte offset of the next block */
+    size_t block1_start;                                                        /**< Byte offset of the next block in the request */
+    size_t block2_start;                                                        /**< Byte offset of the next block in the response */
     char block_uri[COAP_MSG_OP_URI_PATH_MAX_LEN + 1];                           /**< The URI for the current blockwise transfer */
+    coap_server_trans_blockwise_effect_t block_effect;                          /**< Flag to indicate if a blockwise PUT or POST operation will create or change a resource */
     struct coap_server *server;                                                 /**< Pointer to the containing server structure */
 #ifdef COAP_DTLS_EN
     gnutls_session_t session;                                                   /**< DTLS session */
@@ -141,7 +155,7 @@ typedef struct coap_server
     unsigned msg_id;                                                            /**< Last message ID value used in a response message */
     coap_server_path_list_t sep_list;                                           /**< List of URI paths that require separate responses */
     coap_server_trans_t trans[COAP_SERVER_NUM_TRANS];                           /**< Array of transaction structures */
-    coap_server_handler_t handle;                                               /**< Call-back function to handle requests and generate responses */
+    coap_server_trans_handler_t handle;                                         /**< Call-back function to handle requests and generate responses */
 #ifdef COAP_DTLS_EN
     gnutls_certificate_credentials_t cred;                                      /**< DTLS credentials */
     gnutls_priority_t priority;                                                 /**< DTLS priorities */
@@ -164,6 +178,7 @@ coap_server_t;
  *  @param[in] block2_size Preferred block2 size
  *  @param[in] body Buffer containing the body
  *  @param[in] body_len length of the buffer
+ *  @param[in] block_effect Flag to indicate if a resource will be created by this operation
  *
  *  @returns Operation status
  *  @retval 0 Success
@@ -175,7 +190,8 @@ int coap_server_trans_handle_blockwise(coap_server_trans_t *trans,
                                        unsigned block1_size,
                                        unsigned block2_size,
                                        char *body,
-                                       size_t body_len);
+                                       size_t body_len,
+                                       coap_server_trans_blockwise_effect_t block_effect);
 
 #ifdef COAP_DTLS_EN
 
@@ -196,7 +212,7 @@ int coap_server_trans_handle_blockwise(coap_server_trans_t *trans,
  *  @retval <0 Error
  */
 int coap_server_create(coap_server_t *server,
-                       coap_server_handler_t handle,
+                       coap_server_trans_handler_t handle,
                        const char *host,
                        const char *port,
                        const char *key_file_name,
@@ -219,7 +235,7 @@ int coap_server_create(coap_server_t *server,
  *  @retval <0 Error
  */
 int coap_server_create(coap_server_t *server,
-                       coap_server_handler_t handle,
+                       coap_server_trans_handler_t handle,
                        const char *host,
                        const char *port);
 
