@@ -140,6 +140,9 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
 /**
  *  @brief Exchange with the server using blockwise transfers
  *
+ *  The calling application should not pass in a request
+ *  message that contains a block1 or block2 option. This
+ *  function will add block1 and block2 options internally.
  *  This function sets the message ID and token fields of
  *  the request message overriding any values set by the
  *  calling function.

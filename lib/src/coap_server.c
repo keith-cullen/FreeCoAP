@@ -52,17 +52,17 @@
 #include "coap_mem.h"
 #include "coap_log.h"
 
-#define COAP_SERVER_ACK_TIMEOUT_SEC       2                                     /**< Minimum delay to wait before retransmitting a confirmable message */
-#define COAP_SERVER_MAX_RETRANSMIT        4                                     /**< Maximum number of times a confirmable message can be retransmitted */
+#define COAP_SERVER_ACK_TIMEOUT_SEC             2                               /**< Minimum delay to wait before retransmitting a confirmable message */
+#define COAP_SERVER_MAX_RETRANSMIT              4                               /**< Maximum number of times a confirmable message can be retransmitted */
 
 #ifdef COAP_DTLS_EN
 
-#define COAP_SERVER_DTLS_MTU                 COAP_MSG_MAX_BUF_LEN               /**< Maximum transmission unit excluding the UDP and IPv6 headers */
-#define COAP_SERVER_DTLS_RETRANS_TIMEOUT     1000                               /**< Retransmission timeout (msec) for the DTLS handshake */
-#define COAP_SERVER_DTLS_TOTAL_TIMEOUT       60000                              /**< Total timeout (msec) for the DTLS handshake */
-#define COAP_SERVER_DTLS_HANDSHAKE_ATTEMPTS  60                                 /**< Maximum number of DTLS handshake attempts */
-#define COAP_SERVER_DTLS_NUM_DH_BITS         1024                               /**< DTLS Diffie-Hellman key size */
-#define COAP_SERVER_DTLS_PRIORITIES          "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
+#define COAP_SERVER_DTLS_MTU                    COAP_MSG_MAX_BUF_LEN            /**< Maximum transmission unit excluding the UDP and IPv6 headers */
+#define COAP_SERVER_DTLS_RETRANS_TIMEOUT        1000                            /**< Retransmission timeout (msec) for the DTLS handshake */
+#define COAP_SERVER_DTLS_TOTAL_TIMEOUT          60000                           /**< Total timeout (msec) for the DTLS handshake */
+#define COAP_SERVER_DTLS_HANDSHAKE_ATTEMPTS     60                              /**< Maximum number of DTLS handshake attempts */
+#define COAP_SERVER_DTLS_NUM_DH_BITS            1024                            /**< DTLS Diffie-Hellman key size */
+#define COAP_SERVER_DTLS_PRIORITIES             "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE"
                                                                                 /**< DTLS priorities */
 #endif
 
@@ -641,19 +641,22 @@ static void coap_server_trans_dtls_destroy(coap_server_trans_t *trans)
  *
  *  @param[out] trans Pointer to a transaction structure
  */
-
 static void coap_server_trans_clear_blockwise(coap_server_trans_t *trans)
 {
-    trans->type = COAP_SERVER_TRANS_SIMPLE;
-    if (trans->body != NULL)
+    trans->type = COAP_SERVER_TRANS_REGULAR;
+    trans->body = NULL;
+    if (trans->block_buf != NULL)
     {
-        coap_mem_large_free(trans->body);
+        coap_mem_large_free(trans->block_buf);
+        trans->block_buf = NULL;
     }
-    trans->body_len = 0;
+    trans->block_buf_len = 0;
     trans->block1_size = 0;
     trans->block2_size = 0;
-    trans->block_start = 0;
+    trans->block1_start = 0;
+    trans->block2_start = 0;
     memset(trans->block_uri, 0, sizeof(trans->block_uri));
+    trans->block_effect = 0;
 }
 
 /**
@@ -1404,13 +1407,13 @@ static int coap_server_trans_handle_next_block(coap_server_trans_t *trans, coap_
     unsigned block1_num = 0;
     unsigned block2_num = 0;
     unsigned block_len = 0;
-    size_t block_start = 0;
+    size_t block1_start = 0;
+    size_t block2_start = 0;
     char block_uri[COAP_MSG_OP_URI_PATH_MAX_LEN + 1] = {0};
     char block_val[COAP_MSG_OP_MAX_BLOCK_VAL_LEN] = {0};
-    int block_szx = 0;
+    int block1_szx = -1;
+    int block2_szx = -1;
     int ret = 0;
-
-    coap_log_debug("Handling block with start byte index: %u for library-level blockwise transfer", trans->block_start);
 
     /* allow the client to resize the blocks */
     ret = coap_msg_parse_block_op(&block1_num, &block1_more, &block1_size, req, COAP_MSG_BLOCK1);
@@ -1421,6 +1424,10 @@ static int coap_server_trans_handle_next_block(coap_server_trans_t *trans, coap_
         coap_server_trans_clear_blockwise(trans);
         return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
     }
+    if ((ret == 0) && (block1_size < trans->block1_size))
+    {
+        trans->block1_size = block1_size;
+    }
     ret = coap_msg_parse_block_op(&block2_num, &block2_more, &block2_size, req, COAP_MSG_BLOCK2);
     if (ret < 0)
     {
@@ -1429,10 +1436,6 @@ static int coap_server_trans_handle_next_block(coap_server_trans_t *trans, coap_
         coap_server_trans_clear_blockwise(trans);
         return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
     }
-    if ((ret == 0) && (block1_size < trans->block1_size))
-    {
-        trans->block1_size = block1_size;
-    }
     if ((ret == 0) && (block2_size < trans->block2_size))
     {
         trans->block2_size = block2_size;
@@ -1440,11 +1443,15 @@ static int coap_server_trans_handle_next_block(coap_server_trans_t *trans, coap_
     coap_msg_uri_path_to_str(req, block_uri, sizeof(block_uri));
     if (trans->type == COAP_SERVER_TRANS_BLOCKWISE_GET)
     {
-        /* check for continuity between the current and previous blocks */
-        block_start = block2_num * block2_size;  /* start byte index according to the client */
+        coap_log_debug("Handling block with start byte index %u for GET library-level blockwise transfer", trans->block2_start);
+        /* check for continuity between the current and previous blocks
+         * the client may not include a block2 option in the first message
+         * but must include a block2 option in subsequent messages
+         */
+        block2_start = block2_num * block2_size;  /* start byte index according to the client or for the first block */
         if ((coap_msg_get_code_detail(req) != COAP_MSG_GET)
          || (strcmp(block_uri, trans->block_uri) != 0)
-         || (block_start != trans->block_start))
+         || (block2_start != trans->block2_start))
         {
             coap_log_info("Unexpected request message during blockwise transfer from address %s and port %u",
                           trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
@@ -1454,28 +1461,23 @@ static int coap_server_trans_handle_next_block(coap_server_trans_t *trans, coap_
         ret = coap_msg_op_calc_block_szx(trans->block2_size);
         if (ret < 0)
         {
-            coap_log_warn("Failed to calculate block size exponent from block2 size:%u", trans->block2_size);
+            coap_log_warn("Failed to calculate block size exponent from block2 size %u", trans->block2_size);
             coap_server_trans_clear_blockwise(trans);
             return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
         }
-        block_szx = ret;
+        block2_szx = ret;
         block2_more = 1;
         payload_len = trans->block2_size;
-        if (trans->block_start + trans->block2_size > trans->body_len)
+        if (trans->block2_start + trans->block2_size > trans->block_buf_len)
         {
-            payload_len = trans->body_len - trans->block_start;
             block2_more = 0;
+            payload_len = trans->block_buf_len - trans->block2_start;
         }
-        ret = coap_msg_set_payload(resp, trans->body + trans->block_start, payload_len);
-        if (ret < 0)
-        {
-            return ret;
-        }
-        block2_num = coap_msg_block_start_to_num(trans->block_start, block_szx);
+        block2_num = coap_msg_block_start_to_num(trans->block2_start, block2_szx);
         ret = coap_msg_op_format_block_val(block_val, sizeof(block_val), block2_num, block2_more, trans->block2_size);
         if (ret < 0)
         {
-            coap_log_warn("Failed to format Block2 option value, num:%d, size:%d", block2_num, trans->block2_size);
+            coap_log_warn("Failed to format block2 option value, num %u, more %u, size %u", block2_num, block2_more, trans->block2_size);
             coap_server_trans_clear_blockwise(trans);
             return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
         }
@@ -1483,15 +1485,94 @@ static int coap_server_trans_handle_next_block(coap_server_trans_t *trans, coap_
         ret = coap_msg_add_op(resp, COAP_MSG_BLOCK2, block_len, block_val);
         if (ret < 0)
         {
+            coap_server_trans_clear_blockwise(trans);
             return ret;
         }
-        trans->block_start += payload_len;
+        ret = coap_msg_set_payload(resp, trans->block_buf + trans->block2_start, payload_len);
+        if (ret < 0)
+        {
+            coap_server_trans_clear_blockwise(trans);
+            return ret;
+        }
+        trans->block2_start += payload_len;
         ret = COAP_MSG_CONTINUE;
         if (!block2_more)
         {
             coap_server_trans_clear_blockwise(trans);
-            coap_log_info("Completed library-level blockwise transfer");
+            coap_log_info("Completed GET library-level blockwise transfer with address %s and port %u",
+                          trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
             ret = COAP_MSG_CONTENT;
+        }
+        return coap_msg_set_code(resp, COAP_MSG_SUCCESS, ret);
+    }
+    else if (trans->type == COAP_SERVER_TRANS_BLOCKWISE_PUT)
+    {
+        coap_log_debug("Handling block with start byte index %u for PUT library-level blockwise transfer", trans->block1_start);
+        /* check for continuity between the current and previous blocks */
+        block1_start = block1_num * block1_size;  /* start byte index according to the client */
+        if ((coap_msg_get_code_detail(req) != COAP_MSG_PUT)
+         || (strcmp(block_uri, trans->block_uri) != 0)
+         || (block1_start != trans->block1_start))
+        {
+            coap_log_info("Unexpected request message during blockwise transfer from address %s and port %u",
+                          trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+            coap_server_trans_clear_blockwise(trans);
+            return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
+        }
+        if (coap_msg_get_payload(req) == NULL)
+        {
+            coap_log_info("Missing payload in request message during PUT blockwise transfer from address %s and port %u",
+                          trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+            coap_server_trans_clear_blockwise(trans);
+            return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
+        }
+        ret = coap_msg_op_calc_block_szx(trans->block1_size);
+        if (ret < 0)
+        {
+            coap_log_warn("Failed to calculate block size exponent from block1 size %u", trans->block1_size);
+            coap_server_trans_clear_blockwise(trans);
+            return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
+        }
+        block1_szx = ret;
+        block1_more = 1;
+        payload_len = coap_msg_get_payload_len(req);
+        if (payload_len < trans->block1_size)
+        {
+            block1_more = 0;
+        }
+        if (trans->block1_start + payload_len > trans->block_buf_len)
+        {
+            coap_log_info("Insufficient buffer size in blockwise transfer from address %s and port %u",
+                          trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+            coap_server_trans_clear_blockwise(trans);
+            return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_REQ_ENT_TOO_LARGE);
+        }
+        block1_num = coap_msg_block_start_to_num(trans->block1_start, block1_szx);
+        ret = coap_msg_op_format_block_val(block_val, sizeof(block_val), block1_num, block1_more, trans->block1_size);
+        if (ret < 0)
+        {
+            coap_log_warn("Failed to format block2 option value, num %d, size %d", block1_num, trans->block1_size);
+            coap_server_trans_clear_blockwise(trans);
+            return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
+        }
+        block_len = ret;
+        ret = coap_msg_add_op(resp, COAP_MSG_BLOCK1, block_len, block_val);
+        if (ret < 0)
+        {
+            coap_server_trans_clear_blockwise(trans);
+            return ret;
+        }
+        memcpy(trans->block_buf + trans->block1_start, coap_msg_get_payload(req), payload_len);
+        trans->block1_start += payload_len;
+        ret = COAP_MSG_CONTINUE;
+        if (!block1_more)
+        {
+            /* copy received data to the application's buffer */
+            memcpy(trans->body, trans->block_buf, trans->block1_start);
+            coap_log_info("Completed PUT library-level blockwise transfer with address %s and port %u",
+                          trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+            ret = trans->block_effect == COAP_SERVER_TRANS_CREATE ? COAP_MSG_CREATED : COAP_MSG_CHANGED;
+            coap_server_trans_clear_blockwise(trans);
         }
         return coap_msg_set_code(resp, COAP_MSG_SUCCESS, ret);
     }
@@ -1504,12 +1585,12 @@ int coap_server_trans_handle_blockwise(coap_server_trans_t *trans,
                                        unsigned block1_size,
                                        unsigned block2_size,
                                        char *body,
-                                       size_t body_len)
+                                       size_t body_len,
+                                       coap_server_trans_blockwise_effect_t block_effect)
 {
     unsigned code_detail = 0;
     int ret = 0;
 
-    coap_log_info("Starting new library-level blockwise transfer");
     coap_server_trans_clear_blockwise(trans);
     if (block1_size > 0)
     {
@@ -1531,28 +1612,44 @@ int coap_server_trans_handle_blockwise(coap_server_trans_t *trans,
     {
         return -ENOSPC;
     }
-    code_detail = coap_msg_get_code_detail(req);
-    if (code_detail == COAP_MSG_GET)
-    {
-        trans->type = COAP_SERVER_TRANS_BLOCKWISE_GET;
-    }
-    else
-    {
-        coap_log_warn("Received request message with unsupported code detail: %d", code_detail);
-        coap_server_trans_clear_blockwise(trans);
-        return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
-    }
-    trans->body = coap_mem_large_alloc(body_len);
-    if (trans->body == NULL)
+    trans->block_buf = coap_mem_large_alloc(body_len);
+    if (trans->block_buf == NULL)
     {
         return -ENOMEM;
     }
-    memcpy(trans->body, body, body_len);
-    trans->body_len = body_len;
+    trans->block_buf_len = body_len;
+    code_detail = coap_msg_get_code_detail(req);
+    if (code_detail == COAP_MSG_GET)
+    {
+        coap_log_info("Starting new GET library-level blockwise transfer with address %s and port %u",
+                      trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+        trans->type = COAP_SERVER_TRANS_BLOCKWISE_GET;
+        memcpy(trans->block_buf, body, body_len);
+    }
+    else if (code_detail == COAP_MSG_PUT)
+    {
+        if ((body == NULL) || (body_len == 0))
+        {
+            coap_server_trans_clear_blockwise(trans);
+            return -EINVAL;
+        }
+        coap_log_info("Starting new PUT library-level blockwise transfer with address %s and port %u",
+                      trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+        trans->type = COAP_SERVER_TRANS_BLOCKWISE_PUT;
+        trans->body = body;
+        memset(trans->block_buf, 0, body_len);
+    }
+    else
+    {
+        coap_log_warn("Request method unsupported in blockwise transfer with address %s and port %u",
+                      trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+        coap_server_trans_clear_blockwise(trans);
+        return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
+    }
     trans->block1_size = block1_size;
     trans->block2_size = block2_size;
-    trans->block_start = 0;
     coap_msg_uri_path_to_str(req, trans->block_uri, sizeof(trans->block_uri));
+    trans->block_effect = block_effect;
     return coap_server_trans_handle_next_block(trans, req, resp);
 }
 
@@ -1683,7 +1780,7 @@ static void coap_server_dtls_destroy(coap_server_t *server)
 
 #ifdef COAP_DTLS_EN
 int coap_server_create(coap_server_t *server,
-                       coap_server_handler_t handle,
+                       coap_server_trans_handler_t handle,
                        const char *host,
                        const char *port,
                        const char *key_file_name,
@@ -1692,7 +1789,7 @@ int coap_server_create(coap_server_t *server,
                        const char *crl_file_name)
 #else
 int coap_server_create(coap_server_t *server,
-                       coap_server_handler_t handle,
+                       coap_server_trans_handler_t handle,
                        const char *host,
                        const char *port)
 #endif
@@ -2257,7 +2354,7 @@ static int coap_server_exchange(coap_server_t *server)
     {
         ret = coap_server_trans_handle_bad_option(trans, &send_msg, op_num);
     }
-    else if (coap_server_trans_get_type(trans) == COAP_SERVER_TRANS_BLOCKWISE_GET)
+    else if (coap_server_trans_get_type(trans) != COAP_SERVER_TRANS_REGULAR)
     {
         ret = coap_server_trans_handle_next_block(trans, &recv_msg, &send_msg);
     }
