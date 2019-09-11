@@ -154,6 +154,7 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
  *  @param[in] block2_size Block2 size
  *  @param[in] body Pointer to a buffer to hold the body
  *  @param[in] body_len Length of the buffer to hold the body
+ *  @param[in] have_resp Flag to indicate that the first response has already been received
  *
  *  @returns Operation status
  *  @retval >0 Length of the data sent/received
@@ -162,6 +163,6 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
 ssize_t coap_client_exchange_blockwise(coap_client_t *client,
                                        coap_msg_t *req, coap_msg_t *resp,
                                        unsigned block1_size, unsigned block2_size,
-                                       char *body, size_t body_len);
+                                       char *body, size_t body_len, int have_resp);
 
 #endif

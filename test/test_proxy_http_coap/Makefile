@@ -2,7 +2,7 @@ ifeq ($(http_ip6),y)
 HTTP_IP6_CFLAGS = -DSOCK_IP6
 endif
 ifeq ($(coap_ip6),y)
-COAP_IP6_CFLAGS += -DCOAP_IP6
+COAP_IP6_CFLAGS = -DCOAP_IP6
 endif
 I1=../../lib/include
 S1=../../lib/src

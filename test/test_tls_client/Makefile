@@ -5,13 +5,13 @@ I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
 S2=../../proxy/common/src
-CC_ = gcc
+CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
          -I$(I2) \
          -DTLS_CLIENT_AUTH
 CFLAGS += $(IP6_CFLAGS)
-LD_ = gcc
+LD_ ?= gcc
 LDFLAGS =
 INCS = $(I2)/tls_sock.h \
        $(I2)/sock.h \
