@@ -39,6 +39,7 @@
 #include <gnutls/gnutls.h>
 #endif
 #include "coap_server.h"
+#include "coap_msg.h"
 #include "coap_mem.h"
 #include "coap_log.h"
 
@@ -52,6 +53,8 @@
 #define CERT_FILE_NAME                      "../../certs/server_cert.pem"       /**< DTLS certificate file name */
 #define TRUST_FILE_NAME                     "../../certs/root_client_cert.pem"  /**< DTLS trust file name */
 #define CRL_FILE_NAME                       ""                                  /**< DTLS certificate revocation list file name */
+#define RESET_URI_PATH                      "reset"                             /**< URI path that causes the server to reset to a known state */
+#define RESET_URI_PATH_LEN                  5                                   /**< Length of the URI path that causes the server to reset to a known state */
 #define UNSAFE_URI_PATH                     "unsafe"                            /**< URI path that causes the server to include an unsafe option in the response */
 #define UNSAFE_URI_PATH_LEN                 6                                   /**< Length of the URI path that causes the server to include an unsafe option in the response */
 #define SEP_URI_PATH                        "/sep/uri/path"                     /**< URI path that requires a separate response */
@@ -75,7 +78,18 @@
 #define LARGE_BUF_LEN                       8192                                /**< Length of each buffer in the large memory allocator */
 #define BLOCK1_SIZE                         32                                  /**< Preferred block1 size for blockwise transfers */
 #define BLOCK2_SIZE                         32                                  /**< Preferred block2 size for blockwise transfers */
-#define BLOCK_EFFECT                        COAP_SERVER_TRANS_CHANGE            /**< Flag to indicate if a blockwise PUT or POST operation will create or change a resource */
+
+/**
+ *  @brief Buffer used for application-level blockwise transfers
+ */
+static char *app_level_blockwise_def_val = "";
+static char app_level_blockwise_buf[APP_LEVEL_BLOCKWISE_BUF_LEN] = {0};
+
+/**
+ *  @brief Buffer used for library-level blockwise transfers
+ */
+static char *lib_level_blockwise_def_val = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq";
+static char lib_level_blockwise_buf[LIB_LEVEL_BLOCKWISE_BUF_LEN] = {0};
 
 /**
  *  @brief Print a CoAP message
@@ -218,6 +232,32 @@ static int server_parse_block_op(unsigned *num, unsigned *more, unsigned *size, 
 }
 
 /**
+ *  @brief Handle reset
+ *
+ *  This function resets the server to a known state.
+ *
+ *  @param[in,out] trans Pointer to a transaction structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+static int server_handle_reset(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+{
+    coap_log_notice("Resetting to a known state");
+
+    memset(app_level_blockwise_buf, 0, sizeof(app_level_blockwise_buf));
+    memcpy(app_level_blockwise_buf, app_level_blockwise_def_val, sizeof(app_level_blockwise_buf));
+
+    memset(lib_level_blockwise_buf, 0, sizeof(lib_level_blockwise_buf));
+    memcpy(lib_level_blockwise_buf, lib_level_blockwise_def_val, sizeof(lib_level_blockwise_buf));
+
+    return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
+}
+
+/**
  *  @brief Handle unsafe transfers
  *
  *  This function generates a response that contains an unsafe
@@ -317,8 +357,6 @@ static int server_handle_regular(coap_server_trans_t *trans, coap_msg_t *req, co
     }
     return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
 }
-
-static char app_level_blockwise_buf[APP_LEVEL_BLOCKWISE_BUF_LEN] = {0};         /**< Buffer used for application-level blockwise transfers */
 
 /**
  *  @brief Handle application-level blockwise transfers
@@ -459,8 +497,25 @@ static int server_handle_app_level_blockwise(coap_server_trans_t *trans, coap_ms
     return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
 }
 
-static char lib_level_blockwise_buf[LIB_LEVEL_BLOCKWISE_BUF_LEN] = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq";
-                                                                                /**< Buffer used for library-level blockwise transfers */
+/**
+ *  @brief Handle received blockwise body
+ */
+static int server_handle_lib_level_blockwise_rx(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+{
+    if (coap_server_trans_get_body_end(trans) > sizeof(lib_level_blockwise_buf))
+    {
+        return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_REQ_ENT_TOO_LARGE);
+    }
+    memset(lib_level_blockwise_buf, 0, sizeof(lib_level_blockwise_buf));
+    memcpy(lib_level_blockwise_buf, coap_server_trans_get_body(trans), coap_server_trans_get_body_end(trans));
+    /* for POST requests, return the recveived payload in the response body */
+    if (coap_msg_get_code_detail(req) != COAP_MSG_POST)
+    {
+        coap_server_trans_set_body_end(trans, 0);
+    }
+    return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CHANGED);
+}
+
 /**
  *  @brief Handle library-level blockwise transfers
  *
@@ -490,13 +545,19 @@ static int server_handle_lib_level_blockwise(coap_server_trans_t *trans, coap_ms
         coap_log_warn("Received request message with invalid code class: %d", code_class);
         return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
     }
-    if ((code_detail != COAP_MSG_GET) && (code_detail != COAP_MSG_PUT))
+    if ((code_detail != COAP_MSG_GET)
+     && (code_detail != COAP_MSG_PUT)
+     && (code_detail != COAP_MSG_POST))
     {
         coap_log_warn("Received request message with unsupported code detail: %d", code_detail);
         return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
     }
     /* request */
-    return coap_server_trans_handle_blockwise(trans, req, resp, BLOCK1_SIZE, BLOCK2_SIZE, lib_level_blockwise_buf, sizeof(lib_level_blockwise_buf), BLOCK_EFFECT);
+    return coap_server_trans_handle_blockwise(trans, req, resp,
+                                              BLOCK1_SIZE, BLOCK2_SIZE,
+                                              lib_level_blockwise_buf,
+                                              sizeof(lib_level_blockwise_buf),
+                                              server_handle_lib_level_blockwise_rx);
 }
 
 /**
@@ -517,6 +578,10 @@ static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t
 {
     int ret = 0;
 
+    if (server_match_uri_path(req, RESET_URI_PATH))
+    {
+        return server_handle_reset(trans, req, resp);
+    }
     if (server_match_uri_path(req, UNSAFE_URI_PATH))
     {
         ret = server_handle_unsafe(trans, req, resp);
@@ -545,7 +610,7 @@ static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t
  *  @retval EXIT_SUCCESS Success
  *  @retval EXIT_FAILURE Error
  */
-int main()
+int main(void)
 {
     coap_server_t server = {0};
 #ifdef COAP_DTLS_EN
