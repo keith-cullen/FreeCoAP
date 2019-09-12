@@ -58,7 +58,7 @@ int main(int argc, char **argv)
                              argv[2]);
     if (ret < 0)
     {
-	time_client_deinit();
+        time_client_deinit();
         return EXIT_FAILURE;
     }
     while (1)

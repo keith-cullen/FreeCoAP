@@ -1,17 +1,14 @@
 ifeq ($(http_ip6),y)
-HTTP_IP6_CFLAGS += -DSOCK_IP6
+HTTP_IP6_CFLAGS = -DSOCK_IP6
 endif
-
 ifeq ($(coap_ip6),y)
-COAP_IP6_CFLAGS += -DCOAP_IP6
+COAP_IP6_CFLAGS = -DCOAP_IP6
 endif
-
 I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
 S2=../../proxy/common/src
 T1=..
-
 CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
@@ -22,7 +19,6 @@ CFLAGS += $(HTTP_IP6_CFLAGS)
 CFLAGS += $(COAP_IP6_CFLAGS)
 LD_ ?= gcc
 LDFLAGS =
-
 INCS = $(I2)/http_msg.h \
        $(I2)/tls.h \
        $(I2)/sock.h \

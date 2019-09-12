@@ -1,12 +1,10 @@
 ifeq ($(ip6),y)
 IP6_CFLAGS = -DSOCK_IP6
 endif
-
 I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
 S2=../../proxy/common/src
-
 CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \

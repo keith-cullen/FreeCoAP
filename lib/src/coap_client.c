@@ -44,19 +44,20 @@
 #include <sys/select.h>
 #include <sys/types.h>
 #include "coap_client.h"
+#include "coap_mem.h"
 #include "coap_log.h"
 #ifdef COAP_DTLS_EN
 #include "dtls_debug.h"
 #endif
 
-#define COAP_CLIENT_ACK_TIMEOUT_SEC   2                                         /**< Minimum delay to wait before retransmitting a confirmable message */
-#define COAP_CLIENT_MAX_RETRANSMIT    4                                         /**< Maximum number of times a confirmable message can be retransmitted */
-#define COAP_CLIENT_RESP_TIMEOUT_SEC  30                                        /**< Maximum amount of time to wait for a response */
+#define COAP_CLIENT_ACK_TIMEOUT_SEC             2                               /**< Minimum delay to wait before retransmitting a confirmable message */
+#define COAP_CLIENT_MAX_RETRANSMIT              4                               /**< Maximum number of times a confirmable message can be retransmitted */
+#define COAP_CLIENT_RESP_TIMEOUT_SEC            30                              /**< Maximum amount of time to wait for a response */
 
 #ifdef COAP_DTLS_EN
 
-#define COAP_CLIENT_DTLS_HANDSHAKE_ATTEMPTS  60                                 /**< Maximum number of DTLS handshake attempts */
-#define COAP_CLIENT_DTLS_RETRANS_TIMEOUT     1000                               /**< Retransmission timeout (msec) for the DTLS handshake */
+#define COAP_CLIENT_DTLS_HANDSHAKE_ATTEMPTS     60                              /**< Maximum number of DTLS handshake attempts */
+#define COAP_CLIENT_DTLS_RETRANS_TIMEOUT        1000                            /**< Retransmission timeout (msec) for the DTLS handshake */
 
 #endif
 
@@ -1539,5 +1540,400 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
     {
         return coap_client_exchange_non(client, req, resp);
     }
+    return -EINVAL;
+}
+
+/**
+ *  @brief Exchange a request with the server using blockwise transfers
+ *
+ *  A block1 transfer (from client to server, i.e. PUT or POST)
+ *  can invoke a response payload. The client includes a block2
+ *  option in the final block1 message exchange to instruct the
+ *  server to use a blockwise transfer for the response payload
+ *  if there is one.
+ *
+ *  @param[in,out] client Pointer to a client structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *  @param[in] block1_size Block1 size
+ *  @param[in] block2_size Block2 size
+ *  @param[in] body Pointer to a buffer to hold the body
+ *  @param[in] body_len Length of the buffer to hold the body
+ *
+ *  @returns Operation status
+ *  @retval >0 Length of the data sent
+ *  @retval <0 Error
+ **/
+static ssize_t coap_client_exchange_blockwise1(coap_client_t *client,
+                                               coap_msg_t *req, coap_msg_t *resp,
+                                               unsigned block1_size, unsigned block2_size,
+                                               char *body, size_t body_len)
+{
+    coap_msg_t msg = {0};
+    unsigned tmp_block_size = 0;
+    unsigned payload_len = 0;
+    unsigned block1_more = 0;
+    unsigned block1_num = 0;
+    unsigned block1_len = 0;
+    unsigned block2_len = 0;
+    size_t block1_start = 0;
+    char block_val[COAP_MSG_OP_MAX_BLOCK_VAL_LEN] = {0};
+    int block1_szx = -1;
+    int ret = 0;
+
+    /* use a block1 option to describe the size of the blocks in the request */
+    if ((block1_size == 0) || (block2_size == 0))
+    {
+        return -EINVAL;
+    }
+    ret = coap_msg_op_calc_block_szx(block1_size);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    block1_szx = ret;
+    ret = coap_msg_op_calc_block_szx(block2_size);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    coap_msg_create(&msg);
+    while (1)
+    {
+        coap_log_debug("Handling block with start byte index: %u for library-level blockwise transfer", block1_start);
+        /* copy the request message so we can add a block1 option */
+        ret = coap_msg_copy(&msg, req);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        block1_more = 1;
+        payload_len = block1_size;
+        if (block1_start + block1_size >= body_len)
+        {
+            block1_more = 0;
+            payload_len = body_len - block1_start;
+        }
+        block1_num = coap_msg_block_start_to_num(block1_start, block1_szx);
+        /* format the block1 option */
+        ret = coap_msg_op_format_block_val(block_val, sizeof(block_val), block1_num, block1_more, block1_size);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return ret;
+        }
+        block1_len = ret;
+        /* add the block1 option */
+        ret = coap_msg_add_op(&msg, COAP_MSG_BLOCK1, block1_len, block_val);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return ret;
+        }
+        if (block1_more == 0)
+        {
+            /* format the block2 option for the last block1 message exchange */
+            ret = coap_msg_op_format_block_val(block_val, sizeof(block_val), 0, 0, block2_size);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return ret;
+            }
+            block2_len = ret;
+            /* add the block2 option */
+            ret = coap_msg_add_op(&msg, COAP_MSG_BLOCK2, block2_len, block_val);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return ret;
+            }
+        }
+        /* add the payload */
+        ret = coap_msg_set_payload(&msg, body + block1_start, payload_len);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return ret;
+        }
+        /* exchange with the server */
+        ret = coap_client_exchange(client, &msg, resp);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return ret;
+        }
+        if (!(coap_msg_get_code_class(resp) == COAP_MSG_SUCCESS))
+        {
+            coap_msg_destroy(&msg);
+            return 0;
+        }
+        if ((coap_msg_get_code_detail(resp) != COAP_MSG_CONTINUE)
+         && (coap_msg_get_code_detail(resp) != COAP_MSG_CREATED)
+         && (coap_msg_get_code_detail(resp) != COAP_MSG_CHANGED))
+        {
+            coap_msg_destroy(&msg);
+            return 0;
+        }
+        /* inspect the block1 option in the response */
+        ret = coap_msg_parse_block_op(&block1_num, &block1_more, &tmp_block_size, resp, COAP_MSG_BLOCK1);
+        if (ret != 0)
+        {
+            coap_msg_destroy(&msg);
+            return -EBADMSG;
+        }
+        /* allow the server to resize the blocks */
+        if (tmp_block_size < block1_size)
+        {
+            block1_size = tmp_block_size;
+        }
+        /* check that the acknowledged block is the next one in sequence */
+        if (block1_num * block1_size != block1_start)
+        {
+            coap_msg_destroy(&msg);
+            return -EBADMSG;
+        }
+        /* recalculate the block size exponent */
+        ret = coap_msg_op_calc_block_szx(block1_size);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return -EBADMSG;
+        }
+        block1_szx = ret;
+        /* advance to the next block */
+        block1_start += payload_len;
+        /* check for completion */
+        if (block1_start >= body_len)
+        {
+            coap_msg_destroy(&msg);
+            return block1_start;  /* success */
+        }
+        coap_msg_reset(&msg);
+        coap_msg_reset(resp);
+    }
+}
+
+/**
+ *  @brief Exchange a response with the server using blockwise transfers
+ *
+ *  @param[in,out] client Pointer to a client structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *  @param[in] block2_size Block2 size
+ *  @param[in] body Pointer to a buffer to hold the body
+ *  @param[in] body_len Length of the buffer to hold the body
+ *  @param[in] have_resp Flag to indicate that the first response has already been received
+ *
+ *  @returns Operation status
+ *  @retval >0 Length of the data received
+ *  @retval <0 Error
+ **/
+static ssize_t coap_client_exchange_blockwise2(coap_client_t *client,
+                                               coap_msg_t *req, coap_msg_t *resp,
+                                               unsigned block2_size,
+                                               char *body, size_t body_len,
+                                               int have_resp)
+{
+    coap_msg_t msg = {0};
+    unsigned tmp_block_size = 0;
+    unsigned payload_len = 0;
+    unsigned block2_more = 0;
+    unsigned block2_num = 0;
+    unsigned block2_len = 0;
+    size_t block2_start = 0;
+    char block_val[COAP_MSG_OP_MAX_BLOCK_VAL_LEN] = {0};
+    int block2_szx = -1;
+    int ret = 0;
+
+    /* use a block2 option to control the size of the blocks in the response */
+    if (block2_size == 0)
+    {
+        return -EINVAL;
+    }
+    ret = coap_msg_op_calc_block_szx(block2_size);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    block2_szx = ret;
+    coap_msg_create(&msg);
+    while (1)
+    {
+        coap_log_debug("Handling block with start byte index: %u for GET library-level blockwise transfer", block2_start);
+        if (!have_resp)
+        {
+            /* copy the request message so we can add a block2 option */
+            ret = coap_msg_copy(&msg, req);
+            if (ret < 0)
+            {
+                return ret;
+            }
+            block2_more = 0;  /* more must be zero for this use case */
+            block2_num = coap_msg_block_start_to_num(block2_start, block2_szx);
+            /* format the block2 option */
+            ret = coap_msg_op_format_block_val(block_val, sizeof(block_val), block2_num, block2_more, block2_size);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return ret;
+            }
+            block2_len = ret;
+            /* add the block2 option */
+            ret = coap_msg_add_op(&msg, COAP_MSG_BLOCK2, block2_len, block_val);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return ret;
+            }
+            /* exchange with the server */
+            ret = coap_client_exchange(client, &msg, resp);
+            if (ret < 0)
+            {
+                coap_msg_destroy(&msg);
+                return ret;
+            }
+        }
+        if (!(coap_msg_get_code_class(resp) == COAP_MSG_SUCCESS))
+        {
+            coap_msg_destroy(&msg);
+            return 0;
+        }
+        if (coap_msg_get_code_detail(req) == COAP_MSG_GET)
+        {
+            if ((coap_msg_get_code_detail(resp) != COAP_MSG_CONTINUE)
+             && (coap_msg_get_code_detail(resp) != COAP_MSG_CONTENT))
+            {
+                coap_msg_destroy(&msg);
+                return 0;
+            }
+        }
+        else
+        {
+            if ((coap_msg_get_code_detail(resp) != COAP_MSG_CONTINUE)
+             && (coap_msg_get_code_detail(resp) != COAP_MSG_CREATED)
+             && (coap_msg_get_code_detail(resp) != COAP_MSG_CHANGED))
+            {
+                coap_msg_destroy(&msg);
+                return 0;
+            }
+        }
+        /* inspect the block2 option in the response */
+        ret = coap_msg_parse_block_op(&block2_num, &block2_more, &tmp_block_size, resp, COAP_MSG_BLOCK2);
+        if (ret != 0)
+        {
+            coap_msg_destroy(&msg);
+            return -EBADMSG;
+        }
+        /* allow the server to resize the blocks */
+        if (tmp_block_size < block2_size)
+        {
+            block2_size = tmp_block_size;
+        }
+        /* check that the received block is the next one in sequence */
+        if (block2_num * block2_size != block2_start)
+        {
+            coap_msg_destroy(&msg);
+            return -EBADMSG;
+        }
+        /* recalculate the block size exponent */
+        ret = coap_msg_op_calc_block_szx(block2_size);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&msg);
+            return -EBADMSG;
+        }
+        block2_szx = ret;
+        /* check that the payload in the response has the correct size */
+        payload_len = coap_msg_get_payload_len(resp);
+        if (payload_len > block2_size)
+        {
+            coap_msg_destroy(&msg);
+            return -EBADMSG;
+        }
+        if ((block2_more) && (payload_len != block2_size))
+        {
+            coap_msg_destroy(&msg);
+            return -EBADMSG;
+        }
+        /* check for potential buffer overrun */
+        if (block2_start + payload_len > body_len)
+        {
+            coap_msg_destroy(&msg);
+            return -ENOSPC;
+        }
+        /* copy the payload data from the response */
+        memcpy(body + block2_start, coap_msg_get_payload(resp), payload_len);
+        /* advance to the next block */
+        block2_start += payload_len;
+        /* check for completion */
+        if (block2_more == 0)
+        {
+            coap_msg_destroy(&msg);
+            return block2_start;  /* success */
+        }
+        coap_msg_reset(&msg);
+        coap_msg_reset(resp);
+        have_resp = 0;
+    }
+    return 0;
+}
+
+ssize_t coap_client_exchange_blockwise(coap_client_t *client,
+                                       coap_msg_t *req, coap_msg_t *resp,
+                                       unsigned block1_size, unsigned block2_size,
+                                       char *body, size_t body_len, int have_resp)
+{
+    ssize_t num = 0;
+
+    if (coap_msg_get_code_detail(req) == COAP_MSG_GET)
+    {
+        coap_log_info("Starting new GET library-level blockwise transfer");
+        num = coap_client_exchange_blockwise2(client, req, resp, block2_size, body, body_len, have_resp);
+        if (num <= 0)
+        {
+            return num;
+        }
+        coap_log_info("Completed GET library-level blockwise transfer");
+        return num;
+    }
+    else if (coap_msg_get_code_detail(req) == COAP_MSG_PUT)
+    {
+        coap_log_info("Starting new PUT library-level blockwise transfer");
+        num = coap_client_exchange_blockwise1(client, req, resp, block1_size, block2_size, body, body_len);
+        if (num <= 0)
+        {
+            return num;
+        }
+        if (coap_msg_get_payload_len(resp) > 0)
+        {
+            num = coap_client_exchange_blockwise2(client, req, resp, block2_size, body, body_len, 1);
+            if (num <= 0)
+            {
+                return num;
+            }
+        }
+        coap_log_info("Completed PUT library-level blockwise transfer");
+        return num;
+    }
+    else if (coap_msg_get_code_detail(req) == COAP_MSG_POST)
+    {
+        coap_log_info("Starting new POST library-level blockwise transfer");
+        num = coap_client_exchange_blockwise1(client, req, resp, block1_size, block2_size, body, body_len);
+        if (num <= 0)
+        {
+            return num;
+        }
+        if (coap_msg_get_payload_len(resp) > 0)
+        {
+            num = coap_client_exchange_blockwise2(client, req, resp, block2_size, body, body_len, 1);
+            if (num <= 0)
+            {
+                return num;
+            }
+        }
+        coap_log_info("Completed POST library-level blockwise transfer");
+        return num;
+    }
+    coap_log_warn("Request method unsupported in blockwise transfer");
     return -EINVAL;
 }

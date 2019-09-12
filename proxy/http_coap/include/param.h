@@ -36,14 +36,14 @@
 
 #include "coap_log.h"
 
-#define PARAM_DEF_PORT                                  "4430"
-#define PARAM_DEF_MAX_LOG_LEVEL                          "debug"
-#define PARAM_DEF_HTTP_SERVER_TRUST_FILE_NAME            "http_server_trust.pem"   /**< TLS trust file name */
-#define PARAM_DEF_HTTP_SERVER_CERT_FILE_NAME             "http_server_cert.pem"    /**< TLS certificate file name*/
-#define PARAM_DEF_HTTP_SERVER_KEY_FILE_NAME              "http_server_privkey.pem" /**< TLS key file name */
-#define PARAM_DEF_COAP_CLIENT_PUB_KEY_FILE_NAME          "client_pub_key.txt"      /**< DTLS public key file name */
-#define PARAM_DEF_COAP_CLIENT_PRIV_KEY_FILE_NAME         "client_priv_key.txt"     /**< DTLS private key file name */
-#define PARAM_DEF_COAP_CLIENT_ACCESS_FILE_NAME           "client_access.txt"       /**< DTLS access control list file name */
+#define PARAM_DEF_PORT                                "4430"
+#define PARAM_DEF_MAX_LOG_LEVEL                       "info"
+#define PARAM_DEF_HTTP_SERVER_TRUST_FILE_NAME         "http_server_trust.pem"   /**< TLS trust file name */
+#define PARAM_DEF_HTTP_SERVER_CERT_FILE_NAME          "http_server_cert.pem"    /**< TLS certificate file name*/
+#define PARAM_DEF_HTTP_SERVER_KEY_FILE_NAME           "http_server_privkey.pem" /**< TLS key file name */
+#define PARAM_DEF_COAP_CLIENT_PUB_KEY_FILE_NAME       "client_pub_key.txt"      /**< DTLS public key file name */
+#define PARAM_DEF_COAP_CLIENT_PRIV_KEY_FILE_NAME      "client_priv_key.txt"     /**< DTLS private key file name */
+#define PARAM_DEF_COAP_CLIENT_ACCESS_FILE_NAME        "client_access.txt"       /**< DTLS access control list file name */
 
 #define param_get_port(param)                            ((param)->port)
 #define param_get_max_log_level(param)                   ((param)->max_log_level)

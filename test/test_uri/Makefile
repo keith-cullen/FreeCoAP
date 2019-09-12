@@ -3,7 +3,6 @@ S1=../../lib/src
 I2=../../proxy/common/include
 S2=../../proxy/common/src
 T1=..
-
 CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
