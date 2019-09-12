@@ -116,58 +116,6 @@ void coap_mem_free(coap_mem_t *mem, void *buf)
 }
 
 /**
- *  Big memory allocator
- *
- *  This memory allocator can be used by any part of the CoAP library.
- */
-static coap_mem_t coap_mem_big = {0};
-
-int coap_mem_big_create(size_t num, size_t len)
-{
-    return coap_mem_create(&coap_mem_big, num, len);
-}
-
-void coap_mem_big_destroy(void)
-{
-    coap_mem_destroy(&coap_mem_big);
-}
-
-char *coap_mem_big_get_buf(void)
-{
-    return coap_mem_get_buf(&coap_mem_big);
-}
-
-size_t coap_mem_big_get_num(void)
-{
-    return coap_mem_get_num(&coap_mem_big);
-}
-
-size_t coap_mem_big_get_len(void)
-{
-    return coap_mem_get_len(&coap_mem_big);
-}
-
-size_t coap_mem_big_get_active_len(void)
-{
-    return coap_mem_get_active_len(&coap_mem_big);
-}
-
-char *coap_mem_big_get_active(void)
-{
-    return coap_mem_big.active;
-}
-
-void *coap_mem_big_alloc(size_t len)
-{
-    return coap_mem_alloc(&coap_mem_big, len);
-}
-
-void coap_mem_big_free(void *buf)
-{
-    coap_mem_free(&coap_mem_big, buf);
-}
-
-/**
  *  Small memory allocator
  *
  *  This memory allocator can be used by any part of the CoAP library.
@@ -217,4 +165,142 @@ void *coap_mem_small_alloc(size_t len)
 void coap_mem_small_free(void *buf)
 {
     coap_mem_free(&coap_mem_small, buf);
+}
+
+/**
+ *  Medium memory allocator
+ *
+ *  This memory allocator can be used by any part of the CoAP library.
+ */
+static coap_mem_t coap_mem_medium = {0};
+
+int coap_mem_medium_create(size_t num, size_t len)
+{
+    return coap_mem_create(&coap_mem_medium, num, len);
+}
+
+void coap_mem_medium_destroy(void)
+{
+    coap_mem_destroy(&coap_mem_medium);
+}
+
+char *coap_mem_medium_get_buf(void)
+{
+    return coap_mem_get_buf(&coap_mem_medium);
+}
+
+size_t coap_mem_medium_get_num(void)
+{
+    return coap_mem_get_num(&coap_mem_medium);
+}
+
+size_t coap_mem_medium_get_len(void)
+{
+    return coap_mem_get_len(&coap_mem_medium);
+}
+
+size_t coap_mem_medium_get_active_len(void)
+{
+    return coap_mem_get_active_len(&coap_mem_medium);
+}
+
+char *coap_mem_medium_get_active(void)
+{
+    return coap_mem_medium.active;
+}
+
+void *coap_mem_medium_alloc(size_t len)
+{
+    return coap_mem_alloc(&coap_mem_medium, len);
+}
+
+void coap_mem_medium_free(void *buf)
+{
+    coap_mem_free(&coap_mem_medium, buf);
+}
+
+/**
+ *  Large memory allocator
+ *
+ *  This memory allocator can be used by any part of the CoAP library.
+ */
+static coap_mem_t coap_mem_large = {0};
+
+int coap_mem_large_create(size_t num, size_t len)
+{
+    return coap_mem_create(&coap_mem_large, num, len);
+}
+
+void coap_mem_large_destroy(void)
+{
+    coap_mem_destroy(&coap_mem_large);
+}
+
+char *coap_mem_large_get_buf(void)
+{
+    return coap_mem_get_buf(&coap_mem_large);
+}
+
+size_t coap_mem_large_get_num(void)
+{
+    return coap_mem_get_num(&coap_mem_large);
+}
+
+size_t coap_mem_large_get_len(void)
+{
+    return coap_mem_get_len(&coap_mem_large);
+}
+
+size_t coap_mem_large_get_active_len(void)
+{
+    return coap_mem_get_active_len(&coap_mem_large);
+}
+
+char *coap_mem_large_get_active(void)
+{
+    return coap_mem_large.active;
+}
+
+void *coap_mem_large_alloc(size_t len)
+{
+    return coap_mem_alloc(&coap_mem_large, len);
+}
+
+void coap_mem_large_free(void *buf)
+{
+    coap_mem_free(&coap_mem_large, buf);
+}
+
+int coap_mem_all_create(size_t small_num, size_t small_len,
+                        size_t medium_num, size_t medium_len,
+                        size_t large_num, size_t large_len)
+{
+    int ret = 0;
+
+    ret = coap_mem_small_create(small_num, small_len);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    ret = coap_mem_medium_create(medium_num, medium_len);
+    if (ret < 0)
+    {
+        coap_mem_small_destroy();
+        return ret;
+    }
+    ret = coap_mem_large_create(large_num, large_len);
+    if (ret < 0)
+    {
+        coap_mem_medium_destroy();
+        coap_mem_small_destroy();
+        return ret;
+    }
+    return 0;
+}
+
+void coap_mem_all_destroy(void)
+{
+    coap_mem_large_destroy();
+    coap_mem_medium_destroy();
+    coap_mem_small_destroy();
 }

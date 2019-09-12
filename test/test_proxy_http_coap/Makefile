@@ -1,11 +1,9 @@
 ifeq ($(http_ip6),y)
-HTTP_IP6_CFLAGS += -DSOCK_IP6
+HTTP_IP6_CFLAGS = -DSOCK_IP6
 endif
-
 ifeq ($(coap_ip6),y)
-COAP_IP6_CFLAGS += -DCOAP_IP6
+COAP_IP6_CFLAGS = -DCOAP_IP6
 endif
-
 I1=../../lib/include
 S1=../../lib/src
 I2=../../proxy/common/include
@@ -14,7 +12,6 @@ I3=../../proxy/http_coap/include
 S3=../../proxy/http_coap/src
 D1 = ../../org.eclipse.tinydtls
 K1 = ../raw_keys
-
 CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
@@ -75,6 +72,7 @@ OBJS = proxy.o \
        coap_client.o \
        coap_msg.o \
        coap_mem.o \
+       coap_log.o \
        listener.o \
        connection.o \
        param.o \
@@ -88,7 +86,6 @@ OBJS = proxy.o \
        data_buf.o \
        util.o \
        thread.o \
-       coap_log.o \
        ccm.o \
        crypto.o \
        dtls.o \
@@ -124,6 +121,9 @@ coap_msg.o: $(S1)/coap_msg.c $(INCS)
 
 coap_mem.o: $(S1)/coap_mem.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
+
+coap_log.o: $(S1)/coap_log.c $(INCS)
+	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
 
 listener.o: $(S3)/listener.c $(INCS)
 	$(CC_) $(CFLAGS) -c $(S3)/listener.c

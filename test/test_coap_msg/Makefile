@@ -1,7 +1,6 @@
 I1=../../lib/include
 S1=../../lib/src
 T1=..
-
 CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \

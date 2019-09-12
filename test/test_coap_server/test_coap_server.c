@@ -44,24 +44,52 @@
 #endif
 
 #ifdef COAP_IP6
-#define HOST                 "::1"                                              /**< Host address to listen on */
+#define HOST                                "::"                                /**< Host address to listen on */
 #else
-#define HOST                 "127.0.0.1"                                        /**< Host address to listen on */
+#define HOST                                "0.0.0.0"                           /**< Host address to listen on */
 #endif
-#define PORT                 "12436"                                            /**< UDP port number to listen on */
-#define PUB_KEY_FILE_NAME    "../../raw_keys/server_pub_key.txt"                /**< ECDSA public key file name */
-#define PRIV_KEY_FILE_NAME   "../../raw_keys/server_priv_key.txt"               /**< ECDSA private key file name */
-#define ACCESS_FILE_NAME     "../../raw_keys/server_access.txt"                 /**< ECDSA public key access control list file name */
-#define KEY_LEN              32                                                 /**< Length in bytes of the ECDSA keys*/
-#define SEP_URI_PATH         "/sep/uri/path"                                    /**< URI path that requires a separate response */
-#define UNSAFE_URI_PATH      "unsafe"                                           /**< URI path that causes the server to include an unsafe option in the response */
-#define BLOCKWISE_URI_PATH   "block"                                            /**< URI path that causes the server to use blockwise transfers */
-#define BLOCKWISE_BUF_LEN    40                                                 /**< Total length (in bytes) of the buffer used for blockwise transfers */
-#define BLOCK_SIZE           16                                                 /**< Size of an individual block in a blockwise transfer */
-#define BIG_BUF_NUM          128                                                /**< Number of buffers in the big memory allocator */
-#define BIG_BUF_LEN          1024                                               /**< Length of each buffer in the big memory allocator */
-#define SMALL_BUF_NUM        128                                                /**< Number of buffers in the small memory allocator */
-#define SMALL_BUF_LEN        256                                                /**< Length of each buffer in the small memory allocator */
+#define PORT                                "12436"                             /**< UDP port number to listen on */
+#define PUB_KEY_FILE_NAME                   "../../raw_keys/server_pub_key.txt" /**< ECDSA public key file name */
+#define PRIV_KEY_FILE_NAME                  "../../raw_keys/server_priv_key.txt"/**< ECDSA private key file name */
+#define ACCESS_FILE_NAME                    "../../raw_keys/server_access.txt"  /**< ECDSA public key access control list file name */
+#define KEY_LEN                             32                                  /**< Length in bytes of the ECDSA keys*/
+#define RESET_URI_PATH                      "reset"                             /**< URI path that causes the server to reset to a known state */
+#define RESET_URI_PATH_LEN                  5                                   /**< Length of the URI path that causes the server to reset to a known state */
+#define UNSAFE_URI_PATH                     "unsafe"                            /**< URI path that causes the server to include an unsafe option in the response */
+#define UNSAFE_URI_PATH_LEN                 6                                   /**< Length of the URI path that causes the server to include an unsafe option in the response */
+#define SEP_URI_PATH                        "/sep/uri/path"                     /**< URI path that requires a separate response */
+#define SEP_URI_PATH_LEN                    13                                  /**< Length of the URI path that requires a separate response */
+#define REGULAR_URI_PATH                    "regular"                           /**< URI path that causes the server to use regular (i.e. non-blockwise) transfers */
+#define REGULAR_URI_PATH_LEN                6                                   /**< Length of the URI path that causes the server to use regular (i.e. non-blockwise) transfers */
+#define APP_LEVEL_BLOCKWISE_URI_PATH        "app-level-blockwise"               /**< URI path that causes the server to use application-level blockwise transfers */
+#define APP_LEVEL_BLOCKWISE_URI_PATH_LEN    19                                  /**< Length of the URI path that causes the server to use application-level blockwise transfers */
+#define LIB_LEVEL_BLOCKWISE_URI_PATH        "lib-level-blockwise"               /**< URI path that causes the server to use library-level blockwise transfers */
+#define LIB_LEVEL_BLOCKWISE_URI_PATH_LEN    19                                  /**< Length of the URI path that causes the server to use library-level blockwise transfers */
+#define REGULAR_GET_STR                     "Hello, Client!"                    /**< The text transferred in regular (i.e. non-blockwise) tansfers */
+#define REGULAR_GET_STR_LEN                 14                                  /**< Length of the text transferred in regular (i.e. non-blockwise) transfers */
+#define APP_LEVEL_BLOCKWISE_BUF_LEN         40                                  /**< Length of the buffer used in application-level blockwise transfers */
+#define LIB_LEVEL_BLOCKWISE_BUF_LEN         72                                  /**< Length of the buffers used in library-level blockwise transfers */
+#define BLOCK_SIZE                          16                                  /**< Size of an individual block in a blockwise transfer */
+#define SMALL_BUF_NUM                       128                                 /**< Number of buffers in the small memory allocator */
+#define SMALL_BUF_LEN                       256                                 /**< Length of each buffer in the small memory allocator */
+#define MEDIUM_BUF_NUM                      128                                 /**< Number of buffers in the medium memory allocator */
+#define MEDIUM_BUF_LEN                      1024                                /**< Length of each buffer in the medium memory allocator */
+#define LARGE_BUF_NUM                       32                                  /**< Number of buffers in the large memory allocator */
+#define LARGE_BUF_LEN                       8192                                /**< Length of each buffer in the large memory allocator */
+#define BLOCK1_SIZE                         32                                  /**< Preferred block1 size for blockwise transfers */
+#define BLOCK2_SIZE                         32                                  /**< Preferred block2 size for blockwise transfers */
+
+/**
+ *  @brief Buffer used for application-level blockwise transfers
+ */
+static char *app_level_blockwise_def_val = "";
+static char app_level_blockwise_buf[APP_LEVEL_BLOCKWISE_BUF_LEN] = {0};
+
+/**
+ *  @brief Buffer used for library-level blockwise transfers
+ */
+static char *lib_level_blockwise_def_val = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq";
+static char lib_level_blockwise_buf[LIB_LEVEL_BLOCKWISE_BUF_LEN] = {0};
 
 /**
  *  @brief Print a CoAP message
@@ -204,6 +232,32 @@ static int server_parse_block_op(unsigned *num, unsigned *more, unsigned *size, 
 }
 
 /**
+ *  @brief Handle reset
+ *
+ *  This function resets the server to a known state.
+ *
+ *  @param[in,out] trans Pointer to a transaction structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+static int server_handle_reset(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+{
+    coap_log_notice("Resetting to a known state");
+
+    memset(app_level_blockwise_buf, 0, sizeof(app_level_blockwise_buf));
+    memcpy(app_level_blockwise_buf, app_level_blockwise_def_val, sizeof(app_level_blockwise_buf));
+
+    memset(lib_level_blockwise_buf, 0, sizeof(lib_level_blockwise_buf));
+    memcpy(lib_level_blockwise_buf, lib_level_blockwise_def_val, sizeof(lib_level_blockwise_buf));
+
+    return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
+}
+
+/**
  *  @brief Handle unsafe transfers
  *
  *  This function generates a response that contains an unsafe
@@ -221,7 +275,6 @@ static int server_handle_unsafe(coap_server_trans_t *trans, coap_msg_t *req, coa
 {
     unsigned code_detail = 0;
     unsigned code_class = 0;
-    char *payload = "Hello Client!";
     int ret = 0;
 
     code_class = coap_msg_get_code_class(req);
@@ -243,7 +296,7 @@ static int server_handle_unsafe(coap_server_trans_t *trans, coap_msg_t *req, coa
         coap_log_error("Failed to add CoAP option to response message");
         return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
     }
-    ret = coap_msg_set_payload(resp, payload, strlen(payload));
+    ret = coap_msg_set_payload(resp, REGULAR_GET_STR, REGULAR_GET_STR_LEN);
     if (ret < 0)
     {
         coap_log_error("Failed to add payload to response message");
@@ -252,13 +305,12 @@ static int server_handle_unsafe(coap_server_trans_t *trans, coap_msg_t *req, coa
     return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
 }
 
-static char blockwise_buf[BLOCKWISE_BUF_LEN] = {0};                             /**< Buffer used for blockwise transfers */
-
 /**
- *  @brief Handle blockwise transfers
+ *  @brief Handle regular (i.e. non-blockwise) transfers
  *
- *  This function handles requests and responses that
- *  involve blockwise transfers.
+ *  This function handles regular (i.e. non-blockwise)
+ *  requests and responses. The same payload
+ *  is returned to the client every time.
  *
  *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] req Pointer to the request message
@@ -268,7 +320,61 @@ static char blockwise_buf[BLOCKWISE_BUF_LEN] = {0};                             
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+static int server_handle_regular(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+{
+    unsigned code_detail = 0;
+    unsigned code_class = 0;
+    int ret = 0;
+
+    code_class = coap_msg_get_code_class(req);
+    code_detail = coap_msg_get_code_detail(req);
+    if (code_class != COAP_MSG_REQ)
+    {
+        coap_log_warn("Received request message with invalid code class: %d", code_class);
+        return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
+    }
+    if (code_detail == COAP_MSG_GET)
+    {
+        ret = coap_msg_set_payload(resp, REGULAR_GET_STR, REGULAR_GET_STR_LEN);
+        if (ret < 0)
+        {
+            coap_log_error("Failed to add payload to response message");
+            return ret;
+        }
+    }
+    else if (code_detail == COAP_MSG_PUT)
+    {
+        ret = 0;
+    }
+    else if (code_detail == COAP_MSG_POST)
+    {
+        ret = 0;
+    }
+    else
+    {
+        coap_log_warn("Received request message with unsupported code detail: %d", code_detail);
+        return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
+    }
+    return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
+}
+
+/**
+ *  @brief Handle application-level blockwise transfers
+ *
+ *  This function handles requests and responses
+ *  that involve blockwise transfers that are
+ *  implemented at the application level as opposed
+ *  to the library level.
+ *
+ *  @param[in,out] trans Pointer to a transaction structure
+ *  @param[in] req Pointer to the request message
+ *  @param[out] resp Pointer to the response message
+ *
+ *  @returns Operation status
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+static int server_handle_app_level_blockwise(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     const char *payload = NULL;
     unsigned code_detail = 0;
@@ -276,9 +382,9 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
     unsigned block_size = 0;
     unsigned block_more = 0;
     unsigned block_num = 0;
-    unsigned start = 0;
     unsigned len = 0;
-    char block_val[3] = {0};
+    size_t start = 0;
+    char block_val[COAP_MSG_OP_MAX_BLOCK_VAL_LEN] = {0};
     int ret = 0;
 
     /* determine method */
@@ -295,7 +401,7 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
         ret = server_parse_block_op(&block_num, &block_more, &block_size, req, COAP_MSG_BLOCK1);
         if (ret < 0)
         {
-            coap_log_warn("Unable to parse Block1 option value in request message");
+            coap_log_warn("Unable to parse Block1 option in request message");
             return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_OPTION);
         }
         if (ret == 1)
@@ -305,15 +411,15 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
             return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
         }
         start = block_num * block_size;
-        if (start >= sizeof(blockwise_buf))
+        if (start >= sizeof(app_level_blockwise_buf))
         {
             coap_log_warn("Received request message with invalid Block1 option value");
             return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
         }
         len = coap_msg_get_payload_len(req);
-        if (start + len > sizeof(blockwise_buf))
+        if (start + len > sizeof(app_level_blockwise_buf))
         {
-            len = sizeof(blockwise_buf) - start;
+            len = sizeof(app_level_blockwise_buf) - start;
         }
         payload = coap_msg_get_payload(req);
         if (payload == NULL)
@@ -321,10 +427,10 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
             coap_log_warn("Received request message without payload");
             return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
         }
-        memcpy(blockwise_buf + start, payload, len);
+        memcpy(app_level_blockwise_buf + start, payload, len);
 
         /* response */
-        ret = coap_msg_op_format_block_val(block_val, 1, block_num, 0, block_size);
+        ret = coap_msg_op_format_block_val(block_val, sizeof(block_val), block_num, 0, block_size);
         if (ret < 0)
         {
             coap_log_error("Failed to format Block1 option value, num:%d, size:%d", block_num, block_size);
@@ -344,7 +450,7 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
         ret = server_parse_block_op(&block_num, &block_more, &block_size, req, COAP_MSG_BLOCK2);
         if (ret < 0)
         {
-            coap_log_warn("Unable to parse Block2 option value in request message");
+            coap_log_warn("Unable to parse Block2 option in request message");
             return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_OPTION);
         }
         if (ret == 1)
@@ -353,21 +459,21 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
             block_size = BLOCK_SIZE;
         }
         start = block_num * block_size;
-        if (start >= sizeof(blockwise_buf))
+        if (start >= sizeof(app_level_blockwise_buf))
         {
             coap_log_warn("Received request message with invalid Block2 option value");
             return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
         }
         len = block_size;
         block_more = 1;
-        if (start + len >= sizeof(blockwise_buf))
+        if (start + len >= sizeof(app_level_blockwise_buf))
         {
             block_more = 0;
-            len = sizeof(blockwise_buf) - start;
+            len = sizeof(app_level_blockwise_buf) - start;
         }
 
         /* response */
-        ret = coap_msg_op_format_block_val(block_val, 1, block_num, block_more, block_size);
+        ret = coap_msg_op_format_block_val(block_val, sizeof(block_val), block_num, block_more, block_size);
         if (ret < 0)
         {
             coap_log_error("Failed to format Block2 option value");
@@ -379,7 +485,7 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
             coap_log_error("Failed to add Block2 option to response message");
             return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
         }
-        ret = coap_msg_set_payload(resp, blockwise_buf + start, len);
+        ret = coap_msg_set_payload(resp, app_level_blockwise_buf + start, len);
         if (ret < 0)
         {
             coap_log_error("Failed to add payload to response message");
@@ -392,10 +498,31 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
 }
 
 /**
- *  @brief Handle non-blockwise transfers
+ *  @brief Handle received blockwise body
+ */
+static int server_handle_lib_level_blockwise_rx(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+{
+    if (coap_server_trans_get_body_end(trans) > sizeof(lib_level_blockwise_buf))
+    {
+        return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_REQ_ENT_TOO_LARGE);
+    }
+    memset(lib_level_blockwise_buf, 0, sizeof(lib_level_blockwise_buf));
+    memcpy(lib_level_blockwise_buf, coap_server_trans_get_body(trans), coap_server_trans_get_body_end(trans));
+    /* for POST requests, return the recveived payload in the response body */
+    if (coap_msg_get_code_detail(req) != COAP_MSG_POST)
+    {
+        coap_server_trans_set_body_end(trans, 0);
+    }
+    return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CHANGED);
+}
+
+/**
+ *  @brief Handle library-level blockwise transfers
  *
- *  This function handles requests and responses that
- *  do not involve blockwise transfers.
+ *  This function handles requests and responses
+ *  that involve blockwise transfers that are
+ *  implemented at the library level as opposed
+ *  to the application level.
  *
  *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] req Pointer to the request message
@@ -405,13 +532,12 @@ static int server_handle_blockwise(coap_server_trans_t *trans, coap_msg_t *req, 
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int server_handle_non_blockwise(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
+static int server_handle_lib_level_blockwise(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t *resp)
 {
     unsigned code_detail = 0;
     unsigned code_class = 0;
-    char *payload = "Hello Client!";
-    int ret = 0;
 
+    /* determine method */
     code_class = coap_msg_get_code_class(req);
     code_detail = coap_msg_get_code_detail(req);
     if (code_class != COAP_MSG_REQ)
@@ -419,28 +545,26 @@ static int server_handle_non_blockwise(coap_server_trans_t *trans, coap_msg_t *r
         coap_log_warn("Received request message with invalid code class: %d", code_class);
         return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
     }
-    if ((code_detail != COAP_MSG_GET) && (code_detail != COAP_MSG_POST))
+    if ((code_detail != COAP_MSG_GET)
+     && (code_detail != COAP_MSG_PUT)
+     && (code_detail != COAP_MSG_POST))
     {
         coap_log_warn("Received request message with unsupported code detail: %d", code_detail);
         return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
     }
-    ret = coap_msg_set_payload(resp, payload, strlen(payload));
-    if (ret < 0)
-    {
-        coap_log_error("Failed to add payload to response message");
-        return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
-    }
-    return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
+    /* request */
+    return coap_server_trans_handle_blockwise(trans, req, resp,
+                                              BLOCK1_SIZE, BLOCK2_SIZE,
+                                              lib_level_blockwise_buf,
+                                              sizeof(lib_level_blockwise_buf),
+                                              server_handle_lib_level_blockwise_rx);
 }
 
 /**
  *  @brief Callback function to handle requests and generate responses
  *
  *  The handler function is called to service a request
- *  and produce a response. This function should only set
- *  the code and payload fields in the response message.
- *  The other fields are set by the server library when
- *  this function returns.
+ *  and produce a response.
  *
  *  @param[in,out] trans Pointer to a transaction structure
  *  @param[in] req Pointer to the request message
@@ -454,26 +578,29 @@ static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t
 {
     int ret = 0;
 
+    if (server_match_uri_path(req, RESET_URI_PATH))
+    {
+        return server_handle_reset(trans, req, resp);
+    }
     if (server_match_uri_path(req, UNSAFE_URI_PATH))
     {
         ret = server_handle_unsafe(trans, req, resp);
     }
-    if (server_match_uri_path(req, BLOCKWISE_URI_PATH))
+    if (server_match_uri_path(req, APP_LEVEL_BLOCKWISE_URI_PATH))
     {
-        ret = server_handle_blockwise(trans, req, resp);
+        ret = server_handle_app_level_blockwise(trans, req, resp);
     }
-    else
+    else if (server_match_uri_path(req, LIB_LEVEL_BLOCKWISE_URI_PATH))
     {
-        ret = server_handle_non_blockwise(trans, req, resp);
+        ret = server_handle_lib_level_blockwise(trans, req, resp);
     }
-    if (ret < 0)
+    else  /* SEP_URI_PATH || REGULAR_URI_PATH */
     {
-        coap_log_error("%s", strerror(-ret));
-        return ret;
+        ret = server_handle_regular(trans, req, resp);
     }
     print_coap_msg("Received:", req);
-    print_coap_msg("Sent: (Note: the type, message ID and token fields have not been set by the server library yet)", resp);
-    return 0;
+    print_coap_msg("Sent: ", resp);
+    return ret;
 }
 
 /**
@@ -483,23 +610,18 @@ static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t
  *  @retval EXIT_SUCCESS Success
  *  @retval EXIT_FAILURE Error
  */
-int main()
+int main(void)
 {
     coap_server_t server = {0};
     int ret = 0;
 
-    coap_log_set_level(COAP_LOG_DEBUG);
-    ret = coap_mem_big_create(BIG_BUF_NUM, BIG_BUF_LEN);
-    if (ret != 0)
+    coap_log_set_level(COAP_LOG_INFO);
+    ret = coap_mem_all_create(SMALL_BUF_NUM, SMALL_BUF_LEN,
+                              MEDIUM_BUF_NUM, MEDIUM_BUF_LEN,
+                              LARGE_BUF_NUM, LARGE_BUF_LEN);
+    if (ret < 0)
     {
         coap_log_error("%s", strerror(-ret));
-        return EXIT_FAILURE;
-    }
-    ret = coap_mem_small_create(SMALL_BUF_NUM, SMALL_BUF_LEN);
-    if (ret != 0)
-    {
-        coap_log_error("%s", strerror(-ret));
-        coap_mem_small_destroy();
         return EXIT_FAILURE;
     }
 
@@ -507,8 +629,7 @@ int main()
     ret = raw_keys_load(PRIV_KEY_FILE_NAME, PUB_KEY_FILE_NAME, ACCESS_FILE_NAME);
     if (ret < 0)
     {
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
     ret = coap_server_create(&server, server_handle, HOST, PORT,
@@ -530,8 +651,7 @@ int main()
             /* a return value of -1 indicates a DTLS failure which has already been logged */
             coap_log_error("%s", strerror(-ret));
         }
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
     ret = coap_server_add_sep_resp_uri_path(&server, SEP_URI_PATH);
@@ -539,8 +659,7 @@ int main()
     {
         coap_log_error("%s", strerror(-ret));
         coap_server_destroy(&server);
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
     ret = coap_server_run(&server);
@@ -552,12 +671,10 @@ int main()
             coap_log_error("%s", strerror(-ret));
         }
         coap_server_destroy(&server);
-        coap_mem_small_destroy();
-        coap_mem_big_destroy();
+        coap_mem_all_destroy();
         return EXIT_FAILURE;
     }
     coap_server_destroy(&server);
-    coap_mem_small_destroy();
-    coap_mem_big_destroy();
+    coap_mem_all_destroy();
     return EXIT_SUCCESS;
 }
