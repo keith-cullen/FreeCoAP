@@ -109,7 +109,7 @@ typedef enum
     COAP_MSG_GET = 1,                                                           /**< Get request method */
     COAP_MSG_POST = 2,                                                          /**< Post request method */
     COAP_MSG_PUT = 3,                                                           /**< Put request method */
-    COAP_MSG_DELETE =4                                                          /**< Delete request method */
+    COAP_MSG_DELETE = 4                                                         /**< Delete request method */
 }
 coap_msg_method_t;
 
