@@ -1646,7 +1646,7 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
  *  @param[in] body_len Length of the buffer to hold the body
  *
  *  @returns Operation status
- *  @retval >0 Length of the data sent
+ *  @retval >=0 Length of the data sent
  *  @retval <0 Error
  **/
 static ssize_t coap_client_exchange_blockwise1(coap_client_t *client,
@@ -1810,7 +1810,7 @@ static ssize_t coap_client_exchange_blockwise1(coap_client_t *client,
  *  @param[in] have_resp Flag to indicate that the first response has already been received
  *
  *  @returns Operation status
- *  @retval >0 Length of the data received
+ *  @retval >=0 Length of the data received
  *  @retval <0 Error
  **/
 static ssize_t coap_client_exchange_blockwise2(coap_client_t *client,
@@ -1989,13 +1989,15 @@ ssize_t coap_client_exchange_blockwise(coap_client_t *client,
         {
             return num;
         }
-        if (coap_msg_get_payload_len(resp) > 0)
+        if (coap_msg_get_payload_len(resp) == 0)
         {
-            num = coap_client_exchange_blockwise2(client, req, resp, block2_size, body, body_len, 1);
-            if (num <= 0)
-            {
-                return num;
-            }
+            coap_log_info("Completed PUT library-level blockwise transfer");
+            return 0;
+        }
+        num = coap_client_exchange_blockwise2(client, req, resp, block2_size, body, body_len, 1);
+        if (num <= 0)
+        {
+            return num;
         }
         coap_log_info("Completed PUT library-level blockwise transfer");
         return num;
@@ -2008,13 +2010,15 @@ ssize_t coap_client_exchange_blockwise(coap_client_t *client,
         {
             return num;
         }
-        if (coap_msg_get_payload_len(resp) > 0)
+        if (coap_msg_get_payload_len(resp) == 0)
         {
-            num = coap_client_exchange_blockwise2(client, req, resp, block2_size, body, body_len, 1);
-            if (num <= 0)
-            {
-                return num;
-            }
+            coap_log_info("Completed POST library-level blockwise transfer");
+            return 0;
+        }
+        num = coap_client_exchange_blockwise2(client, req, resp, block2_size, body, body_len, 1);
+        if (num <= 0)
+        {
+            return num;
         }
         coap_log_info("Completed POST library-level blockwise transfer");
         return num;

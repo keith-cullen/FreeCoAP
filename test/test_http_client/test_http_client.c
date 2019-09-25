@@ -309,6 +309,76 @@ test_http_client_data_t test8_data =
     .num_msg = TEST8_NUM_MSGS
 };
 
+#define TEST9_NUM_MSGS     2
+#define TEST9_NUM_HEADERS  1
+
+const char *test9_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
+const char *test9_name[TEST9_NUM_HEADERS] = {"Content-Length"};
+const char *test9_value[TEST9_NUM_HEADERS] = {"72"};
+
+test_http_client_msg_t test9_msg[TEST9_NUM_MSGS] =
+{
+    {
+        .req_str = "PUT coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 72\r\n\r\n" \
+                   "cnierugpuedg[sdklgw9045ut6sw]gmk045gtj0gbmw09igh[iwrtjhywpwouihj54giuhsw",
+        .start = test9_start,
+        .num_headers = 0,
+        .name = NULL,
+        .value = NULL,
+        .body = NULL
+    },
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 0\r\n\r\n",
+        .start = test9_start,
+        .num_headers = TEST9_NUM_HEADERS,
+        .name = test9_name,
+        .value = test9_value,
+        .body = "cnierugpuedg[sdklgw9045ut6sw]gmk045gtj0gbmw09igh[iwrtjhywpwouihj54giuhsw"
+    }
+};
+
+test_http_client_data_t test9_data =
+{
+    .desc = "test 9: perform PUT and GET requests that invoke blockwise transfers from the server",
+    .msg = test9_msg,
+    .num_msg = TEST9_NUM_MSGS
+};
+
+#define TEST10_NUM_MSGS     2
+#define TEST10_NUM_HEADERS  1
+
+const char *test10_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
+const char *test10_name[TEST10_NUM_HEADERS] = {"Content-Length"};
+const char *test10_value[TEST10_NUM_HEADERS] = {"72"};
+
+test_http_client_msg_t test10_msg[TEST10_NUM_MSGS] =
+{
+    {
+        .req_str = "POST coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 72\r\n\r\n" \
+                   "982gjwojkdfnsg9aqu84h3t89quagornzggvbjkqnafhjqb34gtuiohaeriuyjboiqgtasdq",
+        .start = test10_start,
+        .num_headers = 0,
+        .name = test10_name,
+        .value = test10_value,
+        .body = "982gjwojkdfnsg9aqu84h3t89quagornzggvbjkqnafhjqb34gtuiohaeriuyjboiqgtasdq"
+    },
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 0\r\n\r\n",
+        .start = test10_start,
+        .num_headers = TEST10_NUM_HEADERS,
+        .name = test10_name,
+        .value = test10_value,
+        .body = "982gjwojkdfnsg9aqu84h3t89quagornzggvbjkqnafhjqb34gtuiohaeriuyjboiqgtasdq"
+    }
+};
+
+test_http_client_data_t test10_data =
+{
+    .desc = "test 10: perform POST and GET requests that invoke blockwise transfers from the server",
+    .msg = test10_msg,
+    .num_msg = TEST10_NUM_MSGS
+};
+
 /**
  *  @brief TLS client context used by all tests
  */
@@ -566,7 +636,9 @@ int main(int argc, char **argv)
                       {test_exchange_func, &test5_data},
                       {test_exchange_func, &test6_data},
                       {test_exchange_func, &test7_data},
-                      {test_exchange_func, &test8_data}};
+                      {test_exchange_func, &test8_data},
+                      {test_exchange_func, &test9_data},
+                      {test_exchange_func, &test10_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
@@ -653,8 +725,16 @@ int main(int argc, char **argv)
         num_tests = 1;
         num_pass = test_run(&tests[7], num_tests);
         break;
+    case 9:
+        num_tests = 1;
+        num_pass = test_run(&tests[8], num_tests);
+        break;
+    case 10:
+        num_tests = 1;
+        num_pass = test_run(&tests[9], num_tests);
+        break;
     default:
-        num_tests = 8;
+        num_tests = 10;
         num_pass = test_run(tests, num_tests);
     }
 

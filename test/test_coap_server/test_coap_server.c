@@ -559,6 +559,11 @@ static int server_handle_lib_level_blockwise(coap_server_trans_t *trans, coap_ms
         coap_log_warn("Received request message with unsupported code detail: %d", code_detail);
         return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
     }
+    /* do not allow regular transfers to succeed */
+    if (coap_msg_get_payload_len(req) > sizeof(lib_level_blockwise_buf) - 1)
+    {
+        return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_REQ_ENT_TOO_LARGE);
+    }
     /* request */
     return coap_server_trans_handle_blockwise(trans, req, resp,
                                               BLOCK1_SIZE, BLOCK2_SIZE,

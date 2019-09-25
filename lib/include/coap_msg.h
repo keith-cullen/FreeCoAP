@@ -47,6 +47,7 @@
 #define COAP_MSG_OP_MAX_BLOCK_VAL_LEN               3                           /**< Maximum buffer length for a Block1 or Block2 option value */
 #define COAP_MSG_OP_MAX_BLOCK_SIZE                  (1 << 10)                   /**< Maximum block size for a Block1 or Block2 option */
 #define COAP_MSG_MAX_BUF_LEN                        1152                        /**< Maximum buffer length for header and payload */
+#define COAP_MSG_MAX_PAYLOAD_LEN                    1024                        /**< Maximum buffer length for payload */
 
 #define coap_msg_block_szx_to_size(szx)             (1 << ((szx) + 4)))         /**< Convert a block size exponent value to a size value */
 #define coap_msg_block_start_to_num(start, szx)     ((start) >> ((szx) + 4))    /**< Convert a start byte value to a block num value */
@@ -345,7 +346,6 @@ unsigned coap_msg_check_unsafe_ops(coap_msg_t *msg);
  *  @retval 0 Success
  *  @retval <0 Error
  */
-
 int coap_msg_parse_type_msg_id(char *buf, size_t len, unsigned *type, unsigned *msg_id);
 
 /**
@@ -458,6 +458,16 @@ int coap_msg_add_op(coap_msg_t *msg, unsigned num, unsigned len, const char *val
  *  @retval <0 Error
  */
 int coap_msg_set_payload(coap_msg_t *msg, char *buf, size_t len);
+
+/**
+ *  @brief Clear the payload in a message
+ *
+ *  Free the buffer in the message structure containing
+ *  the current payload if there is one.
+ *
+ *  @param[in,out] msg Pointer to a message structure
+ */
+void coap_msg_clear_payload(coap_msg_t *msg);
 
 /**
  *  @brief Format a message

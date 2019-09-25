@@ -739,7 +739,7 @@ static int cross_body_coap_to_http(http_msg_t *http_msg, const char *buf, size_t
     return http_msg_set_header(http_msg, "Content-Length", tmp);
 }
 
-int cross_req_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg, unsigned *code)
+int cross_req_http_to_coap(coap_msg_t *coap_msg, char *coap_body, size_t coap_body_len, size_t *coap_body_end, http_msg_t *http_msg, unsigned *code)
 {
     int ret = 0;
 
@@ -765,13 +765,25 @@ int cross_req_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg, unsigned 
         return ret;
     }
 
-    ret = cross_body_http_to_coap(coap_msg, http_msg);
-    if (ret < 0)
+    if (http_msg_get_body_len(http_msg) > COAP_MSG_MAX_PAYLOAD_LEN)
     {
-        *code = 502;
-        return ret;
+        if (http_msg_get_body_len(http_msg) > coap_body_len)
+        {
+            *code = 502;
+            return -ENOSPC;
+        }
+        memcpy(coap_body, http_msg_get_body(http_msg), http_msg_get_body_len(http_msg));
+        *coap_body_end = http_msg_get_body_len(http_msg);
     }
-
+    else
+    {
+        ret = coap_msg_set_payload(coap_msg, http_msg_get_body(http_msg), http_msg_get_body_len(http_msg));
+        if (ret < 0)
+        {
+            *code = 502;
+            return ret;
+        }
+    }
     *code = 0;
     return 0;
 }

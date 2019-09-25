@@ -103,6 +103,7 @@ typedef struct
     size_t payload_len;                                                         /**< Length of the buffer containing the payload */
     unsigned block1_size;                                                       /**< Size value for the block1 option */
     unsigned block2_size;                                                       /**< Size value for the block2 option */
+    size_t body_end;                                                            /**< Amount of relevant data in the buffer to store the body */
 }
 test_coap_client_msg_t;
 
@@ -124,7 +125,6 @@ typedef struct
     size_t num_msg;                                                             /**< Length of the arrays of test message structures */
     const char *body;                                                           /**< Buffers to store the body */
     size_t body_len;                                                            /**< Length of the buffer to store the body */
-    size_t body_end;                                                            /**< Amount of relevant data in the buffer to store the body */
 }
 test_coap_client_data_t;
 
@@ -154,7 +154,8 @@ test_coap_client_msg_t test1_req[TEST1_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -169,7 +170,8 @@ test_coap_client_msg_t test1_resp[TEST1_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -187,8 +189,7 @@ test_coap_client_data_t test1_data =
     .test_resp = test1_resp,
     .num_msg = TEST1_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST2_NUM_MSG      1
@@ -231,7 +232,8 @@ test_coap_client_msg_t test2_req[TEST2_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -246,7 +248,8 @@ test_coap_client_msg_t test2_resp[TEST2_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -264,8 +267,7 @@ test_coap_client_data_t test2_data =
     .test_resp = test2_resp,
     .num_msg = TEST2_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST3_NUM_MSG      1
@@ -294,7 +296,8 @@ test_coap_client_msg_t test3_req[TEST3_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -309,7 +312,8 @@ test_coap_client_msg_t test3_resp[TEST3_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -327,8 +331,7 @@ test_coap_client_data_t test3_data =
     .test_resp = test3_resp,
     .num_msg = TEST3_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST4_NUM_MSG      2
@@ -357,7 +360,8 @@ test_coap_client_msg_t test4_req[TEST4_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -368,7 +372,8 @@ test_coap_client_msg_t test4_req[TEST4_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -383,7 +388,8 @@ test_coap_client_msg_t test4_resp[TEST4_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -394,7 +400,8 @@ test_coap_client_msg_t test4_resp[TEST4_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -412,8 +419,7 @@ test_coap_client_data_t test4_data =
     .test_resp = test4_resp,
     .num_msg = TEST4_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST5_NUM_MSG      2
@@ -456,7 +462,8 @@ test_coap_client_msg_t test5_req[TEST5_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -467,7 +474,8 @@ test_coap_client_msg_t test5_req[TEST5_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -482,7 +490,8 @@ test_coap_client_msg_t test5_resp[TEST5_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -493,7 +502,8 @@ test_coap_client_msg_t test5_resp[TEST5_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -511,8 +521,7 @@ test_coap_client_data_t test5_data =
     .test_resp = test5_resp,
     .num_msg = TEST5_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST6_NUM_MSG      2
@@ -541,7 +550,8 @@ test_coap_client_msg_t test6_req[TEST6_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_NON,
@@ -552,7 +562,8 @@ test_coap_client_msg_t test6_req[TEST6_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -567,7 +578,8 @@ test_coap_client_msg_t test6_resp[TEST6_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_NON,
@@ -578,7 +590,8 @@ test_coap_client_msg_t test6_resp[TEST6_NUM_MSG] =
         .payload = "qwertyuiopasdfgh",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -596,8 +609,7 @@ test_coap_client_data_t test6_data =
     .test_resp = test6_resp,
     .num_msg = TEST6_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST7_NUM_MSG      1
@@ -633,7 +645,8 @@ test_coap_client_msg_t test7_req[TEST7_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -648,7 +661,8 @@ test_coap_client_msg_t test7_resp[TEST7_NUM_MSG] =
         .payload = "Bad option number: 97",
         .payload_len = 21,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -666,8 +680,7 @@ test_coap_client_data_t test7_data =
     .test_resp = test7_resp,
     .num_msg = TEST7_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST8_NUM_MSG      2
@@ -696,7 +709,8 @@ test_coap_client_msg_t test8_req[TEST8_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -707,7 +721,8 @@ test_coap_client_msg_t test8_req[TEST8_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -722,7 +737,8 @@ test_coap_client_msg_t test8_resp[TEST8_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -733,7 +749,8 @@ test_coap_client_msg_t test8_resp[TEST8_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -751,8 +768,7 @@ test_coap_client_data_t test8_data =
     .test_resp = test8_resp,
     .num_msg = TEST8_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST9_NUM_MSG      2
@@ -781,7 +797,8 @@ test_coap_client_msg_t test9_req[TEST9_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -792,7 +809,8 @@ test_coap_client_msg_t test9_req[TEST9_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -807,7 +825,8 @@ test_coap_client_msg_t test9_resp[TEST9_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -818,7 +837,8 @@ test_coap_client_msg_t test9_resp[TEST9_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -836,8 +856,7 @@ test_coap_client_data_t test9_data =
     .test_resp = test9_resp,
     .num_msg = TEST9_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST10_NUM_MSG       6
@@ -1014,7 +1033,8 @@ test_coap_client_msg_t test10_req[TEST10_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -1025,7 +1045,8 @@ test_coap_client_msg_t test10_req[TEST10_NUM_MSG] =
         .payload = "ghijklmnopqrstuv",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -1036,7 +1057,8 @@ test_coap_client_msg_t test10_req[TEST10_NUM_MSG] =
         .payload = "wzyx.!?#",
         .payload_len = 8,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -1047,7 +1069,8 @@ test_coap_client_msg_t test10_req[TEST10_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -1058,7 +1081,8 @@ test_coap_client_msg_t test10_req[TEST10_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -1069,7 +1093,8 @@ test_coap_client_msg_t test10_req[TEST10_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -1084,7 +1109,8 @@ test_coap_client_msg_t test10_resp[TEST10_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -1095,7 +1121,8 @@ test_coap_client_msg_t test10_resp[TEST10_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -1106,7 +1133,8 @@ test_coap_client_msg_t test10_resp[TEST10_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -1117,7 +1145,8 @@ test_coap_client_msg_t test10_resp[TEST10_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -1128,7 +1157,8 @@ test_coap_client_msg_t test10_resp[TEST10_NUM_MSG] =
         .payload = "ghijklmnopqrstuv",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -1139,7 +1169,8 @@ test_coap_client_msg_t test10_resp[TEST10_NUM_MSG] =
         .payload = "wzyx.!?#",
         .payload_len = 8,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -1157,8 +1188,7 @@ test_coap_client_data_t test10_data =
     .test_resp = test10_resp,
     .num_msg = TEST10_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 #define TEST11_NUM_MSG       1
@@ -1200,7 +1230,8 @@ test_coap_client_msg_t test11_req[TEST11_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 16,
-        .block2_size = 16
+        .block2_size = 16,
+        .body_end = 0
     }
 };
 
@@ -1215,7 +1246,8 @@ test_coap_client_msg_t test11_resp[TEST11_NUM_MSG] =
         .payload = "vntfbghq",  /* partial last block */
         .payload_len = 8,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = TEST11_BODY_LEN
     }
 };
 
@@ -1233,8 +1265,7 @@ test_coap_client_data_t test11_data =
     .test_resp = test11_resp,
     .num_msg = TEST11_NUM_MSG,
     .body = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq",
-    .body_len = TEST11_BODY_LEN,
-    .body_end = TEST11_BODY_LEN
+    .body_len = TEST11_BODY_LEN
 };
 
 #define TEST12_NUM_MSG       1
@@ -1276,7 +1307,8 @@ test_coap_client_msg_t test12_req[TEST12_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 64,
-        .block2_size = 64
+        .block2_size = 64,
+        .body_end = 0
     }
 };
 
@@ -1291,7 +1323,8 @@ test_coap_client_msg_t test12_resp[TEST12_NUM_MSG] =
         .payload = "vntfbghq",  /* partial last block */
         .payload_len = 8,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = TEST12_BODY_LEN
     }
 };
 
@@ -1309,8 +1342,7 @@ test_coap_client_data_t test12_data =
     .test_resp = test12_resp,
     .num_msg = TEST12_NUM_MSG,
     .body = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq",
-    .body_len = TEST12_BODY_LEN,
-    .body_end = TEST12_BODY_LEN
+    .body_len = TEST12_BODY_LEN
 };
 
 #define TEST13_NUM_MSG       1
@@ -1352,7 +1384,8 @@ test_coap_client_msg_t test13_req[TEST13_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 32,
-        .block2_size = 32
+        .block2_size = 32,
+        .body_end = 0
     }
 };
 
@@ -1367,7 +1400,8 @@ test_coap_client_msg_t test13_resp[TEST13_NUM_MSG] =
         .payload = "vntfbghq",  /* partial last block */
         .payload_len = 8,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = TEST13_BODY_LEN
     }
 };
 
@@ -1385,8 +1419,7 @@ test_coap_client_data_t test13_data =
     .test_resp = test13_resp,
     .num_msg = TEST13_NUM_MSG,
     .body = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq",
-    .body_len = TEST13_BODY_LEN,
-    .body_end = TEST13_BODY_LEN
+    .body_len = TEST13_BODY_LEN
 };
 
 #define TEST14_NUM_MSG       2
@@ -1437,7 +1470,8 @@ test_coap_client_msg_t test14_req[TEST14_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 16,
-        .block2_size = 16
+        .block2_size = 16,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -1448,7 +1482,8 @@ test_coap_client_msg_t test14_req[TEST14_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 16,
-        .block2_size = 16
+        .block2_size = 16,
+        .body_end = 0
     }
 };
 
@@ -1463,7 +1498,8 @@ test_coap_client_msg_t test14_resp[TEST14_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -1474,7 +1510,8 @@ test_coap_client_msg_t test14_resp[TEST14_NUM_MSG] =
         .payload = "vntfbghq",  /* partial last block */
         .payload_len = 8,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = TEST14_BODY_LEN
     }
 };
 
@@ -1492,8 +1529,7 @@ test_coap_client_data_t test14_data =
     .test_resp = test14_resp,
     .num_msg = TEST14_NUM_MSG,
     .body = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq",
-    .body_len = TEST14_BODY_LEN,
-    .body_end = TEST14_BODY_LEN
+    .body_len = TEST14_BODY_LEN
 };
 
 #define TEST15_NUM_MSG       2
@@ -1544,7 +1580,8 @@ test_coap_client_msg_t test15_req[TEST15_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 64,
-        .block2_size = 64
+        .block2_size = 64,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -1555,7 +1592,8 @@ test_coap_client_msg_t test15_req[TEST15_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 64,
-        .block2_size = 64
+        .block2_size = 64,
+        .body_end = 0
     }
 };
 
@@ -1570,7 +1608,8 @@ test_coap_client_msg_t test15_resp[TEST15_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -1581,7 +1620,8 @@ test_coap_client_msg_t test15_resp[TEST15_NUM_MSG] =
         .payload = "dkfsgj12",  /* partial last block */
         .payload_len = 8,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = TEST15_BODY_LEN
     }
 };
 
@@ -1599,8 +1639,7 @@ test_coap_client_data_t test15_data =
     .test_resp = test15_resp,
     .num_msg = TEST15_NUM_MSG,
     .body = "jgortinoinsfwvdeuwneriuu86ldkfjglkdjg954pdfgjoeisrjgoisrjglkdjgldkfsgj12",
-    .body_len = TEST15_BODY_LEN,
-    .body_end = TEST15_BODY_LEN
+    .body_len = TEST15_BODY_LEN
 };
 
 #define TEST16_NUM_MSG       1
@@ -1642,7 +1681,8 @@ test_coap_client_msg_t test16_req[TEST16_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 32,
-        .block2_size = 32
+        .block2_size = 32,
+        .body_end = 0
     }
 };
 
@@ -1657,7 +1697,8 @@ test_coap_client_msg_t test16_resp[TEST16_NUM_MSG] =
         .payload = "padgjlzc",
         .payload_len = 8,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = TEST16_BODY_LEN
     }
 };
 
@@ -1675,8 +1716,7 @@ test_coap_client_data_t test16_data =
     .test_resp = test16_resp,
     .num_msg = TEST16_NUM_MSG,
     .body = "1234567890abcdefghijzxcvbnmasd2468135790qwertyuiopplmkoijnbhwryipadgjlzc",
-    .body_len = TEST16_BODY_LEN,
-    .body_end = TEST16_BODY_LEN
+    .body_len = TEST16_BODY_LEN
 };
 
 #define TEST17_NUM_MSG      1
@@ -1706,7 +1746,8 @@ test_coap_client_msg_t test17_req[TEST17_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 16,
-        .block2_size = 16
+        .block2_size = 16,
+        .body_end = 0
     }
 };
 
@@ -1721,7 +1762,8 @@ test_coap_client_msg_t test17_resp[TEST17_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -1739,8 +1781,7 @@ test_coap_client_data_t test17_data =
     .test_resp = test17_resp,
     .num_msg = TEST17_NUM_MSG,
     .body = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq24680135",
-    .body_len = TEST17_BODY_LEN,
-    .body_end = 0
+    .body_len = TEST17_BODY_LEN
 };
 
 #define TEST18_NUM_MSG      1
@@ -1770,7 +1811,8 @@ test_coap_client_msg_t test18_req[TEST18_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 16,
-        .block2_size = 16
+        .block2_size = 16,
+        .body_end = 0
     }
 };
 
@@ -1785,7 +1827,8 @@ test_coap_client_msg_t test18_resp[TEST18_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -1803,8 +1846,7 @@ test_coap_client_data_t test18_data =
     .test_resp = test18_resp,
     .num_msg = TEST18_NUM_MSG,
     .body = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq24680135",
-    .body_len = TEST18_BODY_LEN,
-    .body_end = 0
+    .body_len = TEST18_BODY_LEN
 };
 
 /* the client uses application-level blockwise transfers
@@ -1872,7 +1914,8 @@ test_coap_client_msg_t test19_req[TEST19_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -1883,7 +1926,8 @@ test_coap_client_msg_t test19_req[TEST19_NUM_MSG] =
         .payload = "ghijklmnopqrstuv",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -1898,7 +1942,8 @@ test_coap_client_msg_t test19_resp[TEST19_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -1909,7 +1954,8 @@ test_coap_client_msg_t test19_resp[TEST19_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -1927,8 +1973,7 @@ test_coap_client_data_t test19_data =
     .test_resp = test19_resp,
     .num_msg = TEST19_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 /* the client uses application-level blockwise transfers
@@ -1996,7 +2041,8 @@ test_coap_client_msg_t test20_req[TEST20_NUM_MSG] =
         .payload = "0123456789abcdef",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_CON,
@@ -2007,7 +2053,8 @@ test_coap_client_msg_t test20_req[TEST20_NUM_MSG] =
         .payload = "ghijklmnopqrstuv",
         .payload_len = 16,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -2022,7 +2069,8 @@ test_coap_client_msg_t test20_resp[TEST20_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     },
     {
         .type = COAP_MSG_ACK,
@@ -2033,7 +2081,8 @@ test_coap_client_msg_t test20_resp[TEST20_NUM_MSG] =
         .payload = NULL,
         .payload_len = 0,
         .block1_size = 0,
-        .block2_size = 0
+        .block2_size = 0,
+        .body_end = 0
     }
 };
 
@@ -2051,8 +2100,7 @@ test_coap_client_data_t test20_data =
     .test_resp = test20_resp,
     .num_msg = TEST20_NUM_MSG,
     .body = NULL,
-    .body_len = 0,
-    .body_end = 0
+    .body_len = 0
 };
 
 /**
@@ -2392,21 +2440,24 @@ static test_result_t check_resp(test_coap_client_msg_t *test_resp, coap_msg_t *r
  *  @brief Check the body in the response messages against the expected values
  *
  *  @param[in] test_data Pointer to a client test data structure
+ *  @param[in] test_resp Pointer to a test response message structure
  *  @param[in] body Buffer to contain the expected body content
  *  @param[in] body_end Amount of relevant data in the buffer to contain the expected body content
  *
  *  @returns Test result
  */
-static test_result_t check_resp_body(test_coap_client_data_t *test_data, const char *body, size_t body_end)
+static test_result_t check_resp_body(test_coap_client_data_t *test_data,
+                                     test_coap_client_msg_t *test_resp,
+                                     const char *body, size_t body_end)
 {
-    if (body_end != test_data->body_end)
+    if (body_end != test_resp->body_end)
     {
         coap_log_warn("Unexpected body length in response messages");
         coap_log_debug("Received: %s", body_end);
-        coap_log_debug("Expected: %s", test_data->body_end);
+        coap_log_debug("Expected: %s", test_resp->body_end);
         return FAIL;
     }
-    if (memcmp(body, test_data->body, test_data->body_end) != 0)
+    if (memcmp(body, test_data->body, test_resp->body_end) != 0)
     {
         coap_log_warn("Unexpected body in response messages");
         coap_log_debug("Received: %s", body);
@@ -2600,7 +2651,7 @@ static test_result_t test_exchange_blockwise_func(test_data_t data)
             coap_client_destroy(&client);
             return ret;
         }
-        ret = check_resp_body(test_data, body, num);
+        ret = check_resp_body(test_data, &test_data->test_resp[i], body, num);
         if (ret != PASS)
         {
             coap_msg_destroy(&resp);

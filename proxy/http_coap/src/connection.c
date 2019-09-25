@@ -357,6 +357,8 @@ static int connection_gen_error_resp(connection_t *con, http_msg_t *msg, unsigne
  */
 static int connection_coap_exchange(connection_t *con, coap_msg_t *req_msg, coap_msg_t *resp_msg)
 {
+    unsigned code_detail = 0;
+    unsigned code_class = 0;
     unsigned block_size = 0;
     unsigned block_more = 0;
     unsigned block_num = 0;
@@ -383,7 +385,7 @@ static int connection_coap_exchange(connection_t *con, coap_msg_t *req_msg, coap
         {
             return ret;
         }
-        /* continue using block transfers */
+        /* continue using block transfer */
         coap_log_info("[%u] <%u> %s Continuing GET request using blockwise transfer to CoAP server host %s and port %s",
                       con->listener_index, con->con_index, con->addr,
                       con->coap_client_host, con->coap_client_port);
@@ -398,16 +400,113 @@ static int connection_coap_exchange(connection_t *con, coap_msg_t *req_msg, coap
             return num;
         }
         con->body_end = num;
-        return 0;
     }
-    else if ((coap_msg_get_code_detail(req_msg) == COAP_MSG_PUT)
-          || (coap_msg_get_code_detail(req_msg) == COAP_MSG_POST))
+    else if (coap_msg_get_code_detail(req_msg) == COAP_MSG_PUT)
     {
+        if (con->body_end > 0)
+        {
+            /* execute blockwise exchange */
+            coap_log_info("[%u] <%u> %s Sending PUT request using blockwise transfer to CoAP server host %s and port %s",
+                          con->listener_index, con->con_index, con->addr,
+                          con->coap_client_host, con->coap_client_port);
+            num = coap_client_exchange_blockwise(&con->coap_client,
+                                                 req_msg, resp_msg,
+                                                 CONNECTION_COAP_BLOCK1_SIZE,
+                                                 CONNECTION_COAP_BLOCK2_SIZE,
+                                                 con->body, con->body_end,
+                                                 /* have_resp */ 0);
+            if (num < 0)
+            {
+                return num;
+            }
+            return 0;
+        }
         /* execute regular exchange */
+        coap_log_info("[%u] <%u> %s Sending PUT request to CoAP server host %s and port %s",
+                      con->listener_index, con->con_index, con->addr,
+                      con->coap_client_host, con->coap_client_port);
         ret = coap_client_exchange(&con->coap_client, req_msg, resp_msg);
         if (ret < 0)
         {
             return ret;
+        }
+        code_class = coap_msg_get_code_class(resp_msg);
+        code_detail = coap_msg_get_code_detail(resp_msg);
+        if ((code_class == COAP_MSG_CLIENT_ERR)
+         && (code_detail == COAP_MSG_REQ_ENT_TOO_LARGE))
+        {
+            /* retry using block transfer */
+            memcpy(con->body, coap_msg_get_payload(req_msg), coap_msg_get_payload_len(req_msg));
+            con->body_end = coap_msg_get_payload_len(req_msg);
+            coap_msg_clear_payload(req_msg);
+            coap_log_info("[%u] <%u> %s Resending PUT request using blockwise transfer to CoAP server host %s and port %s",
+                          con->listener_index, con->con_index, con->addr,
+                          con->coap_client_host, con->coap_client_port);
+            num = coap_client_exchange_blockwise(&con->coap_client,
+                                                 req_msg, resp_msg,
+                                                 CONNECTION_COAP_BLOCK1_SIZE,
+                                                 CONNECTION_COAP_BLOCK2_SIZE,
+                                                 con->body, con->body_end,
+                                                 /* have_resp */ 0);
+            if (num < 0)
+            {
+                return num;
+            }
+            con->body_end = num;
+        }
+    }
+    else if (coap_msg_get_code_detail(req_msg) == COAP_MSG_POST)
+    {
+        if (con->body_end > 0)
+        {
+            /* execute blockwise exchange */
+            coap_log_info("[%u] <%u> %s Sending POST request using blockwise transfer to CoAP server host %s and port %s",
+                          con->listener_index, con->con_index, con->addr,
+                          con->coap_client_host, con->coap_client_port);
+            num = coap_client_exchange_blockwise(&con->coap_client,
+                                                 req_msg, resp_msg,
+                                                 CONNECTION_COAP_BLOCK1_SIZE,
+                                                 CONNECTION_COAP_BLOCK2_SIZE,
+                                                 con->body, con->body_end,
+                                                 /* have_resp */ 0);
+            if (num < 0)
+            {
+                return num;
+            }
+            return 0;
+        }
+        /* execute regular exchange */
+        coap_log_info("[%u] <%u> %s Sending POST request to CoAP server host %s and port %s",
+                      con->listener_index, con->con_index, con->addr,
+                      con->coap_client_host, con->coap_client_port);
+        ret = coap_client_exchange(&con->coap_client, req_msg, resp_msg);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        code_class = coap_msg_get_code_class(resp_msg);
+        code_detail = coap_msg_get_code_detail(resp_msg);
+        if ((code_class == COAP_MSG_CLIENT_ERR)
+         && (code_detail == COAP_MSG_REQ_ENT_TOO_LARGE))
+        {
+            /* retry using block transfer */
+            memcpy(con->body, coap_msg_get_payload(req_msg), coap_msg_get_payload_len(req_msg));
+            con->body_end = coap_msg_get_payload_len(req_msg);
+            coap_msg_clear_payload(req_msg);
+            coap_log_info("[%u] <%u> %s Resending POST request using blockwise transfer to CoAP server host %s and port %s",
+                          con->listener_index, con->con_index, con->addr,
+                          con->coap_client_host, con->coap_client_port);
+            num = coap_client_exchange_blockwise(&con->coap_client,
+                                                 req_msg, resp_msg,
+                                                 CONNECTION_COAP_BLOCK1_SIZE,
+                                                 CONNECTION_COAP_BLOCK2_SIZE,
+                                                 con->body, con->body_end,
+                                                 /* have_resp */ 0);
+            if (num < 0)
+            {
+                return num;
+            }
+            con->body_end = num;
         }
     }
     return 0;
@@ -425,7 +524,7 @@ static int connection_process(connection_t *con, http_msg_t *req_msg, http_msg_t
     int ret = 0;
 
     coap_msg_create(&coap_req_msg);
-    ret = cross_req_http_to_coap(&coap_req_msg, req_msg, &code);
+    ret = cross_req_http_to_coap(&coap_req_msg, con->body, con->body_len, &con->body_end, req_msg, &code);
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to convert HTTP message to CoAP message: %s",
@@ -565,6 +664,7 @@ static int connection_exchange(connection_t *con)
     coap_log_notice("[%u] <%u> %s Transaction with HTTP client started",
                     con->listener_index, con->con_index, con->addr);
 
+    memset(con->body, 0, con->body_len);
     con->body_end = 0;
 
     http_msg_create(&req_msg);

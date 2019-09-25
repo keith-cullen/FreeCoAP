@@ -37,7 +37,7 @@
 #include "coap_msg.h"
 #include "http_msg.h"
 
-#define CROSS_COAP_REQ_TYPE  COAP_MSG_NON                                     /**< CoAP request message type */
+#define CROSS_COAP_REQ_TYPE  COAP_MSG_CON                                     /**< CoAP request message type */
 
 /**
  *  @brief Convert a HTTP response code to a string representation
@@ -79,6 +79,9 @@ int cross_uri_coap_to_http(char *buf, size_t len, coap_msg_t *coap_msg);
  *  @brief Convert a HTTP request message to a CoAP request message
  *
  *  @param[out] coap_msg Pointer to a CoAP message structure
+ *  @param[out] coap_body Buffer to hold the body of a blockwise transfer
+ *  @param[in] coap_body_len Length of the buffer to hold the body of a blockwise transfer
+ *  @param[out] coap_body_end Pass-by-reference vallue to return the amount of relevant data in the buffer
  *  @param[in] http_msg Pointer to a HTTP message structure
  *  @param[out] code HTTP response code
  *
@@ -86,7 +89,7 @@ int cross_uri_coap_to_http(char *buf, size_t len, coap_msg_t *coap_msg);
  *  @retval 0 Success
  *  @retval <0 Error
  */
-int cross_req_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg, unsigned *code);
+int cross_req_http_to_coap(coap_msg_t *coap_msg, char *coap_body, size_t coap_body_len, size_t *coap_body_end, http_msg_t *http_msg, unsigned *code);
 
 /**
  *  @brief Convert a CoAP response message to a HTTP response message
