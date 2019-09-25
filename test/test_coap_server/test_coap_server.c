@@ -60,13 +60,12 @@
 #define SEP_URI_PATH                        "/sep/uri/path"                     /**< URI path that requires a separate response */
 #define SEP_URI_PATH_LEN                    13                                  /**< Length of the URI path that requires a separate response */
 #define REGULAR_URI_PATH                    "regular"                           /**< URI path that causes the server to use regular (i.e. non-blockwise) transfers */
-#define REGULAR_URI_PATH_LEN                6                                   /**< Length of the URI path that causes the server to use regular (i.e. non-blockwise) transfers */
+#define REGULAR_URI_PATH_LEN                7                                   /**< Length of the URI path that causes the server to use regular (i.e. non-blockwise) transfers */
 #define APP_LEVEL_BLOCKWISE_URI_PATH        "app-level-blockwise"               /**< URI path that causes the server to use application-level blockwise transfers */
 #define APP_LEVEL_BLOCKWISE_URI_PATH_LEN    19                                  /**< Length of the URI path that causes the server to use application-level blockwise transfers */
 #define LIB_LEVEL_BLOCKWISE_URI_PATH        "lib-level-blockwise"               /**< URI path that causes the server to use library-level blockwise transfers */
 #define LIB_LEVEL_BLOCKWISE_URI_PATH_LEN    19                                  /**< Length of the URI path that causes the server to use library-level blockwise transfers */
-#define REGULAR_GET_STR                     "Hello, Client!"                    /**< The text transferred in regular (i.e. non-blockwise) tansfers */
-#define REGULAR_GET_STR_LEN                 14                                  /**< Length of the text transferred in regular (i.e. non-blockwise) transfers */
+#define REGULAR_BUF_LEN                     16                                  /**< Length of the buffer used in regular transfers */
 #define APP_LEVEL_BLOCKWISE_BUF_LEN         40                                  /**< Length of the buffer used in application-level blockwise transfers */
 #define LIB_LEVEL_BLOCKWISE_BUF_LEN         72                                  /**< Length of the buffers used in library-level blockwise transfers */
 #define BLOCK_SIZE                          16                                  /**< Size of an individual block in a blockwise transfer */
@@ -78,6 +77,12 @@
 #define LARGE_BUF_LEN                       8192                                /**< Length of each buffer in the large memory allocator */
 #define BLOCK1_SIZE                         32                                  /**< Preferred block1 size for blockwise transfers */
 #define BLOCK2_SIZE                         32                                  /**< Preferred block2 size for blockwise transfers */
+
+/**
+ *  @brief Buffer used for regular transfers
+ */
+static char *regular_def_val = "qwertyuiopasdfgh";
+static char regular_buf[REGULAR_BUF_LEN] = {0};
 
 /**
  *  @brief Buffer used for application-level blockwise transfers
@@ -248,6 +253,9 @@ static int server_handle_reset(coap_server_trans_t *trans, coap_msg_t *req, coap
 {
     coap_log_notice("Resetting to a known state");
 
+    memset(regular_buf, 0, sizeof(regular_buf));
+    memcpy(regular_buf, regular_def_val, sizeof(regular_buf));
+
     memset(app_level_blockwise_buf, 0, sizeof(app_level_blockwise_buf));
     memcpy(app_level_blockwise_buf, app_level_blockwise_def_val, sizeof(app_level_blockwise_buf));
 
@@ -296,7 +304,7 @@ static int server_handle_unsafe(coap_server_trans_t *trans, coap_msg_t *req, coa
         coap_log_error("Failed to add CoAP option to response message");
         return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_INT_SERVER_ERR);
     }
-    ret = coap_msg_set_payload(resp, REGULAR_GET_STR, REGULAR_GET_STR_LEN);
+    ret = coap_msg_set_payload(resp, regular_buf, sizeof(regular_buf));
     if (ret < 0)
     {
         coap_log_error("Failed to add payload to response message");
@@ -335,27 +343,26 @@ static int server_handle_regular(coap_server_trans_t *trans, coap_msg_t *req, co
     }
     if (code_detail == COAP_MSG_GET)
     {
-        ret = coap_msg_set_payload(resp, REGULAR_GET_STR, REGULAR_GET_STR_LEN);
+        ret = coap_msg_set_payload(resp, regular_buf, sizeof(regular_buf));
         if (ret < 0)
         {
             coap_log_error("Failed to add payload to response message");
             return ret;
         }
+        return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
     }
-    else if (code_detail == COAP_MSG_PUT)
+    else if ((code_detail == COAP_MSG_PUT) || (code_detail == COAP_MSG_POST))
     {
-        ret = 0;
+        if (coap_msg_get_payload_len(req) > sizeof(regular_buf))
+        {
+            return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_REQ_ENT_TOO_LARGE);
+        }
+        memset(regular_buf, 0, sizeof(regular_buf));
+        memcpy(regular_buf, coap_msg_get_payload(req), coap_msg_get_payload_len(req));
+        return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CHANGED);
     }
-    else if (code_detail == COAP_MSG_POST)
-    {
-        ret = 0;
-    }
-    else
-    {
-        coap_log_warn("Received request message with unsupported code detail: %d", code_detail);
-        return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
-    }
-    return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CONTENT);
+    coap_log_warn("Received request message with unsupported code detail: %d", code_detail);
+    return coap_msg_set_code(resp, COAP_MSG_SERVER_ERR, COAP_MSG_NOT_IMPL);
 }
 
 /**
@@ -580,22 +587,27 @@ static int server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_msg_t
 
     if (server_match_uri_path(req, RESET_URI_PATH))
     {
+        coap_log_notice("handle reset");
         return server_handle_reset(trans, req, resp);
     }
-    if (server_match_uri_path(req, UNSAFE_URI_PATH))
+    else if (server_match_uri_path(req, UNSAFE_URI_PATH))
     {
+        coap_log_notice("handle unsafe");
         ret = server_handle_unsafe(trans, req, resp);
     }
-    if (server_match_uri_path(req, APP_LEVEL_BLOCKWISE_URI_PATH))
+    else if (server_match_uri_path(req, APP_LEVEL_BLOCKWISE_URI_PATH))
     {
+        coap_log_notice("handle application-level blockwise");
         ret = server_handle_app_level_blockwise(trans, req, resp);
     }
     else if (server_match_uri_path(req, LIB_LEVEL_BLOCKWISE_URI_PATH))
     {
+        coap_log_notice("handle library-level blockwise");
         ret = server_handle_lib_level_blockwise(trans, req, resp);
     }
-    else  /* SEP_URI_PATH || REGULAR_URI_PATH */
+    else
     {
+        coap_log_notice("handle regular");
         ret = server_handle_regular(trans, req, resp);
     }
     print_coap_msg("Received:", req);

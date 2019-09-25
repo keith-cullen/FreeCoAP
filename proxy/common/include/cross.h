@@ -93,12 +93,14 @@ int cross_req_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg, unsigned 
  *
  *  @param[out] http_msg Pointer to a HTTP message structure
  *  @param[in] coap_msg Pointer to a CoAP message structure
+ *  @param[in] coap_body Buffer to hold the body of a blockwise transfer
+ *  @param[in] coap_body_len Length of the buffer to hold the body of a blockwise transfer
  *  @param[out] code HTTP response code
  *
  *  @returns Operation status
  *  @retval 0 Success
  *  @retval <0 Error
  */
-int cross_resp_coap_to_http(http_msg_t *http_msg, coap_msg_t *coap_msg, unsigned *code);
+int cross_resp_coap_to_http(http_msg_t *http_msg, coap_msg_t *coap_msg, const char *coap_body, size_t coap_body_len, unsigned *code);
 
 #endif
