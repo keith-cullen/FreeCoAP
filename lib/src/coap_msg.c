@@ -834,6 +834,16 @@ int coap_msg_set_payload(coap_msg_t *msg, char *buf, size_t len)
     return 0;
 }
 
+void coap_msg_clear_payload(coap_msg_t *msg)
+{
+    msg->payload_len = 0;
+    if (msg->payload != NULL)
+    {
+        coap_mem_medium_free(msg->payload);
+        msg->payload = NULL;
+    }
+}
+
 /**
  *  @brief Format the header in a message
  *

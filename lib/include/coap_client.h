@@ -157,7 +157,7 @@ int coap_client_exchange(coap_client_t *client, coap_msg_t *req, coap_msg_t *res
  *  @param[in] have_resp Flag to indicate that the first response has already been received
  *
  *  @returns Operation status
- *  @retval >0 Length of the data sent/received
+ *  @retval >=0 Length of the data received
  *  @retval <0 Error
  **/
 ssize_t coap_client_exchange_blockwise(coap_client_t *client,
