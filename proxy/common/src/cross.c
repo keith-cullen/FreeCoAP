@@ -135,13 +135,13 @@ static int cross_status_coap_to_http(http_msg_t *http_msg, coap_msg_t *coap_msg)
         switch (coap_msg_get_code_detail(coap_msg))
         {
         case COAP_MSG_CREATED:
-            return http_msg_set_start(http_msg, "HTTP/1.1", "201", "Created");
+            return http_msg_set_start(http_msg, "HTTP/1.1", "200", "OK");
         case COAP_MSG_DELETED:
-            return http_msg_set_start(http_msg, "HTTP/1.1", "204", "No Content");
+            return http_msg_set_start(http_msg, "HTTP/1.1", "200", "OK");
         case COAP_MSG_VALID:
             return http_msg_set_start(http_msg, "HTTP/1.1", "304", "Not Modified");
         case COAP_MSG_CHANGED:
-            return http_msg_set_start(http_msg, "HTTP/1.1", "204", "No Content");
+            return http_msg_set_start(http_msg, "HTTP/1.1", "200", "OK");
         case COAP_MSG_CONTENT:
             return http_msg_set_start(http_msg, "HTTP/1.1", "200", "OK");
         }
@@ -542,7 +542,6 @@ static int cross_headers_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg
             ret = coap_msg_add_op(coap_msg, COAP_MSG_ETAG, strlen(str), str);
             if (ret < 0)
             {
-                coap_msg_destroy(coap_msg);
                 *code = 502;
                 return ret;
             }
@@ -565,7 +564,6 @@ static int cross_headers_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg
                     ret = coap_msg_add_op(coap_msg, COAP_MSG_MAX_AGE, strlen(tmp), tmp);
                     if (ret < 0)
                     {
-                        coap_msg_destroy(coap_msg);
                         *code = 502;
                         return ret;
                     }
@@ -588,7 +586,6 @@ static int cross_headers_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg
             ret = coap_msg_add_op(coap_msg, COAP_MSG_ACCEPT, strlen(tmp), tmp);
             if (ret < 0)
             {
-                coap_msg_destroy(coap_msg);
                 *code = 502;
                 return ret;
             }
@@ -714,42 +711,34 @@ int cross_body_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg)
 }
 
 /**
- *  @brief Convert a CoAP payload to a HTTP body
+ *  @brief Convert a CoAP body to a HTTP body
  *
  *  @param[out] http_msg Pointer to a HTTP message structure
- *  @param[in] coap_msg Pointer to a CoAP message structure
- *
+ *  @param[in] buf Buffer to hold the body of a CoAP message
+ *  @param[in] len Length of the buffer to hold the body of a CoAP message *
  *  @returns Operation status
  *  @retval 0 Success
  *  @retval <0 Error
  */
-static int cross_body_coap_to_http(http_msg_t *http_msg, coap_msg_t *coap_msg)
+static int cross_body_coap_to_http(http_msg_t *http_msg, const char *buf, size_t len)
 {
     char tmp[CROSS_TMP_BUF_LEN] = {0};
     int ret = 0;
 
-    if (coap_msg_get_payload_len(coap_msg) > 0)
+    ret = http_msg_set_body(http_msg, buf, len);
+    if (ret < 0)
     {
-        ret = http_msg_set_body(http_msg, coap_msg_get_payload(coap_msg), coap_msg_get_payload_len(coap_msg));
-        if (ret < 0)
-        {
-            return ret;
-        }
-        ret = snprintf(tmp, sizeof(tmp), "%zu", coap_msg_get_payload_len(coap_msg));
-        if (ret >= sizeof(tmp))
-        {
-            return -ENOSPC;
-        }
-        ret = http_msg_set_header(http_msg, "Content-Length", tmp);
-        if (ret < 0)
-        {
-            return ret;
-        }
+        return ret;
     }
-    return 0;
+    ret = snprintf(tmp, sizeof(tmp), "%zu", len);
+    if (ret >= sizeof(tmp))
+    {
+        return -ENOSPC;
+    }
+    return http_msg_set_header(http_msg, "Content-Length", tmp);
 }
 
-int cross_req_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg, unsigned *code)
+int cross_req_http_to_coap(coap_msg_t *coap_msg, char *coap_body, size_t coap_body_len, size_t *coap_body_end, http_msg_t *http_msg, unsigned *code)
 {
     int ret = 0;
 
@@ -775,18 +764,30 @@ int cross_req_http_to_coap(coap_msg_t *coap_msg, http_msg_t *http_msg, unsigned 
         return ret;
     }
 
-    ret = cross_body_http_to_coap(coap_msg, http_msg);
-    if (ret < 0)
+    if (http_msg_get_body_len(http_msg) > COAP_MSG_MAX_PAYLOAD_LEN)
     {
-        *code = 502;
-        return ret;
+        if (http_msg_get_body_len(http_msg) > coap_body_len)
+        {
+            *code = 502;
+            return -ENOSPC;
+        }
+        memcpy(coap_body, http_msg_get_body(http_msg), http_msg_get_body_len(http_msg));
+        *coap_body_end = http_msg_get_body_len(http_msg);
     }
-
+    else
+    {
+        ret = coap_msg_set_payload(coap_msg, http_msg_get_body(http_msg), http_msg_get_body_len(http_msg));
+        if (ret < 0)
+        {
+            *code = 502;
+            return ret;
+        }
+    }
     *code = 0;
     return 0;
 }
 
-int cross_resp_coap_to_http(http_msg_t *http_msg, coap_msg_t *coap_msg, unsigned *code)
+int cross_resp_coap_to_http(http_msg_t *http_msg, coap_msg_t *coap_msg, const char *coap_body, size_t coap_body_len, unsigned *code)
 {
     int ret = 0;
 
@@ -806,13 +807,26 @@ int cross_resp_coap_to_http(http_msg_t *http_msg, coap_msg_t *coap_msg, unsigned
         return ret;
     }
 
-    ret = cross_body_coap_to_http(http_msg, coap_msg);
-    if (ret < 0)
+    if (coap_body_len > 0)
     {
-        *code = 502;
-        return ret;
+        ret = cross_body_coap_to_http(http_msg, coap_body, coap_body_len);
+        if (ret < 0)
+        {
+            *code = 502;
+            return ret;
+        }
     }
-
+    else if (coap_msg_get_payload_len(coap_msg) > 0)
+    {
+        ret = cross_body_coap_to_http(http_msg,
+                                      coap_msg_get_payload(coap_msg),
+                                      coap_msg_get_payload_len(coap_msg));
+        if (ret < 0)
+        {
+            *code = 502;
+            return ret;
+        }
+    }
     *code = 0;
     return 0;
 }

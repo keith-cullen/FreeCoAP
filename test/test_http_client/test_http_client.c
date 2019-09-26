@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <netinet/in.h>
+#include <gnutls/gnutls.h>
 #include "http_msg.h"
 #include "tls_sock.h"
 #include "tls.h"
@@ -44,39 +45,38 @@
 #include "coap_log.h"
 #include "test.h"
 
-#define SERVER_COMMON_NAME              "dummy/server"                          /**< Expected common name in the proxy's certificate */
+#define SERVER_COMMON_NAME                  "dummy/server"                      /**< Expected common name in the proxy's certificate */
 #ifdef SOCK_IP6
-#define PROXY_HOST                      "::1"                                   /**< Host address of the proxy */
+#define PROXY_HOST                          "::1"                               /**< Host address of the proxy */
 #else
-#define PROXY_HOST                      "127.0.0.1"                             /**< Host address of the proxy */
+#define PROXY_HOST                          "127.0.0.1"                         /**< Host address of the proxy */
 #endif
 #ifdef COAP_IP6
-#define SERVER_HOST                     "[::1]"                                 /**< Host address of the server */
+#define SERVER_HOST                         "[::1]"                             /**< Host address of the server */
 #else
-#define SERVER_HOST                     "127.0.0.1"                             /**< Host address of the server */
+#define SERVER_HOST                         "127.0.0.1"                         /**< Host address of the server */
 #endif
-#define PROXY_PORT                      "12437"                                 /**< TCP port number of the proxy */
-#define TRUST_FILE_NAME                 "../../certs/root_server_cert.pem"      /**< TLS trust file name */
-#define CERT_FILE_NAME                  "../../certs/client_cert.pem"           /**< TLS certificate file name */
-#define KEY_FILE_NAME                   "../../certs/client_privkey.pem"        /**< TLS key file name */
-#define CRL_FILE_NAME                   ""                                      /**< TLS certificate revocation list file name */
-#define UNSAFE_URI_PATH                 "unsafe"                                /**< URI path that causes the server to include an unsafe option in the response */
-#define UNSAFE_URI_PATH_LEN             6                                       /**< Length of the URI path that causes the server to include an unsafe option in the response */
-#define SIMPLE_URI_PATH                 "simple"                                /**< URI path that causes the server to use simple (i.e. non-blockwise) transfers */
-#define SIMPLE_URI_PATH_LEN             6                                       /**< Length of the URI path that causes the server to use simple (i.e. non-blockwise) transfers */
-#define SIMPLE_GET_STR                  "Hello, Client!"                        /**< The text transferred in simple (i.e. non-blockwise) tansfers */
-#define SIMPLE_GET_STR_LEN              "14"                                    /**< Length of the text transferred in simple (i.e. non-blockwise) transfers */
-#define SIMPLE_POST_STR                 "Hello, Server!"                        /**< The text transferred in simple (i.e. non-blockwise) tansfers */
-#define SIMPLE_POST_STR_LEN             "14"                                    /**< Length of the text transferred in simple (i.e. non-blockwise) transfers */
-#define SOCKET_TIMEOUT                  120                                     /**< Timeout for TLS/IPv6 socket operations */
-#define RESP_BUF_LEN                    1024                                    /**< Size of the buffer used to store responses */
+#define PROXY_PORT                          "12437"                             /**< TCP port number of the proxy */
+#define TRUST_FILE_NAME                     "../../certs/root_server_cert.pem"  /**< TLS trust file name */
+#define CERT_FILE_NAME                      "../../certs/client_cert.pem"       /**< TLS certificate file name */
+#define KEY_FILE_NAME                       "../../certs/client_privkey.pem"    /**< TLS key file name */
+#define CRL_FILE_NAME                       ""                                  /**< TLS certificate revocation list file name */
+#define RESET_URI_PATH                      "reset"                             /**< URI path that causes the server to reset to a known state */
+#define RESET_URI_PATH_LEN                  5                                   /**< Length of the URI path that causes the server to reset to a known state */
+#define UNSAFE_URI_PATH                     "unsafe"                            /**< URI path that causes the server to include an unsafe option in the response */
+#define UNSAFE_URI_PATH_LEN                 6                                   /**< Length of the URI path that causes the server to include an unsafe option in the response */
+#define REGULAR_URI_PATH                    "regular"                           /**< URI path that causes the server to use regular (i.e. non-blockwise) transfers */
+#define REGULAR_URI_PATH_LEN                7                                   /**< Length of the URI path that causes the server to use regular (i.e. non-blockwise) transfers */
+#define LIB_LEVEL_BLOCKWISE_URI_PATH        "lib-level-blockwise"               /**< URI path that causes the server to use library-level blockwise transfers */
+#define LIB_LEVEL_BLOCKWISE_URI_PATH_LEN    19                                  /**< Length of the URI path that causes the server to use library-level blockwise transfers */
+#define SOCKET_TIMEOUT                      120                                 /**< Timeout for TLS/IPv6 socket operations */
+#define RESP_BUF_LEN                        1024                                /**< Size of the buffer used to store responses */
 
 /**
- *  @brief HTTP client test data structure
+ *  @brief HTTP client test message data structure
  */
 typedef struct
 {
-    const char *desc;                                                           /**< Test description */
     char *req_str;                                                              /**< String containing the HTTP request to transmit */
     const char **start;                                                         /**< Array of start line values expected in the HTTP response */
     size_t num_headers;                                                         /**< Number of headers to look for in the HTTP response */
@@ -84,88 +84,299 @@ typedef struct
     const char **value;                                                         /**< Array of header values expected in the HTTP response */
     const char *body;                                                           /**< String containing the expected body in the HTTP response */
 }
+test_http_client_msg_t;
+
+/**
+ *  @brief HTTP client test data structure
+ */
+typedef struct
+{
+    const char *desc;                                                           /**< Test description */
+    test_http_client_msg_t *msg;                                                /**< Array of test message structures */
+    size_t num_msg;                                                             /**< Length of the array of test message structures */
+}
 test_http_client_data_t;
 
+#define TEST1_NUM_MSGS     1
 #define TEST1_NUM_HEADERS  1
 
 const char *test1_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
 const char *test1_name[TEST1_NUM_HEADERS] = {"Content-Length"};
-const char *test1_value[TEST1_NUM_HEADERS] = {SIMPLE_GET_STR_LEN};
+const char *test1_value[TEST1_NUM_HEADERS] = {"16"};
+
+test_http_client_msg_t test1_msg[TEST1_NUM_MSGS] =
+{
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"REGULAR_URI_PATH" HTTP/1.1\r\nContent-Length: 0\r\n\r\n",
+        .start = test1_start,
+        .num_headers = TEST1_NUM_HEADERS,
+        .name = test1_name,
+        .value = test1_value,
+        .body = "qwertyuiopasdfgh"
+    }
+};
 
 test_http_client_data_t test1_data =
 {
-    .desc = "test 1: Send GET request",
-    .req_str = "GET coaps://"SERVER_HOST":12436/"SIMPLE_URI_PATH"/ HTTP/1.1\r\nContent-Length: 0\r\n\r\n",
-    .start = test1_start,
-    .num_headers = TEST1_NUM_HEADERS,
-    .name = test1_name,
-    .value = test1_value,
-    .body = SIMPLE_GET_STR
+    .desc = "test 1: Send a GET request",
+    .msg = test1_msg,
+    .num_msg = TEST1_NUM_MSGS
 };
 
+#define TEST2_NUM_MSGS     2
+#define TEST2_NUM_HEADERS  1
+
 const char *test2_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
+const char *test2_name[TEST2_NUM_HEADERS] = {"Content-Length"};
+const char *test2_value[TEST2_NUM_HEADERS] = {"16"};
+
+test_http_client_msg_t test2_msg[TEST2_NUM_MSGS] =
+{
+    {
+        .req_str = "PUT coaps://"SERVER_HOST":12436/"REGULAR_URI_PATH" HTTP/1.1\r\nContent-Length: 16\r\n\r\n0123456789abcdef",
+        .start = test2_start,
+        .num_headers = 0,
+        .name = NULL,
+        .value = NULL,
+        .body = NULL
+    },
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"REGULAR_URI_PATH" HTTP/1.1\r\n\r\n",
+        .start = test2_start,
+        .num_headers = TEST2_NUM_HEADERS,
+        .name = test2_name,
+        .value = test2_value,
+        .body = "0123456789abcdef"
+    }
+};
 
 test_http_client_data_t test2_data =
 {
-    .desc = "test 2: Send double POST request",
-    .req_str = "POST coaps://"SERVER_HOST":12436/"SIMPLE_URI_PATH" HTTP/1.1\r\nContent-Length: "SIMPLE_POST_STR_LEN"\r\n\r\n"SIMPLE_POST_STR,
-    .start = test2_start,
-    .num_headers = 0,
-    .name = NULL,
-    .value = NULL,
-    .body = NULL
+    .desc = "test 2: Send a PUT request followed by a GET request",
+    .msg = test2_msg,
+    .num_msg = TEST2_NUM_MSGS
 };
 
-const char *test3_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "501", "Not Implemented"};
+#define TEST3_NUM_MSGS     2
+#define TEST3_NUM_HEADERS  1
+
+const char *test3_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
+const char *test3_name[TEST3_NUM_HEADERS] = {"Content-Length"};
+const char *test3_value[TEST3_NUM_HEADERS] = {"16"};
+
+test_http_client_msg_t test3_msg[TEST3_NUM_MSGS] =
+{
+    {
+        .req_str = "POST coaps://"SERVER_HOST":12436/"REGULAR_URI_PATH" HTTP/1.1\r\nContent-Length: 16\r\n\r\nzxcvbnmasdfghjkl",
+        .start = test3_start,
+        .num_headers = 0,
+        .name = NULL,
+        .value = NULL,
+        .body = NULL
+    },
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"REGULAR_URI_PATH" HTTP/1.1\r\n\r\n",
+        .start = test3_start,
+        .num_headers = TEST3_NUM_HEADERS,
+        .name = test3_name,
+        .value = test3_value,
+        .body = "zxcvbnmasdfghjkl"
+    }
+};
 
 test_http_client_data_t test3_data =
 {
-    .desc = "test 3: Send a request with an unsupported method",
-    .req_str = "CONNECT coaps://"SERVER_HOST":12436/"SIMPLE_URI_PATH" HTTP/1.1\r\nContent-Length: 12\r\n\r\nUnsupported!",
-    .start = test3_start,
-    .num_headers = 0,
-    .name = NULL,
-    .value = NULL,
-    .body = NULL
+    .desc = "test 3: Send a POST request followed by a GET request",
+    .msg = test3_msg,
+    .num_msg = TEST3_NUM_MSGS
 };
 
-const char *test4_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "400", "Bad Request"};
+#define TEST4_NUM_MSGS  1
+
+const char *test4_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "501", "Not Implemented"};
+
+test_http_client_msg_t test4_msg[TEST4_NUM_MSGS] =
+{
+    {
+        .req_str = "CONNECT coaps://"SERVER_HOST":12436/"REGULAR_URI_PATH" HTTP/1.1\r\nContent-Length: 12\r\n\r\nUnsupported!",
+        .start = test4_start,
+        .num_headers = 0,
+        .name = NULL,
+        .value = NULL,
+        .body = NULL
+    }
+};
 
 test_http_client_data_t test4_data =
 {
-    .desc = "test 4: Send a request with an unsupported scheme in the request-URI",
-    .req_str = "GET dummy://"SERVER_HOST":12436/"SIMPLE_URI_PATH" HTTP/1.1\r\nContent-Length: 12\r\n\r\nUnsupported!",
-    .start = test4_start,
-    .num_headers = 0,
-    .name = NULL,
-    .value = NULL,
-    .body = NULL
+    .desc = "test 4: Send a request with an unsupported method",
+    .msg = test4_msg,
+    .num_msg = TEST4_NUM_MSGS
 };
 
-const char *test5_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "406", "Not Acceptable"};
+#define TEST5_NUM_MSGS  1
+
+const char *test5_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "400", "Bad Request"};
+
+test_http_client_msg_t test5_msg[TEST5_NUM_MSGS] =
+{
+    {
+        .req_str = "GET dummy://"SERVER_HOST":12436/"REGULAR_URI_PATH" HTTP/1.1\r\nContent-Length: 12\r\n\r\nUnsupported!",
+        .start = test5_start,
+        .num_headers = 0,
+        .name = NULL,
+        .value = NULL,
+        .body = NULL
+    }
+};
 
 test_http_client_data_t test5_data =
 {
-    .desc = "test 5: Send a request with an unsupported Accept header value",
-    .req_str = "GET coaps://"SERVER_HOST":12436/"SIMPLE_URI_PATH" HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 12\r\n\r\nUnsupported!",
-    .start = test5_start,
-    .num_headers = 0,
-    .name = NULL,
-    .value = NULL,
-    .body = NULL
+    .desc = "test 5: Send a request with an unsupported method",
+    .msg = test5_msg,
+    .num_msg = TEST5_NUM_MSGS
 };
 
-const char *test6_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "502", "Bad Gateway"};
+#define TEST6_NUM_MSGS  1
+
+const char *test6_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "406", "Not Acceptable"};
+
+test_http_client_msg_t test6_msg[TEST6_NUM_MSGS] =
+{
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"REGULAR_URI_PATH" HTTP/1.1\r\nAccept: unsupported/format\r\nContent-Length: 12\r\n\r\nUnsupported!",
+        .start = test6_start,
+        .num_headers = 0,
+        .name = NULL,
+        .value = NULL,
+        .body = NULL
+    }
+};
 
 test_http_client_data_t test6_data =
 {
-    .desc = "test 6: Send a request that will invoke a response from the CoAP server with an unsafe option",
-    .req_str = "GET coaps://"SERVER_HOST":12436/"UNSAFE_URI_PATH" HTTP/1.1\r\nContent-Length: 7\r\n\r\nUnsafe!",
-    .start = test6_start,
-    .num_headers = 0,
-    .name = NULL,
-    .value = NULL,
-    .body = NULL
+    .desc = "test 6: Send a request with an unsupported Accept header value",
+    .msg = test6_msg,
+    .num_msg = TEST6_NUM_MSGS
+};
+
+#define TEST7_NUM_MSGS  1
+
+const char *test7_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "502", "Bad Gateway"};
+
+test_http_client_msg_t test7_msg[TEST7_NUM_MSGS] =
+{
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"UNSAFE_URI_PATH" HTTP/1.1\r\nContent-Length: 7\r\n\r\nUnsafe!",
+        .start = test7_start,
+        .num_headers = 0,
+        .name = NULL,
+        .value = NULL,
+        .body = NULL
+    }
+};
+
+test_http_client_data_t test7_data =
+{
+    .desc = "test 7: Send a request that will invoke a response from the CoAP server with an unsafe option",
+    .msg = test7_msg,
+    .num_msg = TEST7_NUM_MSGS
+};
+
+#define TEST8_NUM_MSGS     1
+#define TEST8_NUM_HEADERS  1
+
+const char *test8_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
+const char *test8_name[TEST8_NUM_HEADERS] = {"Content-Length"};
+const char *test8_value[TEST8_NUM_HEADERS] = {"72"};
+
+test_http_client_msg_t test8_msg[TEST8_NUM_MSGS] =
+{
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 0\r\n\r\n",
+        .start = test8_start,
+        .num_headers = TEST8_NUM_HEADERS,
+        .name = test8_name,
+        .value = test8_value,
+        .body = "0123456789abcdefghijABCDEFGHIJasdfghjklpqlfktnghrexi49s1zlkdfiecvntfbghq"
+    }
+};
+
+test_http_client_data_t test8_data =
+{
+    .desc = "test 8: perform a GET request that invokes a blockwise transfer from the server",
+    .msg = test8_msg,
+    .num_msg = TEST8_NUM_MSGS
+};
+
+#define TEST9_NUM_MSGS     2
+#define TEST9_NUM_HEADERS  1
+
+const char *test9_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
+const char *test9_name[TEST9_NUM_HEADERS] = {"Content-Length"};
+const char *test9_value[TEST9_NUM_HEADERS] = {"72"};
+
+test_http_client_msg_t test9_msg[TEST9_NUM_MSGS] =
+{
+    {
+        .req_str = "PUT coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 72\r\n\r\n" \
+                   "cnierugpuedg[sdklgw9045ut6sw]gmk045gtj0gbmw09igh[iwrtjhywpwouihj54giuhsw",
+        .start = test9_start,
+        .num_headers = 0,
+        .name = NULL,
+        .value = NULL,
+        .body = NULL
+    },
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 0\r\n\r\n",
+        .start = test9_start,
+        .num_headers = TEST9_NUM_HEADERS,
+        .name = test9_name,
+        .value = test9_value,
+        .body = "cnierugpuedg[sdklgw9045ut6sw]gmk045gtj0gbmw09igh[iwrtjhywpwouihj54giuhsw"
+    }
+};
+
+test_http_client_data_t test9_data =
+{
+    .desc = "test 9: perform PUT and GET requests that invoke blockwise transfers from the server",
+    .msg = test9_msg,
+    .num_msg = TEST9_NUM_MSGS
+};
+
+#define TEST10_NUM_MSGS     2
+#define TEST10_NUM_HEADERS  1
+
+const char *test10_start[HTTP_MSG_NUM_START] = {"HTTP/1.1", "200", "OK"};
+const char *test10_name[TEST10_NUM_HEADERS] = {"Content-Length"};
+const char *test10_value[TEST10_NUM_HEADERS] = {"72"};
+
+test_http_client_msg_t test10_msg[TEST10_NUM_MSGS] =
+{
+    {
+        .req_str = "POST coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 72\r\n\r\n" \
+                   "982gjwojkdfnsg9aqu84h3t89quagornzggvbjkqnafhjqb34gtuiohaeriuyjboiqgtasdq",
+        .start = test10_start,
+        .num_headers = 0,
+        .name = test10_name,
+        .value = test10_value,
+        .body = "982gjwojkdfnsg9aqu84h3t89quagornzggvbjkqnafhjqb34gtuiohaeriuyjboiqgtasdq"
+    },
+    {
+        .req_str = "GET coaps://"SERVER_HOST":12436/"LIB_LEVEL_BLOCKWISE_URI_PATH" HTTP/1.1\r\nContent-Length: 0\r\n\r\n",
+        .start = test10_start,
+        .num_headers = TEST10_NUM_HEADERS,
+        .name = test10_name,
+        .value = test10_value,
+        .body = "982gjwojkdfnsg9aqu84h3t89quagornzggvbjkqnafhjqb34gtuiohaeriuyjboiqgtasdq"
+    }
+};
+
+test_http_client_data_t test10_data =
+{
+    .desc = "test 10: perform POST and GET requests that invoke blockwise transfers from the server",
+    .msg = test10_msg,
+    .num_msg = TEST10_NUM_MSGS
 };
 
 /**
@@ -181,13 +392,13 @@ tls_client_t client = {0};
  *
  *  @returns Test result
  */
-static test_result_t check_start(test_http_client_data_t *test_data, http_msg_t *msg)
+static test_result_t check_start(test_http_client_msg_t *test_msg, http_msg_t *msg)
 {
     unsigned i = 0;
 
     for (i = 0; i < HTTP_MSG_NUM_START; i++)
     {
-        if (strcmp(http_msg_get_start(msg, i), test_data->start[i]) != 0)
+        if (strcmp(http_msg_get_start(msg, i), test_msg->start[i]) != 0)
         {
             return FAIL;
         }
@@ -229,13 +440,13 @@ static test_result_t check_header(http_msg_t *msg, const char *name, const char 
  *
  *  @returns Test result
  */
-static test_result_t check_headers(test_http_client_data_t *test_data, http_msg_t *msg)
+static test_result_t check_headers(test_http_client_msg_t *test_msg, http_msg_t *msg)
 {
     unsigned i = 0;
 
-    for (i = 0; i < test_data->num_headers; i++)
+    for (i = 0; i < test_msg->num_headers; i++)
     {
-        if (check_header(msg, test_data->name[i], test_data->value[i]) != PASS)
+        if (check_header(msg, test_msg->name[i], test_msg->value[i]) != PASS)
         {
             return FAIL;
         }
@@ -251,11 +462,11 @@ static test_result_t check_headers(test_http_client_data_t *test_data, http_msg_
  *
  *  @returns Test result
  */
-static test_result_t check_body(test_http_client_data_t *test_data, http_msg_t *msg)
+static test_result_t check_body(test_http_client_msg_t *test_msg, http_msg_t *msg)
 {
     size_t len = 0;
 
-    if (test_data->body == NULL)
+    if (test_msg->body == NULL)
     {
         if (http_msg_get_body(msg) != NULL)
         {
@@ -264,7 +475,7 @@ static test_result_t check_body(test_http_client_data_t *test_data, http_msg_t *
     }
     else
     {
-        len = strlen(test_data->body);
+        len = strlen(test_msg->body);
         if (http_msg_get_body(msg) == NULL)
         {
             return FAIL;
@@ -273,12 +484,51 @@ static test_result_t check_body(test_http_client_data_t *test_data, http_msg_t *
         {
             return FAIL;
         }
-        if (memcmp(http_msg_get_body(msg), test_data->body, len) != 0)
+        if (memcmp(http_msg_get_body(msg), test_msg->body, len) != 0)
         {
             return FAIL;
         }
     }
     return PASS;
+}
+
+/**
+ *  @brief Send a reset message to the server
+ *
+ *  @returns Error code
+ *  @retval 0 Success
+ *  @retval <0 Error
+ */
+static test_result_t send_reset(void)
+{
+    const char *str = "GET coaps://"SERVER_HOST":12436/"RESET_URI_PATH" HTTP/1.1\r\n\r\n";
+    tls_sock_t s = {0};
+    char resp_buf[RESP_BUF_LEN] = {0};
+    int ret = 0;
+
+    coap_log_info("Sending reset message to the server via the proxy");
+
+    ret = tls_sock_open(&s, &client, PROXY_HOST, PROXY_PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
+    if (ret != SOCK_OK)
+    {
+        return -1;
+    }
+    ret = tls_sock_write_full(&s, (char *)str, strlen(str));
+    if (ret <= 0)
+    {
+        tls_sock_close(&s);
+        return -1;
+    }
+    coap_log_info("Sent:\n%s", str);
+    ret = tls_sock_read(&s, resp_buf, sizeof(resp_buf));
+    if (ret <= 0)
+    {
+        tls_sock_close(&s);
+        return -1;
+    }
+    coap_log_info("Received:\n%s", resp_buf);
+    tls_sock_close(&s);
+    return 0;
 }
 
 /**
@@ -294,96 +544,35 @@ static test_result_t test_exchange_func(test_data_t data)
     test_result_t result = PASS;
     http_msg_t resp_msg = {{0}};
     tls_sock_t s = {0};
-    char resp_buf[RESP_BUF_LEN] = {0};
-    int ret = 0;
-
-    printf("%s\n", test_data->desc);
-
-    ret = tls_sock_open(&s, &client, PROXY_HOST, PROXY_PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
-    if (ret != SOCK_OK)
-    {
-        return FAIL;
-    }
-    ret = tls_sock_write_full(&s, test_data->req_str, strlen(test_data->req_str));
-    if (ret <= 0)
-    {
-        tls_sock_close(&s);
-        return FAIL;
-    }
-    coap_log_info("Sent: %s", test_data->req_str);
-    ret = tls_sock_read(&s, resp_buf, sizeof(resp_buf));
-    if (ret <= 0)
-    {
-        tls_sock_close(&s);
-        return FAIL;
-    }
-    coap_log_info("Received: %s", resp_buf);
-    http_msg_create(&resp_msg);
-    ret = http_msg_parse(&resp_msg, resp_buf, strlen(resp_buf));
-    if (ret <= 0)
-    {
-        http_msg_destroy(&resp_msg);
-        tls_sock_close(&s);
-        return FAIL;
-    }
-    if (check_start(test_data, &resp_msg) != PASS)
-    {
-        result = FAIL;
-    }
-    if (check_headers(test_data, &resp_msg) != PASS)
-    {
-        result = FAIL;
-    }
-    if (check_body(test_data, &resp_msg) != PASS)
-    {
-        result = FAIL;
-    }
-    http_msg_destroy(&resp_msg);
-    tls_sock_close(&s);
-    return result;
-}
-
-/**
- *  @brief Test a double exchange with the proxy
- *
- *  @param[in] data Pointer to a HTTP client test data structure
- *
- *  @returns Test result
- */
-static test_result_t test_double_exchange_func(test_data_t data)
-{
-    test_http_client_data_t *test_data = (test_http_client_data_t *)data;
-    test_result_t result = PASS;
-    http_msg_t resp_msg = {{0}};
-    tls_sock_t s = {0};
     unsigned i = 0;
     char resp_buf[RESP_BUF_LEN] = {0};
     int ret = 0;
 
     printf("%s\n", test_data->desc);
 
+    send_reset();
+
     ret = tls_sock_open(&s, &client, PROXY_HOST, PROXY_PORT, SERVER_COMMON_NAME, SOCKET_TIMEOUT);
     if (ret != SOCK_OK)
     {
         return FAIL;
     }
-    for (i = 0; i < 2; i++)
+    for (i = 0; i < test_data->num_msg; i++)
     {
-        ret = tls_sock_write_full(&s, test_data->req_str, strlen(test_data->req_str));
+        ret = tls_sock_write_full(&s, test_data->msg[i].req_str, strlen(test_data->msg[i].req_str));
         if (ret <= 0)
         {
             tls_sock_close(&s);
             return FAIL;
         }
-        coap_log_info("Sent: %s", test_data->req_str);
-        memset(resp_buf, 0, sizeof(resp_buf));
+        coap_log_info("Sent:\n%s", test_data->msg[i].req_str);
         ret = tls_sock_read(&s, resp_buf, sizeof(resp_buf));
         if (ret <= 0)
         {
             tls_sock_close(&s);
             return FAIL;
         }
-        coap_log_info("Received: %s", resp_buf);
+        coap_log_info("Received:\n%s", resp_buf);
         http_msg_create(&resp_msg);
         ret = http_msg_parse(&resp_msg, resp_buf, strlen(resp_buf));
         if (ret <= 0)
@@ -392,15 +581,15 @@ static test_result_t test_double_exchange_func(test_data_t data)
             tls_sock_close(&s);
             return FAIL;
         }
-        if (check_start(test_data, &resp_msg) != PASS)
+        if (check_start(&test_data->msg[i], &resp_msg) != PASS)
         {
             result = FAIL;
         }
-        if (check_headers(test_data, &resp_msg) != PASS)
+        if (check_headers(&test_data->msg[i], &resp_msg) != PASS)
         {
             result = FAIL;
         }
-        if (check_body(test_data, &resp_msg) != PASS)
+        if (check_body(&test_data->msg[i], &resp_msg) != PASS)
         {
             result = FAIL;
         }
@@ -432,6 +621,7 @@ static void usage(void)
  */
 int main(int argc, char **argv)
 {
+    const char *gnutls_ver = NULL;
     const char *opts = ":hl:";
     unsigned num_tests = 0;
     unsigned num_pass = 0;
@@ -439,12 +629,16 @@ int main(int argc, char **argv)
     int test_num = 0;
     int ret = 0;
     int c = 0;
-    test_t tests[] = {{test_exchange_func,        &test1_data},
-                      {test_double_exchange_func, &test2_data},
-                      {test_exchange_func,        &test3_data},
-                      {test_exchange_func,        &test4_data},
-                      {test_exchange_func,        &test5_data},
-                      {test_exchange_func,        &test6_data}};
+    test_t tests[] = {{test_exchange_func, &test1_data},
+                      {test_exchange_func, &test2_data},
+                      {test_exchange_func, &test3_data},
+                      {test_exchange_func, &test4_data},
+                      {test_exchange_func, &test5_data},
+                      {test_exchange_func, &test6_data},
+                      {test_exchange_func, &test7_data},
+                      {test_exchange_func, &test8_data},
+                      {test_exchange_func, &test9_data},
+                      {test_exchange_func, &test10_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
@@ -474,6 +668,14 @@ int main(int argc, char **argv)
     }
 
     coap_log_set_level(log_level);
+
+    gnutls_ver = gnutls_check_version(NULL);
+    if (gnutls_ver == NULL)
+    {
+        coap_log_error("Unable to determine GnuTLS version");
+        return EXIT_FAILURE;
+    }
+    coap_log_info("GnuTLS version: %s", gnutls_ver);
 
     ret = tls_init();
     if (ret != SOCK_OK)
@@ -515,8 +717,24 @@ int main(int argc, char **argv)
         num_tests = 1;
         num_pass = test_run(&tests[5], num_tests);
         break;
+    case 7:
+        num_tests = 1;
+        num_pass = test_run(&tests[6], num_tests);
+        break;
+    case 8:
+        num_tests = 1;
+        num_pass = test_run(&tests[7], num_tests);
+        break;
+    case 9:
+        num_tests = 1;
+        num_pass = test_run(&tests[8], num_tests);
+        break;
+    case 10:
+        num_tests = 1;
+        num_pass = test_run(&tests[9], num_tests);
+        break;
     default:
-        num_tests = 6;
+        num_tests = 10;
         num_pass = test_run(tests, num_tests);
     }
 

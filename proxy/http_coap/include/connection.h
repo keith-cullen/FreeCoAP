@@ -34,6 +34,7 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
+#include <stddef.h>
 #include <netinet/in.h>
 #include "coap_client.h"
 #include "tls_sock.h"
@@ -54,6 +55,9 @@ typedef struct
     char *coap_client_host;
     char *coap_client_port;
     coap_client_t coap_client;
+    char *body;
+    size_t body_len;
+    size_t body_end;
 }
 connection_t;
 
