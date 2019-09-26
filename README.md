@@ -75,6 +75,74 @@ $ make install
 Sample Applications
 ===================
 
+To run the transfer_client and transfer_server sample applications with CoAP/IPv4
+---------------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/transfer_server
+
+$ make dtls=n
+
+$ ./transfer_server 0.0.0.0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/transfer_client
+
+$ make dtls=n
+
+$ ./transfer_client 127.0.0.1 10000 filename
+
+To run the transfer_client and transfer_server sample applications with CoAP/DTLS/IPv4
+--------------------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/transfer_server
+
+$ make
+
+$ ./transfer_server 0.0.0.0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/transfer_client
+
+$ make
+
+$ ./transfer_client 127.0.0.1 10000 filename
+
+To run the transfer_client and transfer_server sample applications with CoAP/IPv6
+---------------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/transfer_server
+
+$ make dtls=n ip6=y
+
+$ ./transfer_server ::0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/transfer_client
+
+$ make dtls=n ip6=y
+
+$ ./transfer_client ::1 10000 filename
+
+To run the transfer_client and transfer_server sample applications with CoAP/DTLS/IPv6
+--------------------------------------------------------------------------------------
+
+$ cd FreeCoAP/sample/transfer_server
+
+$ make ip6=y
+
+$ ./transfer_server ::0 10000
+
+(In a different terminal)
+
+$ cd FreeCoAP/sample/transfer_client
+
+$ make ip6=y
+
+$ ./transfer_client ::1 10000 filename
+
 To run the time_client and time_server sample applications with CoAP/IPv4
 -------------------------------------------------------------------------
 
@@ -400,6 +468,50 @@ The client, server and proxy applications will pick up the new keys automaticall
 
 Validation History
 ==================
+
+v0.7-tinydtls
+-------------
+
+HP Pavilion
+-----------
+Ubuntu 16.04
+
+Linux 4.15.0-64-generic #73~16.04.1-Ubuntu SMP Fri Sep 13 09:56:18 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.5.15
+
+tinydtls 0.8.6
+
+BeagleBone Black
+----------------
+Debian 9
+
+Linux beaglebone 4.14.71-ti-r80 #1 SMP PREEMPT Fri Oct 5 23:50:11 UTC 2018 armv7l GNU/Linux
+
+GnuTLS 3.5.8
+
+tinydtls 0.8.6
+
+
+v0.7
+----
+
+HP Pavilion
+-----------
+Ubuntu 16.04
+
+Linux 4.15.0-64-generic #73~16.04.1-Ubuntu SMP Fri Sep 13 09:56:18 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux
+
+GnuTLS 3.5.15
+
+BeagleBone Black
+----------------
+Debian 9
+
+Linux beaglebone 4.14.71-ti-r80 #1 SMP PREEMPT Fri Oct 5 23:50:11 UTC 2018 armv7l GNU/Linux
+
+GnuTLS 3.5.8
+
 
 v0.6-tinydtls
 ------------
