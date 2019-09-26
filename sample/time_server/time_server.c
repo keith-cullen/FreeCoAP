@@ -75,13 +75,13 @@ static int time_server_handle_time(coap_server_trans_t *trans, coap_msg_t *req, 
         ret = coap_msg_add_op(resp, COAP_MSG_URI_PATH, 4, "time");
         if (ret < 0)
         {
-            coap_log_error("Failed to set URI path in response message");
+            coap_log_warn("Failed to set URI path in response message");
             return ret;
         }
         ret = coap_msg_set_payload(resp, payload_buf, strlen(payload_buf));
         if (ret < 0)
         {
-            coap_log_error("Failed to set payload in response message");
+            coap_log_warn("Failed to set payload in response message");
             return ret;
         }
         coap_log_info("Sent response with payload: '%s'", payload_buf);
@@ -98,22 +98,22 @@ static int time_server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_
 
     if (coap_msg_get_ver(req) != COAP_MSG_VER)
     {
-        coap_log_error("Received request message with invalid version: %d", coap_msg_get_ver(req));
+        coap_log_warn("Received request message with invalid version: %d", coap_msg_get_ver(req));
         return -EBADMSG;
     }
     n = coap_msg_uri_path_to_str(req, uri_path_buf, sizeof(uri_path_buf));
     if ((n + 1) > sizeof(uri_path_buf))
     {
-        coap_log_error("URI path buffer too small by %zd bytes", (n + 1) - sizeof(uri_path_buf));
+        coap_log_warn("URI path buffer too small by %zd bytes", (n + 1) - sizeof(uri_path_buf));
         return -ENOSPC;
     }
     coap_log_info("Received request URI path: '%s'", uri_path_buf);
-    if (strcmp(uri_path_buf, "/time") == 0)
+    if (strcmp(uri_path_buf, "/time") != 0)
     {
-        return time_server_handle_time(trans, req, resp);
+        coap_log_warn("URI path not recognised");
+        return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_NOT_FOUND);
     }
-    coap_log_warn("URI path not recognised");
-    return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_NOT_FOUND);
+    return time_server_handle_time(trans, req, resp);
 }
 
 /* one-time initialisation */

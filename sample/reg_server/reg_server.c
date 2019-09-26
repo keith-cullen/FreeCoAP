@@ -122,13 +122,13 @@ static int reg_server_handle_client_id(coap_server_trans_t *trans, coap_msg_t *r
         ret = coap_msg_add_op(resp, COAP_MSG_URI_PATH, 6, "client");
         if (ret < 0)
         {
-            coap_log_error("Failed to set URI path in response message");
+            coap_log_warn("Failed to set URI path in response message");
             return ret;
         }
         ret = coap_msg_add_op(resp, COAP_MSG_URI_PATH, 2, "id");
         if (ret < 0)
         {
-            coap_log_error("Failed to set URI path in response message");
+            coap_log_warn("Failed to set URI path in response message");
             return ret;
         }
         memcpy(payload, "OK", 2);
@@ -136,7 +136,7 @@ static int reg_server_handle_client_id(coap_server_trans_t *trans, coap_msg_t *r
         ret = coap_msg_set_payload(resp, payload, 2);
         if (ret < 0)
         {
-            coap_log_error("Failed to set payload in response message");
+            coap_log_warn("Failed to set payload in response message");
             return ret;
         }
         coap_log_info("Sent %s /client/id response with payload: '%s'",
@@ -154,22 +154,22 @@ static int reg_server_handle(coap_server_trans_t *trans, coap_msg_t *req, coap_m
 
     if (coap_msg_get_ver(req) != COAP_MSG_VER)
     {
-        coap_log_error("Received request message with invalid version: %d", coap_msg_get_ver(req));
+        coap_log_warn("Received request message with invalid version: %d", coap_msg_get_ver(req));
         return -EBADMSG;
     }
     n = coap_msg_uri_path_to_str(req, uri_path, sizeof(uri_path));
     if ((n + 1) > sizeof(uri_path))
     {
-        coap_log_error("URI path buffer too small by %zd bytes", (n + 1) - sizeof(uri_path));
+        coap_log_warn("URI path buffer too small by %zd bytes", (n + 1) - sizeof(uri_path));
         return -ENOSPC;
     }
     coap_log_info("Received request URI path: '%s'", uri_path);
-    if (strcmp(uri_path, "/client/id") == 0)
+    if (strcmp(uri_path, "/client/id") != 0)
     {
-        return reg_server_handle_client_id(trans, req, resp);
+        coap_log_warn("URI path not recognised");
+        return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_NOT_FOUND);
     }
-    coap_log_warn("URI path not recognised");
-    return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_NOT_FOUND);
+    return reg_server_handle_client_id(trans, req, resp);
 }
 
 /* one-time initialisation */
