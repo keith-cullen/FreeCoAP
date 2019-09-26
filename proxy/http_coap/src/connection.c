@@ -419,6 +419,7 @@ static int connection_coap_exchange(connection_t *con, coap_msg_t *req_msg, coap
             {
                 return num;
             }
+            con->body_end = num;
             return 0;
         }
         /* execute regular exchange */
@@ -473,6 +474,7 @@ static int connection_coap_exchange(connection_t *con, coap_msg_t *req_msg, coap
             {
                 return num;
             }
+            con->body_end = num;
             return 0;
         }
         /* execute regular exchange */
