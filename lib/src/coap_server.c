@@ -1631,6 +1631,7 @@ int coap_server_trans_handle_blockwise(coap_server_trans_t *trans,
         return -ENOMEM;
     }
     trans->body_len = coap_mem_large_get_len();
+    memset(trans->body, 0, trans->body_len);
     code_detail = coap_msg_get_code_detail(req);
     if (code_detail == COAP_MSG_GET)
     {

@@ -47,11 +47,13 @@
 #include "coap_log.h"
 #include "raw_keys.h"
 
-#define CONNECTION_MSG_BODY_BUF_SIZE   1024
 #define CONNECTION_DATA_BUF_SIZE       4096
 #define CONNECTION_DATA_BUF_MAX_SIZE   (8 * CONNECTION_DATA_BUF_SIZE)
 #define CONNECTION_DATA_BUF_MIN_SPACE  128
 #define CONNECTION_INT_BUF_LEN         16
+#define CONNECTION_BODY_LEN            8192
+#define CONNECTION_COAP_BLOCK1_SIZE    32
+#define CONNECTION_COAP_BLOCK2_SIZE    32
 
 typedef enum
 {
@@ -363,7 +365,167 @@ static int connection_gen_error_resp(connection_t *con, http_msg_t *msg, unsigne
 /*  return: { 0, success
  *          {<0, error
  */
-static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_msg_t *resp_msg)
+static int connection_coap_exchange(connection_t *con, coap_msg_t *req_msg, coap_msg_t *resp_msg)
+{
+    unsigned code_detail = 0;
+    unsigned code_class = 0;
+    unsigned block_size = 0;
+    unsigned block_more = 0;
+    unsigned block_num = 0;
+    ssize_t num = 0;
+    int ret = 0;
+
+    if (coap_msg_get_code_detail(req_msg) == COAP_MSG_GET)
+    {
+        /* execute regular exchange */
+        coap_log_info("[%u] <%u> %s Sending GET request to CoAP server host %s and port %s",
+                      con->listener_index, con->con_index, con->addr,
+                      con->coap_client_host, con->coap_client_port);
+        ret = coap_client_exchange(&con->coap_client, req_msg, resp_msg);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        ret = coap_msg_parse_block_op(&block_num, &block_more, &block_size, resp_msg, COAP_MSG_BLOCK2);
+        if (ret == 1)  /* not found */
+        {
+            return 0;
+        }
+        if (ret < 0)
+        {
+            return ret;
+        }
+        /* continue using block transfer */
+        coap_log_info("[%u] <%u> %s Continuing GET request using blockwise transfer to CoAP server host %s and port %s",
+                      con->listener_index, con->con_index, con->addr,
+                      con->coap_client_host, con->coap_client_port);
+        num = coap_client_exchange_blockwise(&con->coap_client,
+                                             req_msg, resp_msg,
+                                             block_size,
+                                             block_size,
+                                             con->body, con->body_len,
+                                             /* have_resp */ 1);
+        if (num < 0)
+        {
+            return num;
+        }
+        con->body_end = num;
+    }
+    else if (coap_msg_get_code_detail(req_msg) == COAP_MSG_PUT)
+    {
+        if (con->body_end > 0)
+        {
+            /* execute blockwise exchange */
+            coap_log_info("[%u] <%u> %s Sending PUT request using blockwise transfer to CoAP server host %s and port %s",
+                          con->listener_index, con->con_index, con->addr,
+                          con->coap_client_host, con->coap_client_port);
+            num = coap_client_exchange_blockwise(&con->coap_client,
+                                                 req_msg, resp_msg,
+                                                 CONNECTION_COAP_BLOCK1_SIZE,
+                                                 CONNECTION_COAP_BLOCK2_SIZE,
+                                                 con->body, con->body_end,
+                                                 /* have_resp */ 0);
+            if (num < 0)
+            {
+                return num;
+            }
+            return 0;
+        }
+        /* execute regular exchange */
+        coap_log_info("[%u] <%u> %s Sending PUT request to CoAP server host %s and port %s",
+                      con->listener_index, con->con_index, con->addr,
+                      con->coap_client_host, con->coap_client_port);
+        ret = coap_client_exchange(&con->coap_client, req_msg, resp_msg);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        code_class = coap_msg_get_code_class(resp_msg);
+        code_detail = coap_msg_get_code_detail(resp_msg);
+        if ((code_class == COAP_MSG_CLIENT_ERR)
+         && (code_detail == COAP_MSG_REQ_ENT_TOO_LARGE))
+        {
+            /* retry using block transfer */
+            memcpy(con->body, coap_msg_get_payload(req_msg), coap_msg_get_payload_len(req_msg));
+            con->body_end = coap_msg_get_payload_len(req_msg);
+            coap_msg_clear_payload(req_msg);
+            coap_log_info("[%u] <%u> %s Resending PUT request using blockwise transfer to CoAP server host %s and port %s",
+                          con->listener_index, con->con_index, con->addr,
+                          con->coap_client_host, con->coap_client_port);
+            num = coap_client_exchange_blockwise(&con->coap_client,
+                                                 req_msg, resp_msg,
+                                                 CONNECTION_COAP_BLOCK1_SIZE,
+                                                 CONNECTION_COAP_BLOCK2_SIZE,
+                                                 con->body, con->body_end,
+                                                 /* have_resp */ 0);
+            if (num < 0)
+            {
+                return num;
+            }
+            con->body_end = num;
+        }
+    }
+    else if (coap_msg_get_code_detail(req_msg) == COAP_MSG_POST)
+    {
+        if (con->body_end > 0)
+        {
+            /* execute blockwise exchange */
+            coap_log_info("[%u] <%u> %s Sending POST request using blockwise transfer to CoAP server host %s and port %s",
+                          con->listener_index, con->con_index, con->addr,
+                          con->coap_client_host, con->coap_client_port);
+            num = coap_client_exchange_blockwise(&con->coap_client,
+                                                 req_msg, resp_msg,
+                                                 CONNECTION_COAP_BLOCK1_SIZE,
+                                                 CONNECTION_COAP_BLOCK2_SIZE,
+                                                 con->body, con->body_end,
+                                                 /* have_resp */ 0);
+            if (num < 0)
+            {
+                return num;
+            }
+            return 0;
+        }
+        /* execute regular exchange */
+        coap_log_info("[%u] <%u> %s Sending POST request to CoAP server host %s and port %s",
+                      con->listener_index, con->con_index, con->addr,
+                      con->coap_client_host, con->coap_client_port);
+        ret = coap_client_exchange(&con->coap_client, req_msg, resp_msg);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        code_class = coap_msg_get_code_class(resp_msg);
+        code_detail = coap_msg_get_code_detail(resp_msg);
+        if ((code_class == COAP_MSG_CLIENT_ERR)
+         && (code_detail == COAP_MSG_REQ_ENT_TOO_LARGE))
+        {
+            /* retry using block transfer */
+            memcpy(con->body, coap_msg_get_payload(req_msg), coap_msg_get_payload_len(req_msg));
+            con->body_end = coap_msg_get_payload_len(req_msg);
+            coap_msg_clear_payload(req_msg);
+            coap_log_info("[%u] <%u> %s Resending POST request using blockwise transfer to CoAP server host %s and port %s",
+                          con->listener_index, con->con_index, con->addr,
+                          con->coap_client_host, con->coap_client_port);
+            num = coap_client_exchange_blockwise(&con->coap_client,
+                                                 req_msg, resp_msg,
+                                                 CONNECTION_COAP_BLOCK1_SIZE,
+                                                 CONNECTION_COAP_BLOCK2_SIZE,
+                                                 con->body, con->body_end,
+                                                 /* have_resp */ 0);
+            if (num < 0)
+            {
+                return num;
+            }
+            con->body_end = num;
+        }
+    }
+    return 0;
+}
+
+/*  return: { 0, success
+ *          {<0, error
+ */
+static int connection_process(connection_t *con, http_msg_t *req_msg, http_msg_t *resp_msg)
 {
     coap_msg_t coap_resp_msg = {0};
     coap_msg_t coap_req_msg = {0};
@@ -372,7 +534,7 @@ static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_
     int ret = 0;
 
     coap_msg_create(&coap_req_msg);
-    ret = cross_req_http_to_coap(&coap_req_msg, req_msg, &code);
+    ret = cross_req_http_to_coap(&coap_req_msg, con->body, con->body_len, &con->body_end, req_msg, &code);
     if (ret < 0)
     {
         coap_log_error("[%u] <%u> %s Failed to convert HTTP message to CoAP message: %s",
@@ -423,7 +585,7 @@ static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_
     }
     uri_destroy(&uri);
     coap_msg_create(&coap_resp_msg);
-    ret = coap_client_exchange(&con->coap_client, &coap_req_msg, &coap_resp_msg);
+    ret = connection_coap_exchange(con, &coap_req_msg, &coap_resp_msg);
     coap_msg_destroy(&coap_req_msg);
     if (ret < 0)
     {
@@ -454,7 +616,7 @@ static int connection_process_full(connection_t *con, http_msg_t *req_msg, http_
         coap_msg_destroy(&coap_resp_msg);
         return ret;
     }
-    ret = cross_resp_coap_to_http(resp_msg, &coap_resp_msg, &code);
+    ret = cross_resp_coap_to_http(resp_msg, &coap_resp_msg, con->body, con->body_end, &code);
     coap_msg_destroy(&coap_resp_msg);
     if (ret < 0)
     {
@@ -482,7 +644,7 @@ static int __connection_exchange(connection_t *con, http_msg_t *req_msg, http_ms
     }
 
     /* process request and generate response */
-    ret = connection_process_full(con, req_msg, resp_msg);
+    ret = connection_process(con, req_msg, resp_msg);
     if (ret < 0)
     {
         return ret;
@@ -511,6 +673,9 @@ static int connection_exchange(connection_t *con)
 
     coap_log_notice("[%u] <%u> %s Transaction with HTTP client started",
                     con->listener_index, con->con_index, con->addr);
+
+    memset(con->body, 0, con->body_len);
+    con->body_end = 0;
 
     http_msg_create(&req_msg);
     http_msg_create(&resp_msg);
@@ -625,6 +790,18 @@ connection_t *connection_new(tls_sock_t *sock, unsigned listener_index, unsigned
         return NULL;
     }
     con->param = param;
+    con->body = (char *)malloc(CONNECTION_BODY_LEN);
+    if (con->body == NULL)
+    {
+        coap_log_error("[%u] <%u> Out of memory",
+                       listener_index, con_index);
+        data_buf_destroy(&con->send_buf);
+        data_buf_destroy(&con->recv_buf);
+        free(con);
+        return NULL;
+    }
+    con->body_len = CONNECTION_BODY_LEN;
+    con->body_end = 0;
     return con;
 }
 
@@ -636,6 +813,7 @@ void connection_delete(connection_t *con)
     }
     data_buf_destroy(&con->send_buf);
     data_buf_destroy(&con->recv_buf);
+    free(con->body);
     tls_sock_close(con->sock);
     free(con->sock);
     free(con);
