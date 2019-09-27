@@ -492,6 +492,16 @@ GnuTLS 3.5.8
 
 tinydtls 0.8.6
 
+Raspberry Pi 3 model B
+----------------------
+Raspbian buster
+
+Linux raspberrypi 4.19.57-v7+ #1244 SMP Thu Jul 4 18:45:25 BST 2019 armv7l GNU/Linux
+
+GnuTLS 3.6.7
+
+tinydtls 0.8.6
+
 
 v0.7
 ----
@@ -511,6 +521,14 @@ Debian 9
 Linux beaglebone 4.14.71-ti-r80 #1 SMP PREEMPT Fri Oct 5 23:50:11 UTC 2018 armv7l GNU/Linux
 
 GnuTLS 3.5.8
+
+Raspberry Pi 3 model B
+----------------------
+Raspbian buster
+
+Linux raspberrypi 4.19.57-v7+ #1244 SMP Thu Jul 4 18:45:25 BST 2019 armv7l GNU/Linux
+
+GnuTLS 3.6.7
 
 
 v0.6-tinydtls
