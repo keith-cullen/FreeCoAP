@@ -34,25 +34,13 @@ PROG = time_client
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
 
-main.o: main.c $(INCS)
-	$(CC_) $(CFLAGS) -c main.c
+%.o: %.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-time_client.o: time_client.c $(INCS)
-	$(CC_) $(CFLAGS) -c time_client.c
-
-coap_client.o: $(S1)/coap_client.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_client.c
-
-coap_msg.o: $(S1)/coap_msg.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
-
-coap_mem.o: $(S1)/coap_mem.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
-
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
+%.o: $(S1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
 clean:
 	$(RM) $(PROG) $(OBJS)

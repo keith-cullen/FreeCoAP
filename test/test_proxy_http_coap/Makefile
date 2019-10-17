@@ -4,12 +4,12 @@ endif
 ifeq ($(coap_ip6),y)
 COAP_IP6_CFLAGS = -DCOAP_IP6
 endif
-I1=../../lib/include
-S1=../../lib/src
-I2=../../proxy/common/include
-S2=../../proxy/common/src
-I3=../../proxy/http_coap/include
-S3=../../proxy/http_coap/src
+I1 = ../../lib/include
+S1 = ../../lib/src
+I2 = ../../proxy/common/include
+S2 = ../../proxy/common/src
+I3 = ../../proxy/http_coap/include
+S3 = ../../proxy/http_coap/src
 CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
@@ -69,61 +69,22 @@ PROG = test_proxy_http_coap
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
 
-proxy.o: $(S3)/proxy.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S3)/proxy.c
+%.o: %.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_client.o: $(S1)/coap_client.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_client.c
+%.o: $(S1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_msg.o: $(S1)/coap_msg.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
+%.o: $(S2)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_mem.o: $(S1)/coap_mem.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
+%.o: $(S3)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
-
-listener.o: $(S3)/listener.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S3)/listener.c
-
-connection.o: $(S3)/connection.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S3)/connection.c
-
-param.o: $(S3)/param.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S3)/param.c
-
-http_msg.o: $(S2)/http_msg.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/http_msg.c
-
-uri.o: $(S2)/uri.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/uri.c
-
-cross.o: $(S2)/cross.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/cross.c
-
-tls.o: $(S2)/tls.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/tls.c
-
-sock.o: $(S2)/sock.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/sock.c
-
-tls_sock.o: $(S2)/tls_sock.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/tls_sock.c
-
-config.o: $(S2)/config.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/config.c
-
-data_buf.o: $(S2)/data_buf.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/data_buf.c
-
-util.o: $(S2)/util.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/util.c
-
-thread.o: $(S2)/thread.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/thread.c
+%.o: $(T1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
 clean:
 	$(RM) $(PROG) $(OBJS)

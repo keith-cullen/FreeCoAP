@@ -37,11 +37,19 @@
 #include <errno.h>
 #include <sys/types.h>
 #include "cross.h"
+#include "coap_mem.h"
 #include "coap_log.h"
 #include "test.h"
 
 #undef DEBUG
 #define DIM(x) (sizeof(x) / sizeof(x[0]))                                       /**< Calculate the size of an array */
+
+#define SMALL_BUF_NUM   128                                                     /**< Number of buffers in the small memory allocator */
+#define SMALL_BUF_LEN   256                                                     /**< Length of each buffer in the small memory allocator */
+#define MEDIUM_BUF_NUM  128                                                     /**< Number of buffers in the medium memory allocator */
+#define MEDIUM_BUF_LEN  1024                                                    /**< Length of each buffer in the medium memory allocator */
+#define LARGE_BUF_NUM   32                                                      /**< Number of buffers in the large memory allocator */
+#define LARGE_BUF_LEN   8192                                                    /**< Length of each buffer in the large memory allocator */
 
 /**
  *  @brief CoAP message option test data structure
@@ -72,6 +80,9 @@ typedef struct
     unsigned num_coap_ops;                                                      /**< Size of the array of CoAP message option test data structures */
     char *coap_payload;                                                         /**< Buffer containing a CoAP payload */
     size_t coap_payload_len;                                                    /**< Length of the buffer containing a CoAP payload */
+    char *coap_body;                                                            /**< Buffer containing a CoAP body */
+    size_t coap_body_len;                                                       /**< Length of the buffer containing a CoAP body */
+    size_t coap_body_end;                                                       /**< End of the buffer containing a CoAP body */
 }
 test_cross_data_t;
 
@@ -126,7 +137,10 @@ test_cross_data_t test1_data =
     .coap_ops = test1_coap_ops,
     .num_coap_ops = DIM(test1_coap_ops),
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_coap_msg_op_t test2_coap_ops[] =
@@ -183,7 +197,10 @@ test_cross_data_t test2_data =
     .coap_ops = test2_coap_ops,
     .num_coap_ops = DIM(test2_coap_ops),
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_cross_data_t test3_data =
@@ -200,7 +217,10 @@ test_cross_data_t test3_data =
     .coap_ops = NULL,
     .num_coap_ops = 0,
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_coap_msg_op_t test4_coap_ops[] =
@@ -227,7 +247,10 @@ test_cross_data_t test4_data =
     .coap_ops = test4_coap_ops,
     .num_coap_ops = DIM(test4_coap_ops),
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_coap_msg_op_t test5_coap_ops[] =
@@ -254,7 +277,10 @@ test_cross_data_t test5_data =
     .coap_ops = test5_coap_ops,
     .num_coap_ops = DIM(test5_coap_ops),
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_coap_msg_op_t test6_coap_ops[] =
@@ -282,7 +308,10 @@ test_cross_data_t test6_data =
     .coap_ops = test6_coap_ops,
     .num_coap_ops = DIM(test6_coap_ops),
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_coap_msg_op_t test7_coap_ops[] =
@@ -309,7 +338,10 @@ test_cross_data_t test7_data =
     .coap_ops = test7_coap_ops,
     .num_coap_ops = DIM(test7_coap_ops),
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_coap_msg_op_t test8_coap_ops[] =
@@ -339,6 +371,7 @@ test_coap_msg_op_t test8_coap_ops[] =
         .val = "0"
     }
 };
+
 char test8_coap_payload[] = "body";
 
 test_cross_data_t test8_data =
@@ -354,7 +387,10 @@ test_cross_data_t test8_data =
     .coap_ops = test8_coap_ops,
     .num_coap_ops = DIM(test8_coap_ops),
     .coap_payload = test8_coap_payload,
-    .coap_payload_len = sizeof(test8_coap_payload) - 1  /* -1 for the terminating '\0' */
+    .coap_payload_len = sizeof(test8_coap_payload) - 1,  /* -1 for the terminating '\0' */
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_cross_data_t test9_data =
@@ -370,7 +406,10 @@ test_cross_data_t test9_data =
     .coap_ops = NULL,
     .num_coap_ops = 0,
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_cross_data_t test10_data =
@@ -386,7 +425,10 @@ test_cross_data_t test10_data =
     .coap_ops = NULL,
     .num_coap_ops = 0,
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_cross_data_t test11_data =
@@ -402,10 +444,80 @@ test_cross_data_t test11_data =
     .coap_ops = NULL,
     .num_coap_ops = 0,
     .coap_payload = NULL,
-    .coap_payload_len = 0
+    .coap_payload_len = 0,
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
 };
 
 test_coap_msg_op_t test12_coap_ops[] =
+{
+    [0] =
+    {
+        .num = COAP_MSG_ETAG,
+        .len = 6,
+        .val = "abc123"
+    },
+    [1] =
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = 8,
+        .val = "resource"
+    },
+    [2] =
+    {
+        .num = COAP_MSG_MAX_AGE,
+        .len = 2,
+        .val = "60"
+    },
+    [3] =
+    {
+        .num = COAP_MSG_ACCEPT,
+        .len = 1,
+        .val = "0"
+    }
+};
+
+char test12_coap_body[] =
+"1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+"1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+"1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+"1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+"1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+"1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+"1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+"1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+"1";
+
+test_cross_data_t test12_data =
+{
+    .http_to_coap_desc = "Test 19: Convert a HTTP request message to a CoAP request message with a body",
+    .str = "GET coap:///resource HTTP/1.1\r\nContent-Length: 1025\r\nEtag: abc123\r\nCache-Control: max-age=60\r\nAccept: text/plain\r\n\r\n" \
+           "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+           "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+           "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+           "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+           "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+           "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+           "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+           "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" \
+           "1",
+    .cross_ret = 0,
+    .cross_code = 0,
+    .coap_ver = COAP_MSG_VER,
+    .coap_type = CROSS_COAP_REQ_TYPE,
+    .coap_code_class = COAP_MSG_REQ,
+    .coap_code_detail = COAP_MSG_GET,
+    .coap_ops = test12_coap_ops,
+    .num_coap_ops = DIM(test12_coap_ops),
+    .coap_payload = NULL,
+    .coap_payload_len = 0,
+    .coap_body = test12_coap_body,
+    .coap_body_len = sizeof(test12_coap_body) - 1,  /* -1 for the terminating '\0' */
+    .coap_body_end = sizeof(test12_coap_body) - 1   /* -1 for the terminating '\0' */
+};
+
+test_coap_msg_op_t test13_coap_ops[] =
 {
     [0] =
     {
@@ -426,11 +538,12 @@ test_coap_msg_op_t test12_coap_ops[] =
         .val = "0"
     }
 };
-char test12_coap_payload[] = "body";
 
-test_cross_data_t test12_data =
+char test13_coap_payload[] = "body";
+
+test_cross_data_t test13_data =
 {
-    .http_to_coap_desc = "Test 19: Convert a CoAP response message to a HTTP response message",
+    .http_to_coap_desc = "Test 20: Convert a CoAP response message to a HTTP response message",
     .str = "HTTP/1.1 200 OK\r\nEtag: abc123\r\nCache-Control: max-age=60\r\nAccept: text/plain\r\nContent-Length: 4\r\n\r\nbody",
     .cross_ret = 0,
     .cross_code = 0,
@@ -438,10 +551,56 @@ test_cross_data_t test12_data =
     .coap_type = CROSS_COAP_REQ_TYPE,
     .coap_code_class = COAP_MSG_SUCCESS,
     .coap_code_detail = COAP_MSG_CONTENT,
-    .coap_ops = test12_coap_ops,
-    .num_coap_ops = DIM(test12_coap_ops),
-    .coap_payload = test12_coap_payload,
-    .coap_payload_len = sizeof(test12_coap_payload) - 1  /* -1 for the terminating '\0' */
+    .coap_ops = test13_coap_ops,
+    .num_coap_ops = DIM(test13_coap_ops),
+    .coap_payload = test13_coap_payload,
+    .coap_payload_len = sizeof(test13_coap_payload) - 1,  /* -1 for the terminating '\0' */
+    .coap_body = NULL,
+    .coap_body_len = 0,
+    .coap_body_end = 0
+};
+
+test_coap_msg_op_t test14_coap_ops[] =
+{
+    [0] =
+    {
+        .num = COAP_MSG_ETAG,
+        .len = 6,
+        .val = "abc123"
+    },
+    [1] =
+    {
+        .num = COAP_MSG_MAX_AGE,
+        .len = 2,
+        .val = "60"
+    },
+    [2] =
+    {
+        .num = COAP_MSG_ACCEPT,
+        .len = 1,
+        .val = "0"
+    }
+};
+
+char test14_coap_body[] = "body";
+
+test_cross_data_t test14_data =
+{
+    .http_to_coap_desc = "Test 21: Convert a CoAP response message with a body to a HTTP response message",
+    .str = "HTTP/1.1 200 OK\r\nEtag: abc123\r\nCache-Control: max-age=60\r\nAccept: text/plain\r\nContent-Length: 4\r\n\r\nbody",
+    .cross_ret = 0,
+    .cross_code = 0,
+    .coap_ver = COAP_MSG_VER,
+    .coap_type = CROSS_COAP_REQ_TYPE,
+    .coap_code_class = COAP_MSG_SUCCESS,
+    .coap_code_detail = COAP_MSG_CONTENT,
+    .coap_ops = test14_coap_ops,
+    .num_coap_ops = DIM(test14_coap_ops),
+    .coap_payload = NULL,
+    .coap_payload_len = 0,
+    .coap_body = test14_coap_body,
+    .coap_body_len = sizeof(test14_coap_body) - 1,  /* -1 for the terminating '\0' */
+    .coap_body_end = sizeof(test14_coap_body) - 1   /* -1 for the terminating '\0' */
 };
 
 /**
@@ -581,6 +740,8 @@ test_result_t test_msg_http_to_coap_func(test_data_t data)
     unsigned code = 0;
     unsigned i = 0;
     ssize_t num = 0;
+    size_t coap_body_end = 0;
+    char coap_body[test_data->coap_body_len];
     int ret = 0;
 
     printf("%s\n", test_data->http_to_coap_desc);
@@ -598,7 +759,7 @@ test_result_t test_msg_http_to_coap_func(test_data_t data)
     coap_msg_create(&coap_msg);
 
     /* convert the HTTP message to a CoAP message */
-    ret = cross_req_http_to_coap(&coap_msg, &http_msg, &code);
+    ret = cross_req_http_to_coap(&coap_msg, coap_body, sizeof(coap_body), &coap_body_end, &http_msg, &code);
     if (ret != test_data->cross_ret)
     {
         result = FAIL;
@@ -676,7 +837,17 @@ test_result_t test_msg_http_to_coap_func(test_data_t data)
     {
         result = FAIL;
     }
-
+    if (test_data->coap_body != NULL)
+    {
+        if (memcmp(coap_body, test_data->coap_body, test_data->coap_body_end) != 0)
+        {
+            result = FAIL;
+        }
+    }
+    if (coap_body_end != test_data->coap_body_end)
+    {
+        result = FAIL;
+    }
     coap_msg_destroy(&coap_msg);
     http_msg_destroy(&http_msg);
     return result;
@@ -724,16 +895,19 @@ test_result_t test_msg_coap_to_http_func(test_data_t data)
             return FAIL;
         }
     }
-    ret = coap_msg_set_payload(&coap_msg, test_data->coap_payload, test_data->coap_payload_len);
-    if (ret < 0)
+    if (test_data->coap_payload != NULL)
     {
-        coap_msg_destroy(&coap_msg);
-        return FAIL;
+        ret = coap_msg_set_payload(&coap_msg, test_data->coap_payload, test_data->coap_payload_len);
+        if (ret < 0)
+        {
+            coap_msg_destroy(&coap_msg);
+            return FAIL;
+        }
     }
 
     http_msg_create(&http_msg);
 
-    ret = cross_resp_coap_to_http(&http_msg, &coap_msg, &code);
+    ret = cross_resp_coap_to_http(&http_msg, &coap_msg, test_data->coap_body, test_data->coap_body_end, &code);
     if (ret != test_data->cross_ret)
     {
         result = FAIL;
@@ -784,12 +958,24 @@ int main(void)
                       {test_msg_http_to_coap_func, &test9_data},
                       {test_msg_http_to_coap_func, &test10_data},
                       {test_msg_http_to_coap_func, &test11_data},
-                      {test_msg_coap_to_http_func, &test12_data}};
+                      {test_msg_http_to_coap_func, &test12_data},
+                      {test_msg_coap_to_http_func, &test13_data},
+                      {test_msg_coap_to_http_func, &test14_data}};
+
     unsigned num_tests = DIM(tests);
     unsigned num_pass = 0;
+    int ret = 0;
 
     coap_log_set_level(COAP_LOG_ERROR);
+    ret = coap_mem_all_create(SMALL_BUF_NUM, SMALL_BUF_LEN,
+                              MEDIUM_BUF_NUM, MEDIUM_BUF_LEN,
+                              LARGE_BUF_NUM, LARGE_BUF_LEN);
+    if (ret < 0)
+    {
+        coap_log_error("%s", strerror(-ret));
+        return EXIT_FAILURE;
+    }
     num_pass = test_run(tests, num_tests);
-
+    coap_mem_all_destroy();
     return num_pass == num_tests ? EXIT_SUCCESS : EXIT_FAILURE;
 }
