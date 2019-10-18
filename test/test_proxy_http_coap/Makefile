@@ -4,13 +4,16 @@ endif
 ifeq ($(coap_ip6),y)
 COAP_IP6_CFLAGS = -DCOAP_IP6
 endif
-I1=../../lib/include
-S1=../../lib/src
-I2=../../proxy/common/include
-S2=../../proxy/common/src
-I3=../../proxy/http_coap/include
-S3=../../proxy/http_coap/src
+I1 = ../../lib/include
+S1 = ../../lib/src
+I2 = ../../proxy/common/include
+S2 = ../../proxy/common/src
+I3 = ../../proxy/http_coap/include
+S3 = ../../proxy/http_coap/src
 D1 = ../../org.eclipse.tinydtls
+D2 = $(D1)/aes
+D3 = $(D1)/ecc
+D4 = $(D1)/sha2
 K1 = ../raw_keys
 CC_ ?= gcc
 CFLAGS = -Wall \
@@ -18,6 +21,9 @@ CFLAGS = -Wall \
          -I$(I2) \
          -I$(I3) \
          -I$(D1) \
+         -I$(D2) \
+         -I$(D3) \
+         -I$(D4) \
          -I$(K1) \
          -DCOAP_PROXY \
          -DCOAP_DTLS_EN \
@@ -64,9 +70,9 @@ INCS = $(I1)/coap_client.h \
        $(D1)/tinydtls.h \
        $(D1)/uthash.h \
        $(D1)/utlist.h \
-       $(D1)/aes/rijndael.h \
-       $(D1)/ecc/ecc.h \
-       $(D1)/sha2/sha2.h \
+       $(D2)/rijndael.h \
+       $(D3)/ecc.h \
+       $(D4)/sha2.h \
        $(K1)/raw_keys.h
 OBJS = proxy.o \
        coap_client.o \
@@ -108,103 +114,37 @@ PROG = test_proxy_http_coap
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
 
-proxy.o: $(S3)/proxy.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S3)/proxy.c
+%.o: %.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_client.o: $(S1)/coap_client.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_client.c
+%.o: $(S1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_msg.o: $(S1)/coap_msg.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
+%.o: $(S2)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_mem.o: $(S1)/coap_mem.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
+%.o: $(S3)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
+%.o: $(D1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-listener.o: $(S3)/listener.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S3)/listener.c
+%.o: $(D2)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-connection.o: $(S3)/connection.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S3)/connection.c
+%.o: $(D3)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-param.o: $(S3)/param.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S3)/param.c
+%.o: $(D4)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-http_msg.o: $(S2)/http_msg.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/http_msg.c
+%.o: $(K1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-uri.o: $(S2)/uri.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/uri.c
-
-cross.o: $(S2)/cross.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/cross.c
-
-tls.o: $(S2)/tls.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/tls.c
-
-sock.o: $(S2)/sock.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/sock.c
-
-tls_sock.o: $(S2)/tls_sock.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/tls_sock.c
-
-config.o: $(S2)/config.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/config.c
-
-data_buf.o: $(S2)/data_buf.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/data_buf.c
-
-util.o: $(S2)/util.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/util.c
-
-thread.o: $(S2)/thread.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/thread.c
-
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
-
-ccm.o: $(D1)/ccm.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/ccm.c
-
-crypto.o: $(D1)/crypto.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/crypto.c
-
-dtls.o: $(D1)/dtls.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/dtls.c
-
-dtls_debug.o: $(D1)/dtls_debug.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/dtls_debug.c
-
-dtls_time.o: $(D1)/dtls_time.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/dtls_time.c
-
-hmac.o: $(D1)/hmac.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/hmac.c
-
-netq.o: $(D1)/netq.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/netq.c
-
-peer.o: $(D1)/peer.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/peer.c
-
-session.o: $(D1)/session.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/session.c
-
-rijndael.o: $(D1)/aes/rijndael.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/aes/rijndael.c
-
-ecc.o: $(D1)/ecc/ecc.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/ecc/ecc.c
-
-sha2.o: $(D1)/sha2/sha2.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/sha2/sha2.c
-
-raw_keys.o: $(K1)/raw_keys.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(K1)/raw_keys.c
+%.o: $(T1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
 clean:
 	$(RM) $(PROG) $(OBJS)

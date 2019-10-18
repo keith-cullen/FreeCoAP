@@ -23,7 +23,7 @@ An implementation of the CoAP protocol for GNU/Linux consisting of:
 
 - more than 10,000 lines of unit test code
 
-Copyright (c) 2015 - 2017 Keith Cullen
+Copyright (c) 2015 - 2019 Keith Cullen
 
 Released under a BSD style license.
 

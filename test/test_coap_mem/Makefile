@@ -19,19 +19,16 @@ PROG = test_coap_mem
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
 
-test_coap_mem.o: test_coap_mem.c $(INCS)
-	$(CC_) $(CFLAGS) -c test_coap_mem.c
+%.o: %.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_mem.o: $(S1)/coap_mem.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
+%.o: $(S1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
-
-test.o: $(T1)/test.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(T1)/test.c
+%.o: $(T1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
 clean:
 	$(RM) $(PROG) $(OBJS)

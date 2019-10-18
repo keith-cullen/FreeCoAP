@@ -1,10 +1,10 @@
 ifeq ($(ip6),y)
 IP6_CFLAGS = -DSOCK_IP6
 endif
-I1=../../lib/include
-S1=../../lib/src
-I2=../../proxy/common/include
-S2=../../proxy/common/src
+I1 = ../../lib/include
+S1 = ../../lib/src
+I2 = ../../proxy/common/include
+S2 = ../../proxy/common/src
 CC_ ?= gcc
 CFLAGS = -Wall \
          -I$(I1) \
@@ -33,25 +33,19 @@ PROG = test_tls_server
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
 
-test_tls_server.o: test_tls_server.c $(INCS)
-	$(CC_) $(CFLAGS) -c test_tls_server.c
+%.o: %.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-tls_sock.o: $(S2)/tls_sock.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/tls_sock.c
+%.o: $(S1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-sock.o: $(S2)/sock.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/sock.c
+%.o: $(S2)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-tls.o: $(S2)/tls.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/tls.c
-
-util.o: $(S2)/util.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S2)/util.c
-
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
+%.o: $(T1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
 clean:
 	$(RM) $(PROG) $(OBJS)

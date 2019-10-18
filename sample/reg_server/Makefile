@@ -3,11 +3,17 @@ IP6_CFLAGS = -DCOAP_IP6
 endif
 ifneq ($(dtls),n)
 D1 = ../../org.eclipse.tinydtls
+D2 = $(D1)/aes
+D3 = $(D1)/ecc
+D4 = $(D1)/sha2
 K1 = ../../test/raw_keys
 DTLS_CFLAGS = -DCOAP_DTLS_EN \
               -DWITH_SHA256 \
-              -I $(D1) \
-              -I $(K1)
+              -I$(D1) \
+              -I$(D2) \
+              -I$(D3) \
+              -I$(D4) \
+              -I$(K1)
 DTLS_INCS = $(D1)/alert.h \
             $(D1)/ccm.h \
             $(D1)/crypto.h \
@@ -26,9 +32,9 @@ DTLS_INCS = $(D1)/alert.h \
             $(D1)/tinydtls.h \
             $(D1)/uthash.h \
             $(D1)/utlist.h \
-            $(D1)/aes/rijndael.h \
-            $(D1)/ecc/ecc.h \
-            $(D1)/sha2/sha2.h \
+            $(D2)/rijndael.h \
+            $(D3)/ecc.h \
+            $(D4)/sha2.h \
             $(K1)/raw_keys.h
 DTLS_OBJS = ccm.o \
             crypto.o \
@@ -74,67 +80,28 @@ PROG = reg_server
 RM = /bin/rm -f
 
 $(PROG): $(OBJS)
-	$(LD_) $(LDFLAGS) $(OBJS) -o $(PROG) $(LIBS)
+	$(LD_) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
 
-main.o: main.c $(INCS)
-	$(CC_) $(CFLAGS) -c main.c
+%.o: %.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-reg_server.o: reg_server.c $(INCS)
-	$(CC_) $(CFLAGS) -c reg_server.c
+%.o: $(S1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-registrar.o: registrar.c $(INCS)
-	$(CC_) $(CFLAGS) -c registrar.c
+%.o: $(D1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_server.o: $(S1)/coap_server.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_server.c
+%.o: $(D2)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_msg.o: $(S1)/coap_msg.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_msg.c
+%.o: $(D3)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_mem.o: $(S1)/coap_mem.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_mem.c
+%.o: $(D4)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
-coap_log.o: $(S1)/coap_log.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(S1)/coap_log.c
-
-ccm.o: $(D1)/ccm.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/ccm.c
-
-crypto.o: $(D1)/crypto.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/crypto.c
-
-dtls.o: $(D1)/dtls.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/dtls.c
-
-dtls_debug.o: $(D1)/dtls_debug.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/dtls_debug.c
-
-dtls_time.o: $(D1)/dtls_time.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/dtls_time.c
-
-hmac.o: $(D1)/hmac.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/hmac.c
-
-netq.o: $(D1)/netq.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/netq.c
-
-peer.o: $(D1)/peer.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/peer.c
-
-session.o: $(D1)/session.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/session.c
-
-rijndael.o: $(D1)/aes/rijndael.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/aes/rijndael.c
-
-ecc.o: $(D1)/ecc/ecc.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/ecc/ecc.c
-
-sha2.o: $(D1)/sha2/sha2.c $(INCS)
-	$(CC_) $(CFLAGS) -c $(D1)/sha2/sha2.c
-
-raw_keys.o: $(K1)/raw_keys.c $(NCS)
-	$(CC_) $(CFLAGS) -c $(K1)/raw_keys.c
+%.o: $(K1)/%.c $(INCS)
+	$(CC_) $(CFLAGS) -c $<
 
 clean:
 	$(RM) $(PROG) $(OBJS)
