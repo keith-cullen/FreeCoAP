@@ -751,3 +751,19 @@ Ubuntu 15.04
 Linux 3.19.0-15-generic #15-Ubuntu SMP Thu Apr 16 23:32:37 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
 
 GnuTLS 3.2.0
+
+
+Rust Bindings
+=============
+
+$ cd FreeCoAP
+
+$ autoreconf --install
+
+$ configure
+
+$ make
+
+$ cd rust-bindings
+
+$ cargo test

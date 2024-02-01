@@ -1,0 +1,6 @@
+#include "../lib/include/coap_client.h"
+#include "../lib/include/coap_ipv.h"
+#include "../lib/include/coap_log.h"
+#include "../lib/include/coap_mem.h"
+#include "../lib/include/coap_msg.h"
+#include "../lib/include/coap_server.h"
