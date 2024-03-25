@@ -87,7 +87,7 @@ static char regular_buf[REGULAR_BUF_LEN] = {0};
 /**
  *  @brief Buffer used for application-level blockwise transfers
  */
-static char *app_level_blockwise_def_val = "";
+static char app_level_blockwise_def_val[APP_LEVEL_BLOCKWISE_BUF_LEN] = {0};
 static char app_level_blockwise_buf[APP_LEVEL_BLOCKWISE_BUF_LEN] = {0};
 
 /**
@@ -358,7 +358,10 @@ static int server_handle_regular(coap_server_trans_t *trans, coap_msg_t *req, co
             return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_REQ_ENT_TOO_LARGE);
         }
         memset(regular_buf, 0, sizeof(regular_buf));
-        memcpy(regular_buf, coap_msg_get_payload(req), coap_msg_get_payload_len(req));
+        if (coap_msg_get_payload(req) != NULL)
+        {
+            memcpy(regular_buf, coap_msg_get_payload(req), coap_msg_get_payload_len(req));
+        }
         return coap_msg_set_code(resp, COAP_MSG_SUCCESS, COAP_MSG_CHANGED);
     }
     coap_log_warn("Received request message with unsupported code detail: %d", code_detail);
