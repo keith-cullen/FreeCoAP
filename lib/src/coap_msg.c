@@ -458,7 +458,7 @@ int coap_msg_parse_type_msg_id(char *buf, size_t len, unsigned *type, unsigned *
         return -EBADMSG;
     }
     *type = (buf[0] >> 4) & 0x03;
-    *msg_id = ntohs(*((uint16_t *)(&buf[2])));
+    *msg_id = ((uint16_t)(unsigned char)buf[2] << 8) | (uint16_t)(unsigned char)buf[3];
     return 0;
 }
 
@@ -501,7 +501,7 @@ static ssize_t coap_msg_parse_hdr(coap_msg_t *msg, char *buf, size_t len)
     {
         return -EBADMSG;
     }
-    msg->msg_id = ntohs(*((uint16_t *)(&p[2])));
+    msg->msg_id = ((uint16_t)(unsigned char)p[2] << 8) | (uint16_t)(unsigned char)p[3];
     p += 4;
     len -= 4;
     return p - buf;
@@ -576,7 +576,7 @@ static ssize_t coap_msg_parse_op(coap_msg_t *msg, char *buf, size_t len)
         {
             return -EBADMSG;
         }
-        op_delta = 269 + ntohs(*((uint16_t *)(&p[0])));
+        op_delta = 269 + (((uint16_t)(unsigned char)p[0] << 8) | (uint16_t)(unsigned char)p[1]);
         p += 2;
         len -= 2;
     }
@@ -596,7 +596,7 @@ static ssize_t coap_msg_parse_op(coap_msg_t *msg, char *buf, size_t len)
         {
             return -EBADMSG;
         }
-        op_len = 269 + ntohs(*((uint16_t *)(&p[0])));
+        op_len = 269 + (((uint16_t)(unsigned char)p[0] << 8) | (uint16_t)(unsigned char)p[1]);
         p += 2;
         len -= 2;
     }
