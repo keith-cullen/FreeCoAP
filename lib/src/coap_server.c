@@ -52,13 +52,13 @@
 #include "coap_mem.h"
 #include "coap_log.h"
 
-#define COAP_SERVER_ACK_TIMEOUT_SEC             2                               /**< Minimum delay to wait before retransmitting a confirmable message */
+#define COAP_SERVER_ACK_TIMEOUT_SEC             5                               /**< Minimum delay to wait before retransmitting a confirmable message */
 #define COAP_SERVER_MAX_RETRANSMIT              4                               /**< Maximum number of times a confirmable message can be retransmitted */
 
 #ifdef COAP_DTLS_EN
 
 #define COAP_SERVER_DTLS_MTU                    COAP_MSG_MAX_BUF_LEN            /**< Maximum transmission unit excluding the UDP and IPv6 headers */
-#define COAP_SERVER_DTLS_RETRANS_TIMEOUT        1000                            /**< Retransmission timeout (msec) for the DTLS handshake */
+#define COAP_SERVER_DTLS_RETRANS_TIMEOUT        4000                            /**< Retransmission timeout (msec) for the DTLS handshake */
 #define COAP_SERVER_DTLS_TOTAL_TIMEOUT          60000                           /**< Total timeout (msec) for the DTLS handshake */
 #define COAP_SERVER_DTLS_HANDSHAKE_ATTEMPTS     60                              /**< Maximum number of DTLS handshake attempts */
 #define COAP_SERVER_DTLS_NUM_DH_BITS            1024                            /**< DTLS Diffie-Hellman key size */
@@ -406,8 +406,14 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
         errno = 0;
         ret = gnutls_handshake(trans->session);
         coap_log_debug("DTLS handshake result: %s", gnutls_strerror_name(ret));
-        if ((errno != 0) && (errno != EAGAIN))
+        if (    (errno != 0) 
+            &&  (errno != EAGAIN) 
+            &&  (ret != GNUTLS_E_AGAIN) 
+            &&  (ret != GNUTLS_E_PUSH_ERROR) 
+            &&  (ret != GNUTLS_E_PULL_ERROR) 
+            &&  (ret != GNUTLS_E_PREMATURE_TERMINATION))
         {
+            coap_log_error("DTLS: Handshake for (%s,%d) failed due to: %s", trans->client_addr, trans->client_sin.sin_port, gnutls_strerror_name(ret));
             return -errno;
         }
         if (ret == GNUTLS_E_SUCCESS)
@@ -439,7 +445,10 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
                 coap_log_warn("Received DTLS alert from the client: %s", alert_name);
             return -ECONNRESET;
         }
-        if (ret != GNUTLS_E_AGAIN)
+        if (    (ret != GNUTLS_E_AGAIN)
+            &&  (ret != GNUTLS_E_PUSH_ERROR) 
+            &&  (ret != GNUTLS_E_PULL_ERROR) 
+            &&  (ret != GNUTLS_E_PREMATURE_TERMINATION))
         {
             coap_log_error("Failed to complete DTLS handshake: %s", gnutls_strerror_name(ret));
             return -1;
@@ -447,7 +456,7 @@ static int coap_server_trans_dtls_handshake(coap_server_trans_t *trans)
         if (i < COAP_SERVER_DTLS_HANDSHAKE_ATTEMPTS - 1)
         {
             timeout = gnutls_dtls_get_timeout(trans->session);
-            coap_log_debug("Handshake timeout: %u msec", timeout);
+            coap_log_debug("Handshake(%i) timeout: %u msec", i, timeout);
             ret = coap_server_trans_dtls_listen_timeout(trans, timeout);
             if (ret < 0)
             {
@@ -2269,7 +2278,7 @@ static int coap_server_exchange(coap_server_t *server)
         }
         ret = coap_server_trans_create(trans, server, &client_sin, client_sin_len);
         if (ret < 0)
-        {
+        { 
             return ret;
         }
 #ifdef COAP_DTLS_EN
