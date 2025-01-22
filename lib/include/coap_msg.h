@@ -43,6 +43,7 @@
 #define COAP_MSG_MAX_CODE_DETAIL                    31                          /**< Maximum code detail */
 #define COAP_MSG_MAX_MSG_ID                         ((1 << 16) - 1)             /**< Maximum message ID */
 
+#define COAP_MSG_OP_MAX_COUNT                       32                          /**< Maximum number of options in a message */
 #define COAP_MSG_OP_URI_PATH_MAX_LEN                256                         /**< Maximum buffer length for a reconstructed URI path */
 #define COAP_MSG_OP_MAX_BLOCK_VAL_LEN               3                           /**< Maximum buffer length for a Block1 or Block2 option value */
 #define COAP_MSG_OP_MAX_BLOCK_SIZE                  (1 << 10)                   /**< Maximum block size for a Block1 or Block2 option */

@@ -440,6 +440,7 @@ static unsigned coap_msg_count_op(coap_msg_t *msg, unsigned num)
 {
     coap_msg_op_t *op = NULL;
     unsigned count = 0;
+
     op = coap_msg_get_first_op(msg);
     while (op != NULL)
     {
@@ -677,14 +678,15 @@ static ssize_t coap_msg_parse_op(coap_msg_t *msg, char *buf, size_t len)
  */
 static ssize_t coap_msg_parse_ops(coap_msg_t *msg, char *buf, size_t len)
 {
+    unsigned i = 0;
     ssize_t num = 0;
     char *p = buf;
 
-    while (1)
+    for (i = 0; i <= COAP_MSG_OP_MAX_COUNT; i++)  /* need one extra iteration to process 0xff */
     {
         if (((p[0] & 0xff) == 0xff) || (len == 0))
         {
-            break;
+            return p - buf;
         }
         num = coap_msg_parse_op(msg, p, len);
         if (num < 0)
@@ -694,7 +696,7 @@ static ssize_t coap_msg_parse_ops(coap_msg_t *msg, char *buf, size_t len)
         p += num;
         len -= num;
     }
-    return p - buf;
+    return -EBADMSG;
 }
 
 int coap_msg_parse_block_op(unsigned *num, unsigned *more, unsigned *size, coap_msg_t *msg, int type)
