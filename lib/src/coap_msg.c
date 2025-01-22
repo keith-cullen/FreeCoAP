@@ -88,6 +88,21 @@ int coap_msg_op_num_is_recognized(unsigned num)
     return 0;
 }
 
+int coap_msg_op_num_is_repeatable(unsigned num)
+{
+    switch (num)
+    {
+    case COAP_MSG_IF_MATCH:
+    case COAP_MSG_ETAG:
+    case COAP_MSG_LOCATION_PATH:
+    case COAP_MSG_URI_PATH:
+    case COAP_MSG_URI_QUERY:
+    case COAP_MSG_LOCATION_QUERY:
+        return 1;
+    }
+    return 0;
+}
+
 int coap_msg_op_calc_block_szx(unsigned size)
 {
     int szx = -EINVAL;
@@ -413,6 +428,30 @@ static int coap_msg_check(coap_msg_t *msg)
     return 0;
 }
 
+/**
+ *  @brief Count the number of occurrences of an option in a message
+ *
+ *  @param[in] msg Pointer to message structure
+ *  @param[in] num Option number
+ *
+ *  @returns Count value
+ */
+static unsigned coap_msg_count_op(coap_msg_t *msg, unsigned num)
+{
+    coap_msg_op_t *op = NULL;
+    unsigned count = 0;
+    op = coap_msg_get_first_op(msg);
+    while (op != NULL)
+    {
+        if (coap_msg_op_get_num(op) == num)
+        {
+            count++;
+        }
+        op = coap_msg_op_get_next(op);
+    }
+    return count;
+}
+
 unsigned coap_msg_check_critical_ops(coap_msg_t *msg)
 {
     coap_msg_op_t *op = NULL;
@@ -422,10 +461,13 @@ unsigned coap_msg_check_critical_ops(coap_msg_t *msg)
     while (op != NULL)
     {
         num = coap_msg_op_get_num(op);
-        if ((coap_msg_op_num_is_critical(num))
-         && (!coap_msg_op_num_is_recognized(num)))
+        if (coap_msg_op_num_is_critical(num))
         {
-            return num;  /* fail */
+            if ((!coap_msg_op_num_is_recognized(num))
+             || ((!coap_msg_op_num_is_repeatable(num)) && (coap_msg_count_op(msg, num) > 1)))
+            {
+                return num;  /* fail */
+            }
         }
         op = coap_msg_op_get_next(op);
     }

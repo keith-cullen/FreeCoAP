@@ -239,6 +239,17 @@ coap_msg_t;
 int coap_msg_op_num_is_recognized(unsigned num);
 
 /**
+ *  @brief Check if option is repeatable
+ *
+ *  @param[in] num Option number
+ *
+ *  @returns Operation status
+ *  @retval 1 Option is repeatable
+ *  @retval 0 Option is not repeatable
+ */
+int coap_msg_op_num_is_repeatable(unsigned num);
+
+/**
  *  @brief Calculate block size exponent from block size
  *
  *  @param[in] size Block size
