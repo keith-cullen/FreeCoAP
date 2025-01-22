@@ -2103,6 +2103,148 @@ test_coap_client_data_t test20_data =
     .body_len = 0
 };
 
+#define TEST21_NUM_MSG      1
+#define TEST21_REQ_OP1_LEN  1
+#define TEST21_REQ_OP2_LEN  1
+#define TEST21_NUM_OPS      2
+
+char test21_req_op1_val[TEST21_REQ_OP1_LEN + 1] = "x";
+char test21_req_op2_val[TEST21_REQ_OP2_LEN + 1] = "y";
+
+test_coap_client_msg_op_t test21_req_ops[TEST21_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_CONTENT_FORMAT,  /* non-repeatable, non-critical option */
+        .len = TEST21_REQ_OP1_LEN,
+        .val = test21_req_op1_val
+    },
+    {
+        .num = COAP_MSG_CONTENT_FORMAT,  /* non-repeatable, non-critical option */
+        .len = TEST21_REQ_OP1_LEN,
+        .val = test21_req_op1_val
+    }
+};
+
+test_coap_client_msg_t test21_req[TEST21_NUM_MSG] =
+{
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_GET,
+        .ops = test21_req_ops,
+        .num_ops = TEST21_NUM_OPS,
+        .payload = NULL,
+        .payload_len = 0,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    }
+};
+
+test_coap_client_msg_t test21_resp[TEST21_NUM_MSG] =
+{
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CONTENT,
+        .ops = NULL,
+        .num_ops = 0,
+        .payload = "qwertyuiopasdfgh",
+        .payload_len = 16,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    }
+};
+
+test_coap_client_data_t test21_data =
+{
+    .desc = "test 21: send a confirmable GET request with multiple, non-repeatable, non-critical options",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
+    .test_req = test21_req,
+    .test_resp = test21_resp,
+    .num_msg = TEST21_NUM_MSG,
+    .body = NULL,
+    .body_len = 0
+};
+
+#define TEST22_NUM_MSG      1
+#define TEST22_REQ_OP1_LEN  REGULAR_URI_PATH_LEN
+#define TEST22_REQ_OP2_LEN  REGULAR_URI_PATH_LEN
+#define TEST22_NUM_OPS      2
+
+char test22_req_op1_val[TEST22_REQ_OP1_LEN + 1] = REGULAR_URI_PATH;
+char test22_req_op2_val[TEST22_REQ_OP2_LEN + 1] = REGULAR_URI_PATH;
+
+test_coap_client_msg_op_t test22_req_ops[TEST22_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_URI_HOST,  /* non-repeatable, critical option */
+        .len = TEST22_REQ_OP1_LEN,
+        .val = test22_req_op1_val
+    },
+    {
+        .num = COAP_MSG_URI_HOST,  /* non-repeatable, critical option */
+        .len = TEST22_REQ_OP1_LEN,
+        .val = test22_req_op1_val
+    }
+};
+
+test_coap_client_msg_t test22_req[TEST22_NUM_MSG] =
+{
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_GET,
+        .ops = test22_req_ops,
+        .num_ops = TEST22_NUM_OPS,
+        .payload = NULL,
+        .payload_len = 0,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    }
+};
+
+test_coap_client_msg_t test22_resp[TEST22_NUM_MSG] =
+{
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_CLIENT_ERR,
+        .code_detail = COAP_MSG_BAD_OPTION,
+        .ops = NULL,
+        .num_ops = 0,
+        .payload = "Bad option number: 3",
+        .payload_len = 20,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    }
+};
+
+test_coap_client_data_t test22_data =
+{
+    .desc = "test 22: send a confirmable GET request with multiple, non-repeatable, critical options",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
+    .test_req = test22_req,
+    .test_resp = test22_resp,
+    .num_msg = TEST22_NUM_MSG,
+    .body = NULL,
+    .body_len = 0
+};
+
 /**
  *  @brief Print a CoAP message
  *
@@ -2826,7 +2968,9 @@ int main(int argc, char **argv)
                       {test_exchange_blockwise_func, &test17_data},
                       {test_exchange_blockwise_func, &test18_data},
                       {test_exchange_func,           &test19_data},
-                      {test_exchange_func,           &test20_data}};
+                      {test_exchange_func,           &test20_data},
+                      {test_exchange_func,           &test21_data},
+                      {test_exchange_func,           &test22_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
@@ -2958,8 +3102,16 @@ int main(int argc, char **argv)
         num_tests = 1;
         num_pass = test_run(&tests[19], num_tests);
         break;
+    case 21:
+        num_tests = 1;
+        num_pass = test_run(&tests[20], num_tests);
+        break;
+    case 22:
+        num_tests = 1;
+        num_pass = test_run(&tests[21], num_tests);
+        break;
     default:
-        num_tests = 20;
+        num_tests = 22;
         num_pass = test_run(tests, num_tests);
     }
     coap_mem_all_destroy();
