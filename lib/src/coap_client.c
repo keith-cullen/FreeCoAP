@@ -1827,6 +1827,7 @@ static ssize_t coap_client_exchange_blockwise2(coap_client_t *client,
     unsigned block2_len = 0;
     size_t block2_start = 0;
     char block_val[COAP_MSG_OP_MAX_BLOCK_VAL_LEN] = {0};
+    char *payload = NULL;
     int block2_szx = -1;
     int ret = 0;
 
@@ -1946,10 +1947,14 @@ static ssize_t coap_client_exchange_blockwise2(coap_client_t *client,
             coap_msg_destroy(&msg);
             return -ENOSPC;
         }
-        /* copy the payload data from the response */
-        memcpy(body + block2_start, coap_msg_get_payload(resp), payload_len);
-        /* advance to the next block */
-        block2_start += payload_len;
+        payload = coap_msg_get_payload(resp);
+        if ((payload != NULL) && (payload_len > 0))
+        {
+            /* copy the payload data from the response */
+            memcpy(body + block2_start, payload, payload_len);
+            /* advance to the next block */
+            block2_start += payload_len;
+        }
         /* check for completion */
         if (block2_more == 0)
         {
