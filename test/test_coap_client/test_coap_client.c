@@ -1532,7 +1532,7 @@ test_coap_client_data_t test14_data =
     .body_len = TEST14_BODY_LEN
 };
 
-#define TEST15_NUM_MSG       2
+#define TEST15_NUM_MSG       1
 #define TEST15_REQ_OP1_LEN   LIB_LEVEL_BLOCKWISE_URI_PATH_LEN
 #define TEST15_NUM_REQ_OPS   1
 #define TEST15_RESP_OP1_LEN  3
@@ -1540,7 +1540,7 @@ test_coap_client_data_t test14_data =
 #define TEST15_BODY_LEN      72
 
 char test15_req_op1_val[TEST15_REQ_OP1_LEN + 1] = LIB_LEVEL_BLOCKWISE_URI_PATH;
-char test15_resp_op1_val[TEST15_RESP_OP1_LEN] =  {0x00, 0x00, 0x21};  /* num: 2, more: 0, size: 32 */
+char test15_resp_op1_val[TEST15_RESP_OP1_LEN] =  {0x00, 0x00, 0x01};  /* num: 0, more: 0, size: 32 */
 
 test_coap_client_msg_op_t test15_req_ops[TEST15_NUM_REQ_OPS] =
 {
@@ -1560,33 +1560,12 @@ test_coap_client_msg_op_t test15_resp_ops1[TEST15_NUM_RESP_OPS] =
     }
 };
 
-test_coap_client_msg_op_t test15_resp_ops2[TEST15_NUM_RESP_OPS] =
-{
-    {
-        .num = COAP_MSG_BLOCK2,
-        .len = TEST15_RESP_OP1_LEN,
-        .val = test15_resp_op1_val
-    }
-};
-
 test_coap_client_msg_t test15_req[TEST15_NUM_MSG] =
 {
     {
         .type = COAP_MSG_CON,
         .code_class = COAP_MSG_REQ,
         .code_detail = COAP_MSG_PUT,
-        .ops = test15_req_ops,
-        .num_ops = TEST15_NUM_REQ_OPS,
-        .payload = NULL,
-        .payload_len = 0,
-        .block1_size = 64,
-        .block2_size = 64,
-        .body_end = 0
-    },
-    {
-        .type = COAP_MSG_CON,
-        .code_class = COAP_MSG_REQ,
-        .code_detail = COAP_MSG_GET,
         .ops = test15_req_ops,
         .num_ops = TEST15_NUM_REQ_OPS,
         .payload = NULL,
@@ -1601,8 +1580,8 @@ test_coap_client_msg_t test15_resp[TEST15_NUM_MSG] =
 {
     {
         .type = COAP_MSG_ACK,
-        .code_class = COAP_MSG_SUCCESS,
-        .code_detail = COAP_MSG_CHANGED,
+        .code_class = COAP_MSG_CLIENT_ERR,
+        .code_detail = COAP_MSG_REQ_ENT_TOO_LARGE,
         .ops = test15_resp_ops1,
         .num_ops = TEST15_NUM_RESP_OPS,
         .payload = NULL,
@@ -1610,24 +1589,12 @@ test_coap_client_msg_t test15_resp[TEST15_NUM_MSG] =
         .block1_size = 0,
         .block2_size = 0,
         .body_end = 0
-    },
-    {
-        .type = COAP_MSG_ACK,
-        .code_class = COAP_MSG_SUCCESS,
-        .code_detail = COAP_MSG_CONTENT,
-        .ops = test15_resp_ops2,
-        .num_ops = TEST15_NUM_RESP_OPS,
-        .payload = "dkfsgj12",  /* partial last block */
-        .payload_len = 8,
-        .block1_size = 0,
-        .block2_size = 0,
-        .body_end = TEST15_BODY_LEN
     }
 };
 
 test_coap_client_data_t test15_data =
 {
-    .desc = "test 15: perform PUT and GET library-level blockwise transfers in which the server has the smaller block1 and block2 size-exponent values",
+    .desc = "test 15: perform a PUT library-level blockwise transfer in which the server has the smaller block1 size-exponent value",
     .host = HOST,
     .port = PORT,
     .key_file_name = KEY_FILE_NAME,
@@ -2241,6 +2208,234 @@ test_coap_client_data_t test22_data =
     .test_req = test22_req,
     .test_resp = test22_resp,
     .num_msg = TEST22_NUM_MSG,
+    .body = NULL,
+    .body_len = 0
+};
+
+#define TEST23_NUM_MSG       4
+#define TEST23_REQ_OP1_LEN   LIB_LEVEL_BLOCKWISE_URI_PATH_LEN
+#define TEST23_REQ_OP2_LEN   3
+#define TEST23_REQ_OP3_LEN   3
+#define TEST23_REQ_OP4_LEN   3
+#define TEST23_REQ_OP5_LEN   3
+#define TEST23_REQ_OP6_LEN   3
+#define TEST23_REQ_NUM_OPS1  2
+#define TEST23_REQ_NUM_OPS2  2
+#define TEST23_REQ_NUM_OPS3  2
+#define TEST23_REQ_NUM_OPS4  2
+#define TEST23_RESP_OP_LEN   3
+#define TEST23_RESP_NUM_OPS  1
+
+char test23_req_op1_val[TEST23_REQ_OP1_LEN + 1] = LIB_LEVEL_BLOCKWISE_URI_PATH;
+char test23_req_op2_val[TEST10_REQ_OP2_LEN] =  {0x00, 0x00, 0x08};  /* PUT num: 0, more: 1, size: 16 */
+char test23_req_op3_val[TEST10_REQ_OP3_LEN] =  {0x00, 0x00, 0x10};  /* PUT num: 1, more: 0, size: 16 */
+char test23_req_op4_val[TEST23_REQ_OP4_LEN] =  {0x00, 0x00, 0x00};  /* GET num: 0, more: 0, size: 16 */
+char test23_req_op5_val[TEST23_REQ_OP5_LEN] =  {0x00, 0x00, 0x11};  /* GET num: 1, more: 0, size: 32 */
+
+char test23_resp_op1_val[TEST23_RESP_OP_LEN] =  {0x00, 0x00, 0x08};  /* PUT num: 0, more: 0, size: 16 */
+char test23_resp_op2_val[TEST23_RESP_OP_LEN] =  {0x00, 0x00, 0x10};  /* PUT num: 1, more: 0, size: 16 */
+char test23_resp_op3_val[TEST23_RESP_OP_LEN] =  {0x00, 0x00, 0x08};  /* GET num: 0, more: 0, size: 16 */
+
+test_coap_client_msg_op_t test23_req_ops1[TEST23_REQ_NUM_OPS1] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST23_REQ_OP1_LEN,
+        .val = test23_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST23_REQ_OP2_LEN,
+        .val = test23_req_op2_val
+    }
+};
+
+test_coap_client_msg_op_t test23_req_ops2[TEST23_REQ_NUM_OPS2] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST23_REQ_OP1_LEN,
+        .val = test23_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST23_REQ_OP3_LEN,
+        .val = test23_req_op3_val
+    }
+};
+
+test_coap_client_msg_op_t test23_req_ops3[TEST23_REQ_NUM_OPS3] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST23_REQ_OP1_LEN,
+        .val = test23_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST23_REQ_OP4_LEN,
+        .val = test23_req_op4_val
+    }
+};
+
+test_coap_client_msg_op_t test23_req_ops4[TEST23_REQ_NUM_OPS4] =
+{
+    {
+        .num = COAP_MSG_URI_PATH,
+        .len = TEST23_REQ_OP1_LEN,
+        .val = test23_req_op1_val
+    },
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST23_REQ_OP5_LEN,
+        .val = test23_req_op5_val
+    }
+};
+
+test_coap_client_msg_op_t test23_resp_ops1[TEST23_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST23_RESP_OP_LEN,
+        .val = test23_resp_op1_val
+    }
+};
+
+test_coap_client_msg_op_t test23_resp_ops2[TEST23_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK1,
+        .len = TEST23_RESP_OP_LEN,
+        .val = test23_resp_op2_val
+    }
+};
+
+test_coap_client_msg_op_t test23_resp_ops3[TEST23_RESP_NUM_OPS] =
+{
+    {
+        .num = COAP_MSG_BLOCK2,
+        .len = TEST23_RESP_OP_LEN,
+        .val = test23_resp_op3_val
+    }
+};
+
+test_coap_client_msg_t test23_req[TEST23_NUM_MSG] =
+{
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_PUT,
+        .ops = test23_req_ops1,
+        .num_ops = TEST23_REQ_NUM_OPS1,
+        .payload = "0123456789abcdef",
+        .payload_len = 16,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_PUT,
+        .ops = test23_req_ops2,
+        .num_ops = TEST23_REQ_NUM_OPS2,
+        .payload = "ABCDEFGHIJKLMNOP",
+        .payload_len = 16,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_GET,
+        .ops = test23_req_ops3,
+        .num_ops = TEST23_REQ_NUM_OPS3,
+        .payload = NULL,
+        .payload_len = 0,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    },
+    {
+        .type = COAP_MSG_CON,
+        .code_class = COAP_MSG_REQ,
+        .code_detail = COAP_MSG_GET,
+        .ops = test23_req_ops4,
+        .num_ops = TEST23_REQ_NUM_OPS4,
+        .payload = NULL,
+        .payload_len = 0,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    }
+};
+
+test_coap_client_msg_t test23_resp[TEST23_NUM_MSG] =
+{
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CONTINUE,
+        .ops = test23_resp_ops1,
+        .num_ops = TEST23_RESP_NUM_OPS,
+        .payload = NULL,
+        .payload_len = 0,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    },
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CHANGED,
+        .ops = test23_resp_ops2,
+        .num_ops = TEST23_RESP_NUM_OPS,
+        .payload = NULL,
+        .payload_len = 0,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    },
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_SUCCESS,
+        .code_detail = COAP_MSG_CONTINUE,
+        .ops = test23_resp_ops3,
+        .num_ops = TEST23_RESP_NUM_OPS,
+        .payload = "0123456789abcdef",
+        .payload_len = 16,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    },
+    {
+        .type = COAP_MSG_ACK,
+        .code_class = COAP_MSG_CLIENT_ERR,
+        .code_detail = COAP_MSG_BAD_REQ,
+        .ops = NULL,
+        .num_ops = 0,
+        .payload = NULL,
+        .payload_len = 0,
+        .block1_size = 0,
+        .block2_size = 0,
+        .body_end = 0
+    }
+};
+
+test_coap_client_data_t test23_data =
+{
+    .desc = "test 23: perform a GET library-level blockwise transfer in which the client increases the block2 size-exponent value",
+    .host = HOST,
+    .port = PORT,
+    .key_file_name = KEY_FILE_NAME,
+    .cert_file_name = CERT_FILE_NAME,
+    .trust_file_name = TRUST_FILE_NAME,
+    .crl_file_name = CRL_FILE_NAME,
+    .common_name = COMMON_NAME,
+    .test_req = test23_req,
+    .test_resp = test23_resp,
+    .num_msg = TEST23_NUM_MSG,
     .body = NULL,
     .body_len = 0
 };
@@ -2970,7 +3165,8 @@ int main(int argc, char **argv)
                       {test_exchange_func,           &test19_data},
                       {test_exchange_func,           &test20_data},
                       {test_exchange_func,           &test21_data},
-                      {test_exchange_func,           &test22_data}};
+                      {test_exchange_func,           &test22_data},
+                      {test_exchange_func,           &test23_data}};
 
     opterr = 0;
     while ((c = getopt(argc, argv, opts)) != -1)
@@ -3110,8 +3306,12 @@ int main(int argc, char **argv)
         num_tests = 1;
         num_pass = test_run(&tests[21], num_tests);
         break;
+    case 23:
+        num_tests = 1;
+        num_pass = test_run(&tests[22], num_tests);
+        break;
     default:
-        num_tests = 22;
+        num_tests = 23;
         num_pass = test_run(tests, num_tests);
     }
     coap_mem_all_destroy();
