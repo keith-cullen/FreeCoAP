@@ -1374,8 +1374,33 @@ static int coap_server_trans_handle_next_block(coap_server_trans_t *trans, coap_
         coap_server_trans_clear_blockwise(trans);
         return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
     }
-    if ((ret == 0) && (block1_size < trans->block1_size))
+    if (ret == 0)  /* block1 option found */
     {
+        /* the client SHOULD heed the preference indicated and, for all further
+         * blocks, use the block size perferred by the server or a smaller one
+         */
+        if (block1_size > trans->block1_size)
+        {
+            coap_log_info("Invalid block1 size in message from address %s and port %u",
+                        trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+            /* a 4.13 response with a smaller size in its block1 option is a hint to try a smaller size */
+            ret = coap_msg_op_format_block_val(block_val, sizeof(block_val), 0, 0, trans->block1_size);
+            if (ret < 0)
+            {
+                coap_log_warn("Failed to format block1 option value, size %u", trans->block1_size);
+                coap_server_trans_clear_blockwise(trans);
+                return ret;
+            }
+            block_len = ret;
+            ret = coap_msg_add_op(resp, COAP_MSG_BLOCK1, block_len, block_val);
+            if (ret < 0)
+            {
+                coap_server_trans_clear_blockwise(trans);
+                return ret;
+            }
+            coap_server_trans_clear_blockwise(trans);
+            return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_REQ_ENT_TOO_LARGE);
+        }
         trans->block1_size = block1_size;
     }
     ret = coap_msg_parse_block_op(&block2_num, &block2_more, &block2_size, req, COAP_MSG_BLOCK2);
@@ -1386,9 +1411,32 @@ static int coap_server_trans_handle_next_block(coap_server_trans_t *trans, coap_
         coap_server_trans_clear_blockwise(trans);
         return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
     }
-    if ((ret == 0) && (block2_size < trans->block2_size))
+    if (ret == 0)  /* block2 option found */
     {
-        trans->block2_size = block2_size;
+        /* to influence the block size used in a response, the requester MAY also use the
+         * block2 option on the initial request, giving the desired size, a server MUST use
+         * the block size indicated or a smaller size, any further block-wise requests for
+         * blocks beyond the first one MUST indicate the same block size that was used by
+         * the server in the response for the first request that gave a desired size using
+         * a block2 option
+         */
+        if (block2_num == 0)
+        {
+            if (block2_size < trans->block2_size)
+            {
+                trans->block2_size = block2_size;
+            }
+        }
+        else
+        {
+            if (block2_size != trans->block2_size)
+            {
+                coap_log_info("Invalid block2 size in message from address %s and port %u",
+                            trans->client_addr, ntohs(trans->client_sin.COAP_IPV_SIN_PORT));
+                coap_server_trans_clear_blockwise(trans);
+                return coap_msg_set_code(resp, COAP_MSG_CLIENT_ERR, COAP_MSG_BAD_REQ);
+            }
+        }
     }
     coap_msg_uri_path_to_str(req, block_uri, sizeof(block_uri));
     if ((trans->type == COAP_SERVER_TRANS_BLOCKWISE_GET)
