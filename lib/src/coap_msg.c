@@ -221,7 +221,7 @@ static coap_msg_op_t *coap_msg_op_new(unsigned num, unsigned len, const char *va
     op->val = (char *)coap_mem_medium_alloc(len);
     if (op->val == NULL)
     {
-        coap_mem_medium_free(op);
+        coap_mem_small_free(op);
         return NULL;
     }
     memcpy(op->val, val, len);
